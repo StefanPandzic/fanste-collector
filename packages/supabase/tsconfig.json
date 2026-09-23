@@ -1,0 +1,4 @@
+{
+  "extends": "@fanste/config/tsconfig.library.json",
+  "include": ["src"]
+}

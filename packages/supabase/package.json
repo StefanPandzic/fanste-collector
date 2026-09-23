@@ -1,0 +1,19 @@
+{
+  "name": "@fanste/supabase",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Supabase client factory and generated database types.",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@fanste/config": "workspace:*",
+    "eslint": "^9.39.5",
+    "typescript": "~6.0.3"
+  }
+}

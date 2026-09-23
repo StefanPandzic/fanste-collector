@@ -1,0 +1,10 @@
+{
+  "$schema": "https://json.schemastore.org/tsconfig",
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    // Shared packages are compiled from source by their consumers (Next.js `transpilePackages`,
+    // Electron bundler), which resolve `@/` against the *consumer's* tsconfig. Disabling the alias
+    // here makes packages use relative imports so they work wherever they are imported.
+    "paths": {}
+  }
+}

@@ -1,0 +1,39 @@
+{
+  "name": "@fanste/config",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./tsconfig.base.json": "./tsconfig.base.json",
+    "./tsconfig.library.json": "./tsconfig.library.json",
+    "./eslint/base": "./eslint/base.js",
+    "./eslint/react": "./eslint/react.js",
+    "./tailwind/theme.css": "./tailwind/theme.css"
+  },
+  "scripts": {
+    "lint": "eslint ."
+  },
+  "dependencies": {
+    "@eslint/js": "^9.39.5",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-import-x": "^4.17.1",
+    "eslint-plugin-react": "^7.37.5",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "globals": "^17.12.0",
+    "typescript-eslint": "^8.70.1"
+  },
+  "peerDependencies": {
+    "eslint": "^9.39.0",
+    "tailwindcss": "^4.0.0",
+    "typescript": "~6.0.0"
+  },
+  "peerDependenciesMeta": {
+    "tailwindcss": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "eslint": "^9.39.5",
+    "typescript": "~6.0.3"
+  }
+}
