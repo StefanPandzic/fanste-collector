@@ -34,6 +34,39 @@ cp .env.example .env.local   # then fill in the values (see comments in the file
 | Desktop | `pnpm --filter desktop dev` | FC-03          |
 | All     | `pnpm dev`                  |                |
 
+The web app runs at <http://localhost:3000>. Other scripts: `pnpm --filter web build` / `start`.
+
+### Web app (`apps/web`)
+
+Next.js (App Router) app. It is the browser client, the UI loaded by the Electron desktop shell, and the API gateway
+(`/api/*`, FC-08).
+
+```
+apps/web/src/
+├─ app/
+│  ├─ (auth)/        # sign-in, sign-up — public pages
+│  ├─ (app)/         # dashboard, collection, search, scanner, export, settings — app shell (sidebar + topbar)
+│  └─ api/           # API gateway route handlers — FC-08
+├─ components/
+│  ├─ ui/            # shadcn/ui components (generated, see below)
+│  └─ app-shell/     # sidebar, topbar, nav, theme toggle
+├─ features/         # feature modules (hooks, components, logic) — added by later tasks
+├─ env/              # typed env vars (zod): `server.ts` (secrets), `client.ts` (NEXT_PUBLIC_*)
+└─ lib/              # small helpers, e.g. `platform.ts` (`isDesktop()`)
+```
+
+- **Env vars** are read from the **repository root** `.env.local` (and `.env`, `.env.development`, …). Next.js
+  normally only reads env files from the app directory, so `next.config.ts` loads the root ones too. Import
+  `serverEnv` from `@/env/server` (server code only) or `clientEnv` from `@/env/client` — never read `process.env`
+  directly. Invalid values fail `dev`/`build` at startup.
+- **Desktop-only UI:** `useIsDesktop()` / `<DesktopOnly>` detect the Electron preload bridge (`window.fanste`). Nav
+  items marked `desktopOnly` (the Scanner) are hidden in the browser.
+- **shadcn/ui:** add components with `pnpm dlx shadcn@latest add <name>` from `apps/web`. The theme tokens come from
+  `@fanste/config/tailwind/theme.css`; if the CLI adds a `:root { … }` / `@theme` block to `globals.css`, move new
+  tokens into the shared theme instead.
+- **Typed routes** are on: `<Link href>` is checked against the app's routes. `pnpm typecheck` runs `next typegen`
+  first to generate the route types.
+
 ## Scripts
 
 Run from the repository root. Tasks run through [Turborepo](https://turborepo.com) across every workspace package.

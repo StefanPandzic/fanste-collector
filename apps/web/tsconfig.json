@@ -1,0 +1,25 @@
+{
+  "extends": "@fanste/config/tsconfig.base.json",
+  "compilerOptions": {
+    "lib": ["ES2023", "DOM", "DOM.Iterable"],
+    "jsx": "react-jsx",
+    "allowJs": true,
+    "incremental": true,
+    "plugins": [{ "name": "next" }],
+    // Same as the base config's `${configDir}/src/*`, spelled out because the shadcn CLI can't
+    // resolve `${configDir}`.
+    "paths": {
+      "@/*": ["./src/*"]
+    }
+  },
+  "include": [
+    "next-env.d.ts",
+    "src",
+    "*.config.ts",
+    "*.config.js",
+    "*.config.mjs",
+    ".next/types/**/*.ts",
+    ".next/dev/types/**/*.ts"
+  ],
+  "exclude": ["node_modules"]
+}
