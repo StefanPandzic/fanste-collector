@@ -1,0 +1,13 @@
+{
+  "$schema": "https://turborepo.com/schema.json",
+  "extends": ["//"],
+  "tasks": {
+    "dev": {
+      // The desktop shell loads the Next.js dev server, so start it alongside.
+      "with": ["web#dev"]
+    },
+    "build": {
+      "env": ["DESKTOP_*"]
+    }
+  }
+}

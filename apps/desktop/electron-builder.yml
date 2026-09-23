@@ -1,0 +1,45 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/electron-userland/electron-builder/master/packages/app-builder-lib/scheme.json
+#
+# Placeholder packaging config, finalised in FC-29 (icons, code signing, notarization, auto-update,
+# release publishing). Build with `pnpm --filter desktop package`; set DESKTOP_WEB_URL to the
+# production web app first.
+
+# Also the Windows AppUserModelID (`APP_ID` in src/main/index.ts).
+appId: com.fanste.collector
+# `productName` comes from package.json; Electron uses it for the userData folder at runtime too.
+artifactName: fanste-collector-${version}-${os}-${arch}.${ext}
+
+directories:
+  output: release/${version}
+
+# Main and preload are fully bundled by electron-vite, so only the build output is packaged.
+files:
+  - out/**
+  - package.json
+
+protocols:
+  - name: Fanste Collector
+    schemes: [fanste]
+
+# https://www.electronjs.org/docs/latest/tutorial/fuses
+electronFuses:
+  runAsNode: false
+  enableCookieEncryption: true
+  enableNodeOptionsEnvironmentVariable: false
+  enableNodeCliInspectArguments: false
+  enableEmbeddedAsarIntegrityValidation: true
+  onlyLoadAppFromAsar: true
+  grantFileProtocolExtraPrivileges: false
+
+win:
+  target: nsis
+
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true
+
+mac:
+  target:
+    - target: dmg
+      arch: universal
+  category: public.app-category.entertainment
