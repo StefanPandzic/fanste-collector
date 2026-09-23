@@ -4,5 +4,10 @@ packages:
 
 # Dependencies allowed to run install scripts (pnpm blocks them by default).
 allowBuilds:
-  # Its postinstall only downloads a native binary when the optional platform package is missing.
+  # Their postinstall only downloads a native binary when the optional platform package is missing.
   unrs-resolver: false
+  esbuild: false
+  # Downloads the Electron binary (skipped in CI via ELECTRON_SKIP_BINARY_DOWNLOAD).
+  electron: true
+  # Only used by electron-builder's Squirrel.Windows target; we build NSIS installers.
+  electron-winstaller: false

@@ -1,12 +1,11 @@
 import { useSyncExternalStore } from 'react';
 
+import type { FansteDesktopBridge } from '@fanste/core';
+
 declare global {
   interface Window {
-    /**
-     * Bridge exposed by the Electron preload script via `contextBridge` (FC-03).
-     * `undefined` in a normal browser. FC-03 replaces `unknown` with `FansteDesktopBridge`.
-     */
-    fanste?: unknown;
+    /** Bridge exposed by the Electron preload script via `contextBridge`. `undefined` in a normal browser. */
+    fanste?: FansteDesktopBridge;
   }
 }
 

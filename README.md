@@ -28,13 +28,14 @@ cp .env.example .env.local   # then fill in the values (see comments in the file
 
 ## Running the apps
 
-| App     | Command                     | Available from |
-| ------- | --------------------------- | -------------- |
-| Web     | `pnpm --filter web dev`     | FC-02          |
-| Desktop | `pnpm --filter desktop dev` | FC-03          |
-| All     | `pnpm dev`                  |                |
+| App     | Command                 | Available from |
+| ------- | ----------------------- | -------------- |
+| Web     | `pnpm --filter web dev` | FC-02          |
+| Desktop | `pnpm dev:desktop`      | FC-03          |
+| All     | `pnpm dev`              |                |
 
 The web app runs at <http://localhost:3000>. Other scripts: `pnpm --filter web build` / `start`.
+`pnpm dev:desktop` starts the web dev server and the Electron window together.
 
 ### Web app (`apps/web`)
 
@@ -67,6 +68,31 @@ apps/web/src/
 - **Typed routes** are on: `<Link href>` is checked against the app's routes. `pnpm typecheck` runs `next typegen`
   first to generate the route types.
 
+### Desktop app (`apps/desktop`)
+
+Electron shell, built with [electron-vite](https://electron-vite.org). The window loads the web app (the Next.js dev
+server in development, `DESKTOP_WEB_URL` in production builds) — there is no separate desktop UI.
+
+```
+apps/desktop/src/
+├─ main/       # main process: window, security, deep links (fanste://), IPC handlers
+├─ preload/    # exposes `window.fanste` (type: `FansteDesktopBridge` in @fanste/core)
+└─ shared/     # used by both, e.g. IPC channel names
+```
+
+- **Adding a desktop feature:** extend `FansteDesktopBridge` in `packages/core/src/desktop-bridge.ts`, add the IPC
+  channel in `src/shared/ipc-channels.ts`, implement it in the preload and register the handler in
+  `src/main/ipc.ts`. Handlers only accept calls from the app origin; validate arguments there too.
+- **Security:** the renderer runs with `contextIsolation`, `sandbox` and no `nodeIntegration`, so only
+  `window.fanste` is reachable. The window stays on the web app's origin; other links open in the system browser.
+- **Dependencies:** main and preload are bundled, so add packages to `devDependencies`. Only packages that must ship
+  unbundled (native modules) go in `dependencies`.
+- **Env:** `DESKTOP_*` vars from the root env files are inlined at build time (see `.env.example`).
+- **Scripts:** `pnpm --filter desktop build` (bundle to `out/`), `preview` (run the build), `package` (installer via
+  electron-builder, finalised in FC-29).
+- Running from a VS Code _extension_ terminal (e.g. a coding agent)? Unset `ELECTRON_RUN_AS_NODE`, which VS Code sets
+  and makes Electron start as plain Node.js.
+
 ## Scripts
 
 Run from the repository root. Tasks run through [Turborepo](https://turborepo.com) across every workspace package.
@@ -74,6 +100,7 @@ Run from the repository root. Tasks run through [Turborepo](https://turborepo.co
 | Script              | What it does                                  |
 | ------------------- | --------------------------------------------- |
 | `pnpm dev`          | Start every app in dev mode                   |
+| `pnpm dev:desktop`  | Start the desktop app (and the web app)       |
 | `pnpm build`        | Build every app and package                   |
 | `pnpm lint`         | ESLint in every package                       |
 | `pnpm typecheck`    | `tsc --noEmit` in every package               |
