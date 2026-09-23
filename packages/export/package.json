@@ -1,0 +1,19 @@
+{
+  "name": "@fanste/export",
+  "version": "0.0.0",
+  "private": true,
+  "description": "CSV and PDF export builders.",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@fanste/config": "workspace:*",
+    "eslint": "^9.39.5",
+    "typescript": "~6.0.3"
+  }
+}

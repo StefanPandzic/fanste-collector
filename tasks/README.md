@@ -91,7 +91,7 @@ Status legend: `TODO` · `IN PROGRESS` · `DONE` · `BLOCKED`
 ### Phase 1 — Foundation (Week 1)
 | ID | Task | Depends on | Status |
 |---|---|---|---|
-| FC-01 | [Monorepo setup & tooling](phase-1-foundation/01-monorepo-setup.md) | — | TODO |
+| FC-01 | [Monorepo setup & tooling](phase-1-foundation/01-monorepo-setup.md) | — | DONE |
 | FC-02 | [Web app scaffold (Next.js)](phase-1-foundation/02-web-app-nextjs.md) | FC-01 | TODO |
 | FC-03 | [Desktop shell (Electron)](phase-1-foundation/03-desktop-app-electron.md) | FC-02 | TODO |
 | FC-04 | [Supabase Cloud project & tooling](phase-1-foundation/04-supabase-setup.md) | FC-01 | TODO |
