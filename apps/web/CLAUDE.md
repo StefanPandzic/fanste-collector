@@ -43,15 +43,34 @@ use it unchanged.
 
 - `next.config.ts` loads the repo-root `.env*` files, using the same precedence as Next.js. Variables that are
   already set are never overridden.
-- It validates them against `src/env/schema.ts` at startup, so a bad value fails `dev`/`build`.
+- It validates them against `src/env/schema.ts` at startup, so a bad value fails `dev`/`build`. The
+  `NEXT_PUBLIC_*` schema and the helpers live in `src/env/client-schema.ts`, the only schema module `client.ts`
+  may import. `schema.ts` also holds the server schema, whose keys name the secrets.
 - Import `serverEnv` from `@/env/server`, which is marked `server-only`, so importing it from a Client Component
   fails the build. Import `clientEnv` from `@/env/client` for `NEXT_PUBLIC_*` vars.
 - Never read `process.env` directly.
 - To add a variable:
-  - Add it to `clientEnvSchema` or `serverEnvSchema`.
+  - Add it to `clientEnvSchema` (`client-schema.ts`) or `serverEnvSchema` (`schema.ts`). A new server secret
+    also goes in `SECRET_ENV_VARS` in `scripts/check-client-bundle.mjs`.
   - Add it to the root `.env.example`.
   - Keep it optional in the schema (an empty string counts as unset) until the task that needs it makes it
     required.
+
+## Supabase
+
+Use the wrappers in `src/lib/supabase/`. They read the env and throw a clear error when Supabase isn't
+configured. Don't call the `@fanste/supabase` factories directly.
+
+| Where                                         | Use                                       | Key / RLS                |
+| --------------------------------------------- | ----------------------------------------- | ------------------------ |
+| Client Components                             | `createSupabaseBrowserClient()` (client)  | publishable, RLS applies |
+| Server Components, Route Handlers, Server Fns | `await createSupabaseServerClient()`      | publishable, RLS applies |
+| Trusted server writes (metadata cache, FC-08) | `createSupabaseServiceClient()` (service) | secret, **bypasses RLS** |
+
+- Create a server client per request; never cache one in module scope.
+- The server client can't write cookies from a Server Component. Session refresh is the proxy's job (FC-06).
+- `service.ts` is `server-only`. Never serve a user's own data through the service client: RLS is what keeps
+  users apart.
 
 ## Desktop integration
 

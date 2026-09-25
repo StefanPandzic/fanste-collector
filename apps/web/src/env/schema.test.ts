@@ -17,11 +17,11 @@ describe('env schemas', () => {
     expect(() =>
       parseEnv(
         clientEnvSchema,
-        { NEXT_PUBLIC_SUPABASE_URL: 'not-a-url', NEXT_PUBLIC_SUPABASE_ANON_KEY: 42 },
+        { NEXT_PUBLIC_SUPABASE_URL: 'not-a-url', NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: 42 },
         'client',
       ),
     ).toThrow(
-      /Invalid client environment.*NEXT_PUBLIC_SUPABASE_URL.*NEXT_PUBLIC_SUPABASE_ANON_KEY/s,
+      /Invalid client environment.*NEXT_PUBLIC_SUPABASE_URL.*NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY/s,
     );
     expect(() => parseEnv(serverEnvSchema, { NODE_ENV: 'staging' }, 'server')).toThrow(/NODE_ENV/);
   });

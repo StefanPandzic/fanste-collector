@@ -1,0 +1,51 @@
+name: DB drift
+
+# Checks that `supabase/migrations` fully describes the dev Supabase Cloud project's schema (FC-04).
+# `supabase db diff` needs Docker for its shadow database, which GitHub-hosted runners provide.
+# The scheduled runs also keep the free-tier dev project from pausing after a week without activity.
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 6 * * 1,4' # Mondays and Thursdays, 06:00 UTC
+
+concurrency:
+  group: db-drift
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  drift:
+    name: Schema drift (dev project)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: pnpm/action-setup@v6
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      # No Supabase secrets in this step: install scripts never see them.
+      - name: Install
+        run: pnpm install --frozen-lockfile
+        env:
+          ELECTRON_SKIP_BINARY_DOWNLOAD: 1
+
+      - name: Link the dev project
+        run: pnpm db:link
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+
+      - name: Check for drift
+        run: pnpm db:drift
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}

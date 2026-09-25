@@ -47,7 +47,13 @@ pnpm dev:desktop             # Electron + the web dev server
 pnpm lint | typecheck | test | build
 pnpm format / format:check   # Prettier (CI runs format:check)
 pnpm --filter <pkg> <script> # one package: web, desktop, @fanste/core, ...
+pnpm db <command>            # Supabase CLI with the root .env* loaded (scripts/supabase.mjs)
+pnpm db migration new <name> # then: pnpm db:push → pnpm db:types (commit the regenerated types)
+pnpm check:bundle            # after `pnpm build`: fails if a server secret is in the web client bundle
 ```
+
+`pnpm db:diff` and `pnpm db:drift` need Docker for the CLI's shadow database, so drift is checked by the
+`DB drift` workflow (`.github/workflows/db-drift.yml`), not locally. README → Supabase has the full workflow.
 
 Single test file or test name (both verified):
 
@@ -74,9 +80,20 @@ the web app and adds local-only features through the `window.fanste` preload bri
 - Desktop bundles it (it goes in `devDependencies`, as `apps/desktop/CLAUDE.md` explains).
 
 Keep packages free of Next.js/Electron imports so a future mobile app can reuse them, and use relative imports
-inside packages (the `@/*` alias is for apps only). `api-client`, `export` and `supabase` are still empty stubs.
+inside packages (the `@/*` alias is for apps only). `api-client` and `export` are still empty stubs.
 `core` holds constants and the bridge types, and will hold the normalized item model, zod schemas and filename
 parser. `config` holds the tsconfig, ESLint and Tailwind presets.
+
+**`@fanste/supabase`** holds the generated `Database` types (`database.types.ts`, written by `pnpm db:types`;
+never edit it by hand) and three framework-free client factories. They take the URL and keys as arguments, and
+the server client takes a cookie adapter, so the package reads no env and imports no Next.js:
+
+- `createBrowserClient` and `createServerClient` use the publishable key and act as the signed-in user (RLS
+  applies).
+- `createServiceClient` uses the secret key, **bypasses RLS**, and is only for trusted server writes (the
+  metadata cache). Apps wrap it in a `server-only` module.
+
+The web app's wrappers live in `apps/web/src/lib/supabase/` (see `apps/web/CLAUDE.md`).
 
 **Env vars live only in the repo-root `.env*` files.** Both apps load them from there. A new variable goes in
 `.env.example`, tagged with the FC task that introduces it. How each app reads and validates them is covered in
@@ -98,5 +115,9 @@ the app files.
   - Stubs in code name the task that will implement them (e.g. `notImplemented(... FC-21)`); keep that convention.
 - Shared logic belongs in `packages/*`; apps hold only platform-specific UI and wiring.
 - Database changes go only through migrations in `supabase/migrations`, pushed with the Supabase CLI to the Supabase
-  Cloud dev project, with types regenerated afterwards. There is no local Docker DB. The `supabase/` folder arrives
-  with FC-04.
+  Cloud dev project, with types regenerated afterwards. There is no local Docker DB. `supabase/seed.sql` is for the
+  dev project only.
+- Supabase keys: the publishable key (`NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`) may reach the browser; the secret key
+  (`SUPABASE_SECRET_KEY`) must stay in server-only code. The legacy anon/service_role keys aren't used.
+- Repo tooling scripts live in `scripts/` as plain Node ESM (`.mjs`), linted by the root ESLint config. Load env
+  with `scripts/lib/root-env.mjs` and run the CLI through `scripts/lib/supabase-cli.mjs`.

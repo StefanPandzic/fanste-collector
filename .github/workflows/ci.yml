@@ -50,3 +50,7 @@ jobs:
         run: pnpm build
         env:
           NEXT_TELEMETRY_DISABLED: 1
+
+      # Fails if a server-only secret (e.g. SUPABASE_SECRET_KEY) reached the web app's browser bundle.
+      - name: Check client bundle
+        run: pnpm check:bundle
