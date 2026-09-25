@@ -17,7 +17,7 @@ tracked in the repo and applied to the cloud projects via the Supabase CLI. No l
   - [x] `supabase migration new <name>` → write SQL (`pnpm db migration new <name>`)
   - [x] `supabase db push` → apply to the linked cloud project (`pnpm db:push`)
   - [x] Never edit the schema by hand in the dashboard; every change goes through a migration (enforced by the scheduled `DB drift` workflow)
-- [x] Type generation script: `pnpm db:types` (`supabase gen types typescript --project-id <dev-ref>`) → `packages/supabase/src/database.types.ts` (placeholder until the first run against dev)
+- [x] Type generation script: `pnpm db:types` (`supabase gen types typescript --project-id <dev-ref>`) → `packages/supabase/src/database.types.ts` (generated from the dev project; excluded from ESLint)
 - [x] `packages/supabase`:
   - [x] `createBrowserClient()` for the web app (`@supabase/ssr`)
   - [x] `createServerClient()` for Next.js server components / route handlers (cookie-based)
