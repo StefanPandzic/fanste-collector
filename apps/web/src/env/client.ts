@@ -1,4 +1,5 @@
-import { clientEnvSchema, parseEnv } from './schema';
+// Not `./schema`: that module also holds the server schema, whose keys name the secrets.
+import { clientEnvSchema, parseEnv } from './client-schema';
 
 /**
  * Browser-safe env vars. Each `NEXT_PUBLIC_*` var must be read with a literal `process.env.NAME`
@@ -8,7 +9,7 @@ export const clientEnv = parseEnv(
   clientEnvSchema,
   {
     NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL,
-    NEXT_PUBLIC_SUPABASE_ANON_KEY: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+    NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY,
   },
   'client',
 );

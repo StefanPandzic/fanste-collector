@@ -11,6 +11,7 @@ import type { NextConfig } from 'next';
  * The monorepo keeps its env files at the repository root (see `.env.example`), but Next.js only
  * reads them from the app directory. Load the root files with the same precedence Next.js uses.
  * Variables that are already set (shell, CI, hosting, `apps/web/.env*`) are never overridden.
+ * The repo tooling loads the same files in `scripts/lib/root-env.mjs`; keep the two in sync.
  */
 function loadRootEnvFiles() {
   const root = path.resolve(import.meta.dirname, '../..');

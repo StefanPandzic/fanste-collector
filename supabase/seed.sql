@@ -1,0 +1,7 @@
+-- Sample data for the dev Supabase Cloud project only. Never push it to prod.
+--
+-- Applied with `pnpm db:push --include-seed` while the CLI is linked to the dev project
+-- (see README → Supabase). Keep the statements idempotent (`on conflict do nothing`), because the CLI
+-- runs the file again whenever it changes.
+--
+-- The sample collection items arrive with the schema in FC-05.
