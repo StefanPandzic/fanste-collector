@@ -94,21 +94,22 @@ create table scanned_files (
 ```
 
 ## Subtasks
-- [ ] Write migration(s) for the tables and enums above (adjust after review)
-- [ ] Constraints:
-  - [ ] `check (provider = 'custom' or external_id is not null)`
-  - [ ] `check (provider <> 'custom' or custom_data is not null)`
-  - [ ] Decide on duplicates: allow the same external item multiple times (different formats) — unique on `(user_id, provider, external_id, format)`
-- [ ] Indexes: `collection_items(user_id, category)`, `(user_id, created_at desc)`, `(provider, external_id)`
-- [ ] `updated_at` trigger
-- [ ] Trigger to create a `profiles` row on new `auth.users` insert
-- [ ] RLS:
-  - [ ] `profiles`, `collection_items`, `tags`, `collection_item_tags`, `scanned_files`: user can only CRUD own rows
-  - [ ] `metadata_cache`: `select` for authenticated users; writes only via service role (gateway)
-- [ ] View `collection_items_view` joining items with `metadata_cache` (title, image, year) for fast gallery queries, with `metadata_overrides` applied on top (details in FC-15)
-- [ ] Enable Realtime on `collection_items` and `collection_item_tags`
-- [ ] Regenerate types (`pnpm db:types`)
-- [ ] RLS integration tests (Vitest) against the dev Supabase Cloud project using the two test users: user A cannot read/write user B's rows, anon cannot read anything
+- [x] Write migration(s) for the tables and enums above (adjust after review) — `supabase/migrations/20260925140232_initial_schema.sql` + review fixes in `20260925151119_user_realtime_and_id_formats.sql`; adjustments: `user_id default auth.uid()` everywhere, `collection_item_tags.user_id` with composite FKs, `scanned_files.file_modified_at` / `removed_at` (FC-21), check constraints for `source`, `match_status`, amounts, currency, provider ↔ category and the external ID format per provider (TMDB `movie:603` / `tv:1396`, since movie and TV IDs overlap)
+- [x] Constraints:
+  - [x] `check (provider = 'custom' or external_id is not null)`
+  - [x] `check (provider <> 'custom' or custom_data is not null)`
+  - [x] Decide on duplicates: allow the same external item multiple times (different formats) — unique on `(user_id, provider, external_id, format)` (via the generated `format_key = lower(btrim(coalesce(format, '')))`, so a missing format also counts and case/spaces don't; a plain constraint, so upserts can target it)
+- [x] Indexes: `collection_items(user_id, category)`, `(user_id, created_at desc)`, `(provider, external_id)`
+- [x] `updated_at` trigger
+- [x] Trigger to create a `profiles` row on new `auth.users` insert (existing users are backfilled)
+- [x] RLS:
+  - [x] `profiles`, `collection_items`, `tags`, `collection_item_tags`, `scanned_files`: user can only CRUD own rows (profiles: no delete, they go with the auth user; tag links: no update)
+  - [x] `metadata_cache`: `select` for authenticated users; writes only via service role (gateway)
+- [x] View `collection_items_view` joining items with `metadata_cache` (title, image, year) for fast gallery queries, with `metadata_overrides` applied on top (details in FC-15) — `security_invoker`, also returns the raw `provider_*` values
+- [x] Enable Realtime on `collection_items` and `collection_item_tags` — as per-user private Broadcast (`user:<uid>`, triggers + a `realtime.messages` policy), not Postgres Changes, which doesn't apply RLS to DELETE events
+- [x] Scanned files whose item is deleted go back to `unmatched` (trigger), for Fix Match (FC-24)
+- [x] Regenerate types (`pnpm db:types`)
+- [x] RLS integration tests (Vitest) against the dev Supabase Cloud project ~~using the two test users~~ with two throwaway users per run: user A cannot read/write user B's rows, anon cannot read anything — `pnpm test:rls`, run in the `DB drift` workflow
 
 ## Acceptance criteria
 - Migrations apply cleanly to the dev Supabase Cloud project with `supabase db push`.

@@ -24,7 +24,7 @@ tracked in the repo and applied to the cloud projects via the Supabase CLI. No l
   - [x] `createServiceClient()` (secret key, server-only) for writing to the metadata cache
 - [x] Env vars: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, `SUPABASE_SECRET_KEY`, `SUPABASE_PROJECT_REF`, `SUPABASE_DB_PASSWORD` and `SUPABASE_ACCESS_TOKEN` (CLI only). The new publishable/secret keys replace the deprecated anon/service_role keys.
 - [x] Seed data (`supabase/seed.sql`): sample items for the dev project only (`supabase db push --include-seed` on dev) — placeholder file and workflow; the sample rows arrive with the schema in FC-05
-- [ ] Two test users in the dev project for integration/RLS tests; credentials stored as CI secrets — manual (env var names `SUPABASE_TEST_USER_{A,B}_{EMAIL,PASSWORD}` are in `.env.example`)
+- [x] ~~Two test users in the dev project for integration/RLS tests; credentials stored as CI secrets~~ — superseded in FC-05: the RLS tests create and delete throwaway users per run with the admin API (`pnpm test:rls`)
 - [ ] Share dev project access with the team (Supabase organization members) — manual
 
 ## Acceptance criteria

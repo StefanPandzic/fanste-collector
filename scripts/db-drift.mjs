@@ -2,6 +2,9 @@
 // `supabase/migrations` describes, e.g. after a change made by hand in the dashboard (FC-04).
 // `db diff` builds a shadow database from the migrations, so it needs Docker; CI runs it in the
 // `DB drift` workflow (.github/workflows/db-drift.yml). Link the project first (`pnpm db:link`).
+// Only `public` is compared: the Supabase-managed schemas differ between the cloud and the shadow
+// database. The one object migrations add elsewhere, the `realtime.messages` policy (FC-05), is
+// guarded by the Realtime cases of `pnpm test:rls` instead.
 import { loadRootEnv } from './lib/root-env.mjs';
 import { runSupabase } from './lib/supabase-cli.mjs';
 

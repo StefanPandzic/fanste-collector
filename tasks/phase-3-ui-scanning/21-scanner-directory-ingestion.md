@@ -25,3 +25,7 @@ Let desktop users pick local folders containing media files and scan them, simil
 - Scanning a folder with 5,000 files completes without freezing the UI and shows live progress.
 - Re-scanning only processes new or changed files.
 - The scanner page is not reachable in a normal browser.
+
+## Notes
+- `scanned_files` (FC-05) already has `file_modified_at` (for incremental re-scans) and `removed_at` (for removed files).
+- `unique (user_id, device_id, file_path)` is case-sensitive, but Windows and default macOS file systems aren't: normalize the path (separators, and case on case-insensitive volumes) before the upsert.

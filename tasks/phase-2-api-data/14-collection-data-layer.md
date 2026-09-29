@@ -16,7 +16,7 @@ through Supabase Realtime: an item added in the browser shows up in the desktop 
 - [ ] Editing copy details and metadata overrides (`updateItemDetails`, `updateOverrides`, `resetOverride`) is specified in FC-15
 - [ ] Query hooks: `useCollection`, `useCollectionItem`, `useAddItem`, `useUpdateItem`, `useDeleteItem`, `useTags`, `useCollectionStats`
 - [ ] Optimistic updates with rollback on error
-- [ ] Realtime: subscribe to `collection_items` changes for the current user and invalidate/patch the query cache
+- [ ] Realtime: subscribe to the current user's private Broadcast topic (`supabase.channel('user:<id>', { config: { private: true } })`, after `supabase.realtime.setAuth()`); FC-05 triggers send `INSERT` / `UPDATE` / `DELETE` events for `collection_items` and `collection_item_tags` there. Invalidate/patch the query cache from them
 - [ ] Refetch on window focus / network reconnect; resubscribe to Realtime after the connection drops
 - [ ] Missing metadata fallback: if a row has no cache entry, fetch it via `/api/items/batch`
 - [ ] Integration tests for repository functions against the dev Supabase Cloud project (test user, cleaned up after each run)
@@ -25,3 +25,7 @@ through Supabase Realtime: an item added in the browser shows up in the desktop 
 - Adding, editing and deleting items works in the browser and the desktop app through the same hooks.
 - With the browser and the desktop app open side by side, an item added in one appears in the other within ~2 seconds without a manual refresh.
 - Optimistic UI rolls back and shows a toast on failure.
+
+## Notes
+- `collection_items.format_key` is a generated column (FC-05): the generated Insert/Update types allow it, but Postgres rejects writes to it. Omit it from the repository's write types, and never send a whole `select('*')` row back.
+- The Realtime triggers send one message per row: a bulk delete (plus its cascaded tag links) or a scanner import (FC-23) produces hundreds of events. Debounce the query invalidation instead of refetching per event.
