@@ -12,7 +12,7 @@ automatically; uncertain ones are queued for manual review (SRS §3.2).
 - [ ] Thresholds (configurable):
   - [ ] `score ≥ 0.85` → auto-match: upsert `collection_items` (`source: 'scanner'`, `format: 'Digital file'`, `details.resolution` / `details.hdr` from the parser via `toCopyDetails`), link `scanned_files.collection_item_id`, status `matched`
 - [ ] On re-scan, never overwrite `details` the user has edited by hand (only fill fields that are still empty)
-  - [ ] `0.5 ≤ score < 0.85` → status `unmatched` with suggested candidates stored for Fix Match
+  - [ ] `0.5 ≤ score < 0.85` → status `unmatched` with suggested candidates stored for Fix Match (needs a migration: `scanned_files` has no candidates column yet, e.g. `match_candidates jsonb`)
   - [ ] no result / parse failure → status `unmatched`
 - [ ] Dedupe: files that resolve to the same TMDB ID (multiple versions / episodes) link to one collection item per format
 - [ ] TV: group episodes by series; add the series once (`tv` category)

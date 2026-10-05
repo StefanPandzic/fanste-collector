@@ -8,16 +8,308 @@ export type Database = {
   };
   public: {
     Tables: {
-      [_ in never]: never;
+      collection_item_tags: {
+        Row: {
+          item_id: string;
+          tag_id: string;
+          user_id: string;
+        };
+        Insert: {
+          item_id: string;
+          tag_id: string;
+          user_id?: string;
+        };
+        Update: {
+          item_id?: string;
+          tag_id?: string;
+          user_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'collection_item_tags_item_id_user_id_fkey';
+            columns: ['item_id', 'user_id'];
+            isOneToOne: false;
+            referencedRelation: 'collection_items';
+            referencedColumns: ['id', 'user_id'];
+          },
+          {
+            foreignKeyName: 'collection_item_tags_item_id_user_id_fkey';
+            columns: ['item_id', 'user_id'];
+            isOneToOne: false;
+            referencedRelation: 'collection_items_view';
+            referencedColumns: ['id', 'user_id'];
+          },
+          {
+            foreignKeyName: 'collection_item_tags_tag_id_user_id_fkey';
+            columns: ['tag_id', 'user_id'];
+            isOneToOne: false;
+            referencedRelation: 'tags';
+            referencedColumns: ['id', 'user_id'];
+          },
+        ];
+      };
+      collection_items: {
+        Row: {
+          acquired_at: string | null;
+          category: Database['public']['Enums']['item_category'];
+          created_at: string;
+          currency: string | null;
+          custom_data: Json | null;
+          details: Json;
+          estimated_value: number | null;
+          external_id: string | null;
+          format: string | null;
+          format_key: string;
+          id: string;
+          metadata_overrides: Json;
+          notes: string | null;
+          ownership: Database['public']['Enums']['ownership_status'];
+          provider: Database['public']['Enums']['metadata_provider'];
+          purchase_price: number | null;
+          quantity: number;
+          source: string;
+          updated_at: string;
+          user_id: string;
+        };
+        Insert: {
+          acquired_at?: string | null;
+          category: Database['public']['Enums']['item_category'];
+          created_at?: string;
+          currency?: string | null;
+          custom_data?: Json | null;
+          details?: Json;
+          estimated_value?: number | null;
+          external_id?: string | null;
+          format?: string | null;
+          format_key?: string;
+          id?: string;
+          metadata_overrides?: Json;
+          notes?: string | null;
+          ownership?: Database['public']['Enums']['ownership_status'];
+          provider: Database['public']['Enums']['metadata_provider'];
+          purchase_price?: number | null;
+          quantity?: number;
+          source?: string;
+          updated_at?: string;
+          user_id?: string;
+        };
+        Update: {
+          acquired_at?: string | null;
+          category?: Database['public']['Enums']['item_category'];
+          created_at?: string;
+          currency?: string | null;
+          custom_data?: Json | null;
+          details?: Json;
+          estimated_value?: number | null;
+          external_id?: string | null;
+          format?: string | null;
+          format_key?: string;
+          id?: string;
+          metadata_overrides?: Json;
+          notes?: string | null;
+          ownership?: Database['public']['Enums']['ownership_status'];
+          provider?: Database['public']['Enums']['metadata_provider'];
+          purchase_price?: number | null;
+          quantity?: number;
+          source?: string;
+          updated_at?: string;
+          user_id?: string;
+        };
+        Relationships: [];
+      };
+      metadata_cache: {
+        Row: {
+          category: Database['public']['Enums']['item_category'];
+          external_id: string;
+          fetched_at: string;
+          image_url: string | null;
+          payload: Json | null;
+          provider: Database['public']['Enums']['metadata_provider'];
+          release_year: number | null;
+          subtitle: string | null;
+          title: string;
+        };
+        Insert: {
+          category: Database['public']['Enums']['item_category'];
+          external_id: string;
+          fetched_at?: string;
+          image_url?: string | null;
+          payload?: Json | null;
+          provider: Database['public']['Enums']['metadata_provider'];
+          release_year?: number | null;
+          subtitle?: string | null;
+          title: string;
+        };
+        Update: {
+          category?: Database['public']['Enums']['item_category'];
+          external_id?: string;
+          fetched_at?: string;
+          image_url?: string | null;
+          payload?: Json | null;
+          provider?: Database['public']['Enums']['metadata_provider'];
+          release_year?: number | null;
+          subtitle?: string | null;
+          title?: string;
+        };
+        Relationships: [];
+      };
+      profiles: {
+        Row: {
+          avatar_url: string | null;
+          created_at: string;
+          default_currency: string;
+          display_name: string | null;
+          id: string;
+          preferences: Json;
+        };
+        Insert: {
+          avatar_url?: string | null;
+          created_at?: string;
+          default_currency?: string;
+          display_name?: string | null;
+          id: string;
+          preferences?: Json;
+        };
+        Update: {
+          avatar_url?: string | null;
+          created_at?: string;
+          default_currency?: string;
+          display_name?: string | null;
+          id?: string;
+          preferences?: Json;
+        };
+        Relationships: [];
+      };
+      scanned_files: {
+        Row: {
+          collection_item_id: string | null;
+          device_id: string;
+          file_modified_at: string | null;
+          file_path: string;
+          file_size: number | null;
+          id: string;
+          match_confidence: number | null;
+          match_status: string;
+          parsed_format: string | null;
+          parsed_title: string | null;
+          parsed_year: number | null;
+          removed_at: string | null;
+          scanned_at: string;
+          user_id: string;
+        };
+        Insert: {
+          collection_item_id?: string | null;
+          device_id: string;
+          file_modified_at?: string | null;
+          file_path: string;
+          file_size?: number | null;
+          id?: string;
+          match_confidence?: number | null;
+          match_status?: string;
+          parsed_format?: string | null;
+          parsed_title?: string | null;
+          parsed_year?: number | null;
+          removed_at?: string | null;
+          scanned_at?: string;
+          user_id?: string;
+        };
+        Update: {
+          collection_item_id?: string | null;
+          device_id?: string;
+          file_modified_at?: string | null;
+          file_path?: string;
+          file_size?: number | null;
+          id?: string;
+          match_confidence?: number | null;
+          match_status?: string;
+          parsed_format?: string | null;
+          parsed_title?: string | null;
+          parsed_year?: number | null;
+          removed_at?: string | null;
+          scanned_at?: string;
+          user_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'scanned_files_collection_item_id_user_id_fkey';
+            columns: ['collection_item_id', 'user_id'];
+            isOneToOne: false;
+            referencedRelation: 'collection_items';
+            referencedColumns: ['id', 'user_id'];
+          },
+          {
+            foreignKeyName: 'scanned_files_collection_item_id_user_id_fkey';
+            columns: ['collection_item_id', 'user_id'];
+            isOneToOne: false;
+            referencedRelation: 'collection_items_view';
+            referencedColumns: ['id', 'user_id'];
+          },
+        ];
+      };
+      tags: {
+        Row: {
+          color: string | null;
+          id: string;
+          name: string;
+          user_id: string;
+        };
+        Insert: {
+          color?: string | null;
+          id?: string;
+          name: string;
+          user_id?: string;
+        };
+        Update: {
+          color?: string | null;
+          id?: string;
+          name?: string;
+          user_id?: string;
+        };
+        Relationships: [];
+      };
     };
     Views: {
-      [_ in never]: never;
+      collection_items_view: {
+        Row: {
+          acquired_at: string | null;
+          category: Database['public']['Enums']['item_category'] | null;
+          created_at: string | null;
+          currency: string | null;
+          custom_data: Json | null;
+          details: Json | null;
+          estimated_value: number | null;
+          external_id: string | null;
+          format: string | null;
+          id: string | null;
+          image_url: string | null;
+          metadata_fetched_at: string | null;
+          metadata_overrides: Json | null;
+          notes: string | null;
+          ownership: Database['public']['Enums']['ownership_status'] | null;
+          provider: Database['public']['Enums']['metadata_provider'] | null;
+          provider_image_url: string | null;
+          provider_release_year: number | null;
+          provider_subtitle: string | null;
+          provider_title: string | null;
+          purchase_price: number | null;
+          quantity: number | null;
+          release_year: number | null;
+          source: string | null;
+          subtitle: string | null;
+          title: string | null;
+          updated_at: string | null;
+          user_id: string | null;
+        };
+        Relationships: [];
+      };
     };
     Functions: {
       [_ in never]: never;
     };
     Enums: {
-      [_ in never]: never;
+      item_category: 'movie' | 'tv' | 'music' | 'video_game' | 'board_game' | 'funko';
+      metadata_provider: 'tmdb' | 'discogs' | 'igdb' | 'bgg' | 'custom';
+      ownership_status: 'owned' | 'wishlist' | 'preordered' | 'loaned_out' | 'sold';
     };
     CompositeTypes: {
       [_ in never]: never;
@@ -138,6 +430,10 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      item_category: ['movie', 'tv', 'music', 'video_game', 'board_game', 'funko'],
+      metadata_provider: ['tmdb', 'discogs', 'igdb', 'bgg', 'custom'],
+      ownership_status: ['owned', 'wishlist', 'preordered', 'loaned_out', 'sold'],
+    },
   },
 } as const;

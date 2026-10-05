@@ -139,13 +139,43 @@ pnpm db:types                    # regenerates packages/supabase/src/database.ty
 
 [`supabase/seed.sql`](supabase/seed.sql) holds sample data for the dev project. Push it with the migrations:
 `pnpm db:push --include-seed`. The wrapper refuses `--include-seed` and `db reset` unless the CLI is linked to the
-dev project (`SUPABASE_PROJECT_REF`). The sample rows arrive with the schema in FC-05.
+dev project (`SUPABASE_PROJECT_REF`). It seeds a few `metadata_cache` rows; collection items belong to a user, so
+they are added through the app.
 
-### Test users
+### Schema
 
-The RLS integration tests (FC-05) sign in as two users of the dev project. Create them under Authentication →
-Users → Add user (with "Auto Confirm User"), and put their credentials in `.env.local`
-(`SUPABASE_TEST_USER_A_EMAIL`, … see `.env.example`) and in the CI secrets.
+The database is an index, not a media host: it stores provider + external ID and each user's own data. The
+[migrations](supabase/migrations) have the details.
+
+| Table / view            | Holds                                                                               | Access                          |
+| ----------------------- | ----------------------------------------------------------------------------------- | ------------------------------- |
+| `profiles`              | One row per user, created by a trigger on sign-up                                   | own row                         |
+| `metadata_cache`        | Shared, lightweight provider metadata per `(provider, external_id)`                 | read: signed-in; write: service |
+| `collection_items`      | One row per copy: format, copy `details`, `metadata_overrides`, ownership, value    | own rows                        |
+| `tags`                  | The user's tags                                                                     | own rows                        |
+| `collection_item_tags`  | Item ↔ tag links; composite keys keep both sides within one user                    | own rows                        |
+| `scanned_files`         | Desktop scanner state per device and file path                                      | own rows                        |
+| `collection_items_view` | Items with display values (`metadata_overrides` → `metadata_cache` → `custom_data`) | own rows (security invoker)     |
+
+- `anon` has no privileges on any of them.
+- **External IDs** are text in a fixed format per provider (enforced by check constraints):
+  - TMDB: `movie:603` / `tv:1396`, because movies and TV have separate ID spaces.
+  - Discogs: `release:249504` / `master:…`.
+  - IGDB and BGG: the plain number.
+- One copy per user, external item and format (compared case- and space-insensitively): the same title as DVD
+  and 4K is two rows.
+- **Realtime:** changes to `collection_items` and `collection_item_tags` are broadcast to the owner's private topic
+  `user:<user id>`, and only that user may join it. Postgres Changes isn't used, because it doesn't apply RLS to
+  DELETE events. In both projects, turn off **Realtime → Settings → Allow public access**, so only private channels
+  can be joined.
+- The drift check compares only the `public` schema. The `realtime.messages` policy is covered by `pnpm test:rls`.
+
+### RLS tests
+
+`pnpm test:rls` checks the policies against the dev project: users can't read or change each other's rows or
+join each other's Realtime topic, and anonymous visitors can't read anything. It needs `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`
+and `SUPABASE_SECRET_KEY`. Each run creates two throwaway users (`rls-test-<uuid>@example.com`) with the admin API
+and deletes them afterwards, together with their rows. It isn't part of `pnpm test`, which stays offline.
 
 ### Switching the link to prod
 
@@ -169,11 +199,12 @@ pnpm db:link                     # link back to dev right away
 - **CI** (`.github/workflows/ci.yml`) needs no Supabase secrets. After the build it checks that no server-only
   secret reached the client bundle.
 - **DB drift** (`.github/workflows/db-drift.yml`) runs twice a week and on demand (Actions → DB drift → Run
-  workflow). It links the dev project and runs `pnpm db:drift`. The scheduled runs also keep the free dev project
-  from pausing.
-- Repository secrets (Settings → Secrets and variables → Actions): `SUPABASE_ACCESS_TOKEN`, `SUPABASE_PROJECT_REF`
-  and `SUPABASE_DB_PASSWORD` for the drift check, and the four `SUPABASE_TEST_USER_*` values for the RLS tests
-  (FC-05).
+  workflow), and on every push to `main` that touches `supabase/` or `packages/supabase/`. It links the dev
+  project and runs `pnpm db:drift`, and runs `pnpm test:rls` in a second job. The scheduled runs also keep the
+  free dev project from pausing.
+- Repository secrets (Settings → Secrets and variables → Actions), all from the dev project:
+  `SUPABASE_ACCESS_TOKEN`, `SUPABASE_PROJECT_REF` and `SUPABASE_DB_PASSWORD` for the drift check, and
+  `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` and `SUPABASE_SECRET_KEY` for the RLS tests.
 
 ### Free tier
 
@@ -195,6 +226,7 @@ Run from the repository root. Tasks run through [Turborepo](https://turborepo.co
 | `pnpm typecheck`    | `tsc --noEmit` in every package               |
 | `pnpm test`         | Vitest in every package that has tests        |
 | `pnpm test:watch`   | Vitest watch mode across all projects         |
+| `pnpm test:rls`     | RLS integration tests against the dev project |
 | `pnpm format`       | Format the repo with Prettier                 |
 | `pnpm format:check` | Check formatting without writing (used by CI) |
 | `pnpm check:bundle` | Check the web build for leaked server secrets |

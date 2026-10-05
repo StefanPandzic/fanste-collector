@@ -1,10 +1,15 @@
 name: DB drift
 
-# Checks that `supabase/migrations` fully describes the dev Supabase Cloud project's schema (FC-04).
+# Checks that `supabase/migrations` fully describes the dev Supabase Cloud project's schema (FC-04),
+# and runs the RLS integration tests against it (FC-05).
 # `supabase db diff` needs Docker for its shadow database, which GitHub-hosted runners provide.
 # The scheduled runs also keep the free-tier dev project from pausing after a week without activity.
 on:
   workflow_dispatch:
+  # Also right after a schema change lands (its migrations are pushed to dev before the merge).
+  push:
+    branches: [main]
+    paths: ['supabase/**', 'packages/supabase/**']
   schedule:
     - cron: '0 6 * * 1,4' # Mondays and Thursdays, 06:00 UTC
 
@@ -49,3 +54,30 @@ jobs:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
           SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
           SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+
+  rls:
+    name: RLS tests (dev project)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: pnpm/action-setup@v6
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+        env:
+          ELECTRON_SKIP_BINARY_DOWNLOAD: 1
+
+      # Creates two throwaway users, checks RLS on every table, then deletes them (FC-05).
+      - name: RLS tests
+        run: pnpm test:rls
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY }}
+          SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}

@@ -50,6 +50,7 @@ pnpm --filter <pkg> <script> # one package: web, desktop, @fanste/core, ...
 pnpm db <command>            # Supabase CLI with the root .env* loaded (scripts/supabase.mjs)
 pnpm db migration new <name> # then: pnpm db:push → pnpm db:types (commit the regenerated types)
 pnpm check:bundle            # after `pnpm build`: fails if a server secret is in the web client bundle
+pnpm test:rls                # RLS integration tests against the dev project (not part of `pnpm test`)
 ```
 
 `pnpm db:diff` and `pnpm db:drift` need Docker for the CLI's shadow database, so drift is checked by the

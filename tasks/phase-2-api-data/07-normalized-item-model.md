@@ -40,4 +40,4 @@ with provider-specific payloads (SRS §5 Phase 2).
 - Types compile in the web app, the gateway and the Electron app without platform-specific imports.
 
 ## Notes
-- `externalId` is always a string (TMDB and BGG IDs are numeric, Discogs uses `release`/`master` prefixes → encode as `release:123`).
+- `externalId` is always a string, in the format the database enforces (FC-05): TMDB `movie:603` / `tv:1396` (movies and TV have separate ID spaces), Discogs `release:123` / `master:123`, IGDB and BGG the plain number.

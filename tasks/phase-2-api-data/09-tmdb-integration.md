@@ -24,3 +24,4 @@ Adapter for The Movie Database (TMDB) API v3 that returns normalized movie and T
 
 ## Notes
 - TMDB requires attribution (logo + notice) — see FC-27.
+- External IDs are encoded as `movie:{id}` / `tv:{id}` (FC-05 check constraint), because TMDB movie and TV IDs overlap.
