@@ -11,6 +11,7 @@ Let desktop users pick local folders containing media files and scan them, simil
   - [ ] Recursive walk (`fs.promises.opendir`) run in a worker thread / utility process so the UI never freezes
   - [ ] Video extension allow-list: `.mkv .mp4 .avi .mov .m4v .wmv .ts .webm`; skip samples/trailers (`sample`, `-trailer`) and files < 50 MB (configurable)
   - [ ] Collect path, size, mtime; ignore hidden/system folders
+  - [ ] Collect sidecar subtitle files next to each video (`.srt .ass .ssa .sub .idx .vtt`) and read the language from the name (`Movie.en.srt`, `Movie.srp.forced.srt`) for FC-15 `subtitleLanguages`
   - [ ] Progress events (files found, current folder) + cancel support
 - [ ] Preload bridge (`window.fanste.scanner`): `selectDirectories`, `startScan`, `cancelScan`, `onProgress`, `onFileFound`, `getLibraryFolders`, `removeLibraryFolder`
 - [ ] Persist library folders and a stable `device_id` locally (`electron-store`)

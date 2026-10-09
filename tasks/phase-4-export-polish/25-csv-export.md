@@ -9,7 +9,7 @@ PapaParse (SRS §3.3).
 ## Subtasks
 - [ ] `packages/export/src/csv.ts`: `buildCollectionCsv(items, options)` using PapaParse `unparse`
 - [ ] Columns: category, title, subtitle, year, format, ownership, quantity, acquired date, purchase price, estimated value, currency, tags, notes, provider, external ID, provider URL, date added
-- [ ] Copy-detail columns (FC-15): resolution, HDR, edition, disc count, region, platform, storefront, condition, … — one column per known field; empty when not relevant to the category
+- [ ] Copy-detail columns (FC-15): resolution, HDR, audio channels, file format, audio/subtitle languages, TV seasons/episodes owned, edition, disc count, region, platform, storefront, condition, … — one column per known field; empty when not relevant to the category
 - [ ] Titles/years use the user's overrides; optional "include original API values" columns
 - [ ] Options: scope (all / current filter / selected items), categories, sort by category / acquisition date / estimated value (SRS requirement)
 - [ ] UTF-8 with BOM so Excel opens special characters correctly; ISO dates

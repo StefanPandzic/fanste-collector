@@ -18,6 +18,8 @@ Extract the likely title, year, format and TV episode info from file names and f
     resolution?: '480p' | '720p' | '1080p' | '2160p';
     hdr?: 'HDR10' | 'HDR10+' | 'Dolby Vision';
     source?: string;      // BluRay, WEB-DL, DVDRip, REMUX, ...
+    audioChannels?: string; // 2.0, 5.1, 7.1 (from DD5.1, DDP5.1, AAC2.0, TrueHD.7.1, ...)
+    fileFormat?: string;  // from the extension: MKV, MP4, AVI, ...; ISO / VIDEO_TS / BDMV for disc images
     confidence: number;   // 0–1, how sure the parser is
   }
   ```
@@ -29,7 +31,7 @@ Extract the likely title, year, format and TV episode info from file names and f
   - [ ] Fall back to the parent folder name when the file name is generic (`movie.mkv`, `CD1`, `VIDEO_TS`)
   - [ ] Handle titles that contain numbers/years (`2001 A Space Odyssey 1968`, `Blade Runner 2049 (2017)`)
 - [ ] Detect HDR tokens (`HDR`, `HDR10`, `HDR10+`, `DV`, `DoVi`)
-- [ ] `toCopyDetails(parsed)` → FC-15 copy details: `format: 'Digital file'`, `details.resolution`, `details.hdr` (e.g. `2160p` + `DV` → 2160p, Dolby Vision)
+- [ ] `toCopyDetails(parsed)` → FC-15 copy details: `format: 'Digital file'`, `details.fileFormat`, `details.resolution`, `details.hdr`, `details.audioChannels` (e.g. `2160p` + `DV` → 2160p, Dolby Vision)
 - [ ] Table-driven unit tests with 50+ real-world filename samples
 
 ## Acceptance criteria

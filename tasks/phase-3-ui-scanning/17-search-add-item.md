@@ -13,7 +13,7 @@ and add an item to the collection in one or two clicks — no manual data entry 
 - [ ] Quick add (defaults: ownership `owned`, format and details from `prefillDetails` / the user's last-used values — FC-15)
 - [ ] "Add with details" sheet/dialog:
   - [ ] Common fields: ownership status, quantity, acquisition date, purchase price, estimated value, tags, notes
-  - [ ] Category-specific copy details from FC-15, **prefilled from the API** and editable before saving — e.g. movie: medium, resolution, HDR, edition, discs; game: platform, medium, storefront (Steam, …), discs; music: medium, discs, vinyl size/speed/variant, catalog number
+  - [ ] Category-specific copy details from FC-15, **prefilled from the API** and editable before saving — e.g. movie: medium, resolution, HDR, audio channels, file format, audio and subtitle languages, edition, discs; TV: the same plus the seasons owned (pick seasons, then all or some episodes); game: platform, medium, storefront (Steam, …), discs; music: medium, discs, vinyl size/speed/variant, catalog number
   - [ ] Prefilled fields are visually marked ("from Discogs") until the user changes them
 - [ ] Music filters (Vinyl / CD / Cassette); TV vs Movie toggle; year filter where the provider supports it
 - [ ] "Can't find it? Add manually" → custom item form (FC-13)
