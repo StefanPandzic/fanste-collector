@@ -1,8 +1,21 @@
 import { AppShell } from '@/components/app-shell/app-shell';
+import { requireUser } from '@/features/auth/session';
+import { SessionProvider } from '@/features/auth/session-provider';
+import { getProfile } from '@/features/profile/queries';
 
 import type { ReactNode } from 'react';
 
-// Authenticated pages. FC-06 adds the session check that redirects signed-out users to /sign-in.
-export default function AppLayout({ children }: { children: ReactNode }) {
-  return <AppShell>{children}</AppShell>;
+// Authenticated pages. The proxy already redirects signed-out users; this check is the second line
+// of defense and loads the user and profile for the shell.
+export default async function AppLayout({ children }: { children: ReactNode }) {
+  const user = await requireUser();
+  const profile = await getProfile(user.id);
+
+  return (
+    <SessionProvider initialUser={user}>
+      <AppShell profileName={profile?.display_name ?? null} avatarUrl={profile?.avatar_url ?? null}>
+        {children}
+      </AppShell>
+    </SessionProvider>
+  );
 }

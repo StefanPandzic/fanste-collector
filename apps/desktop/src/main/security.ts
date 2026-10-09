@@ -43,6 +43,10 @@ function openExternally(url: string): void {
     return;
   }
   shell.openExternal(url).catch((error: unknown) => {
-    console.error(`[security] Could not open ${url}`, error);
+    // Origin only: the URL's query can carry OAuth parameters.
+    console.error(
+      `[security] Could not open a link on ${URL.parse(url)?.origin ?? 'an unknown origin'}`,
+      error,
+    );
   });
 }

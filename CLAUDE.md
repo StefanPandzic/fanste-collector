@@ -82,8 +82,8 @@ the web app and adds local-only features through the `window.fanste` preload bri
 
 Keep packages free of Next.js/Electron imports so a future mobile app can reuse them, and use relative imports
 inside packages (the `@/*` alias is for apps only). `api-client` and `export` are still empty stubs.
-`core` holds constants and the bridge types, and will hold the normalized item model, zod schemas and filename
-parser. `config` holds the tsconfig, ESLint and Tailwind presets.
+`core` holds constants, the bridge types and the auth/profile zod schemas, and will hold the normalized item model
+and filename parser. `config` holds the tsconfig, ESLint and Tailwind presets.
 
 **`@fanste/supabase`** holds the generated `Database` types (`database.types.ts`, written by `pnpm db:types`;
 never edit it by hand) and three framework-free client factories. They take the URL and keys as arguments, and

@@ -24,7 +24,7 @@ export async function createSupabaseServerClient(): Promise<FansteSupabaseClient
           cookieStore.set(name, value, options);
         }
       } catch {
-        // Server Components can't set cookies. The proxy that refreshes the session (FC-06)
+        // Server Components can't set cookies. The proxy that refreshes the session (`src/proxy.ts`)
         // writes them instead, so ignoring this here is safe.
       }
     },

@@ -13,8 +13,11 @@ const MIN_SIZE = { width: 768, height: 560 };
 // `--background` of the shared theme, so the window doesn't flash white before the page paints.
 const BACKGROUND_COLOR = { light: '#ffffff', dark: '#09090b' };
 
-/** Creates the app window, restores its last position and size, and loads the web app. */
-export function createMainWindow(webUrl: URL): BrowserWindow {
+/**
+ * Creates the app window, restores its last position and size, and loads the web app: `startUrl` if
+ * given (a page on the web app origin, e.g. the OAuth callback), otherwise `webUrl`.
+ */
+export function createMainWindow(webUrl: URL, startUrl: URL = webUrl): BrowserWindow {
   const stateFile = path.join(app.getPath('userData'), 'window-state.json');
   const saved = readWindowState(stateFile);
   const workAreas = screen.getAllDisplays().map((display) => display.workArea);
@@ -59,20 +62,20 @@ export function createMainWindow(webUrl: URL): BrowserWindow {
   });
 
   restrictNavigation(window.webContents, webUrl.origin);
-  void loadWebApp(window, webUrl);
+  void loadWebApp(window, startUrl);
 
   return window;
 }
 
 /**
- * Loads the web app. Unpackaged builds wait for the web server, which `pnpm dev:desktop` starts at
- * the same time as Electron.
+ * Loads `url` (a page of the web app) in the window. Unpackaged builds wait for the web server, which
+ * `pnpm dev:desktop` starts at the same time as Electron.
  */
-async function loadWebApp(window: BrowserWindow, webUrl: URL): Promise<void> {
+export async function loadWebApp(window: BrowserWindow, url: URL): Promise<void> {
   let waiting = false;
   for (;;) {
     try {
-      await window.loadURL(webUrl.href);
+      await window.loadURL(url.href);
       return;
     } catch (error) {
       const code = (error as { code?: unknown }).code;
@@ -80,14 +83,15 @@ async function loadWebApp(window: BrowserWindow, webUrl: URL): Promise<void> {
       if (code === 'ERR_ABORTED' || window.isDestroyed()) return;
 
       if (!app.isPackaged && code === 'ERR_CONNECTION_REFUSED') {
-        if (!waiting) console.info(`[window] Waiting for the web app at ${webUrl.origin} …`);
+        if (!waiting) console.info(`[window] Waiting for the web app at ${url.origin} …`);
         waiting = true;
         await delay(1000);
         if (window.isDestroyed()) return;
         continue;
       }
 
-      console.error(`[window] Could not load ${webUrl.href}`, error);
+      // Only the error code: the error message and `url` include the query (e.g. an OAuth code).
+      console.error(`[window] Could not load ${url.origin}${url.pathname}`, code);
       window.show();
       return;
     }

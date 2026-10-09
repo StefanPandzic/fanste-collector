@@ -2,11 +2,11 @@ import path from 'node:path';
 
 import { app, session } from 'electron';
 
-import { DEEP_LINK_PROTOCOL, findDeepLink, parseDeepLink } from './deep-link';
+import { authCallbackUrl, DEEP_LINK_PROTOCOL, findDeepLink, parseDeepLink } from './deep-link';
 import { registerIpcHandlers } from './ipc';
 import { restrictPermissions } from './security';
 import { resolveWebUrl } from './web-url';
-import { createMainWindow } from './window';
+import { createMainWindow, loadWebApp } from './window';
 
 import type { BrowserWindow } from 'electron';
 
@@ -15,6 +15,8 @@ const APP_ID = 'com.fanste.collector';
 
 const webUrl = resolveWebUrl(import.meta.env.DESKTOP_WEB_URL);
 let mainWindow: BrowserWindow | undefined;
+/** A web app page to open once the window exists (an OAuth callback that arrived before `ready`). */
+let pendingUrl: URL | undefined;
 
 if (!app.requestSingleInstanceLock()) {
   // Another instance is already running. It gets our argv (and so any deep link) via `second-instance`.
@@ -23,12 +25,12 @@ if (!app.requestSingleInstanceLock()) {
   registerDeepLinkProtocol();
 
   app.on('second-instance', (_event, argv) => {
-    showMainWindow();
     const link = findDeepLink(argv);
     if (link) handleDeepLink(link);
+    else showMainWindow();
   });
 
-  // macOS delivers deep links as an event instead, possibly before `ready`.
+  // macOS delivers deep links as an event instead, possibly before `ready` (cold start from a link).
   app.on('open-url', (event, url) => {
     event.preventDefault();
     const link = parseDeepLink(url);
@@ -45,11 +47,12 @@ if (!app.requestSingleInstanceLock()) {
 
     restrictPermissions(session.defaultSession, webUrl.origin);
     registerIpcHandlers(webUrl.origin);
-    showMainWindow();
 
-    // Windows/Linux: the app was launched by opening a deep link.
+    // Windows/Linux: the app was launched by opening a deep link. Handled before the window is
+    // created, so the window opens the link's page instead of loading the start page first.
     const link = findDeepLink(process.argv);
     if (link) handleDeepLink(link);
+    else showMainWindow();
 
     // macOS: clicking the dock icon with no windows open.
     app.on('activate', showMainWindow);
@@ -60,7 +63,8 @@ if (!app.requestSingleInstanceLock()) {
 function showMainWindow(): void {
   if (!app.isReady()) return;
   if (!mainWindow) {
-    mainWindow = createMainWindow(webUrl);
+    mainWindow = createMainWindow(webUrl, pendingUrl);
+    pendingUrl = undefined;
     mainWindow.on('closed', () => {
       mainWindow = undefined;
     });
@@ -82,9 +86,19 @@ function registerDeepLinkProtocol(): void {
   }
 }
 
+/**
+ * Handles a `fanste://` link. `fanste://auth/callback?code=…` (Google sign-in, which runs in the
+ * system browser) opens the web app's `/auth/callback` in the window, which finishes the sign-in.
+ * The query isn't logged, since it can contain an auth code.
+ */
 function handleDeepLink(link: URL): void {
-  // FC-06 forwards `fanste://auth/callback?code=…` to the renderer to finish OAuth sign-in.
-  // The query isn't logged, since it can contain an auth code.
   console.info(`[deep-link] Received ${link.protocol}//${link.host}${link.pathname}`);
+  const target = authCallbackUrl(link, webUrl.origin);
+
+  if (target && mainWindow) {
+    void loadWebApp(mainWindow, target);
+  } else if (target) {
+    pendingUrl = target;
+  }
   showMainWindow();
 }

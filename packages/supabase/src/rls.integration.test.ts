@@ -493,6 +493,58 @@ describe('Row Level Security (dev Supabase project)', () => {
     });
   });
 
+  describe('avatars storage', () => {
+    const png = new Blob([new Uint8Array([0x89, 0x50, 0x4e, 0x47])], { type: 'image/png' });
+    const avatarPath = (userId: string) => `${userId}/${randomUUID()}.png`;
+    const upload = (client: FansteSupabaseClient, path: string, file: Blob = png) =>
+      client.storage.from('avatars').upload(path, file, { contentType: file.type });
+
+    afterAll(async () => {
+      // Storage objects don't cascade with the user, so remove the test files explicitly.
+      for (const user of [userA, userB]) {
+        if (!user) continue;
+        const { data } = await admin.storage.from('avatars').list(user.id);
+        if (data?.length) {
+          await admin.storage.from('avatars').remove(data.map((file) => `${user.id}/${file.name}`));
+        }
+      }
+    });
+
+    it('lets a user upload into their own folder', async () => {
+      const { error } = await upload(userA.client, avatarPath(userA.id));
+      expect(error).toBeNull();
+    });
+
+    it("blocks uploads into another user's folder", async () => {
+      const { error } = await upload(userB.client, avatarPath(userA.id));
+      expect(error).not.toBeNull();
+    });
+
+    it('blocks anonymous uploads', async () => {
+      const { error } = await upload(anon, avatarPath(userA.id));
+      expect(error).not.toBeNull();
+    });
+
+    it("hides another user's files and keeps them from being deleted", async () => {
+      const path = avatarPath(userA.id);
+      const { error } = await upload(userA.client, path);
+      expect(error).toBeNull();
+
+      const listed = await userB.client.storage.from('avatars').list(userA.id);
+      expect(listed.data ?? []).toEqual([]);
+
+      await userB.client.storage.from('avatars').remove([path]);
+      const remaining = await admin.storage.from('avatars').list(userA.id);
+      expect(remaining.data?.map((file) => file.name)).toContain(path.split('/')[1]);
+    });
+
+    it('rejects files that are not images', async () => {
+      const text = new Blob(['not an image'], { type: 'text/plain' });
+      const { error } = await upload(userA.client, `${userA.id}/${randomUUID()}.txt`, text);
+      expect(error).not.toBeNull();
+    });
+  });
+
   describe('deleting a user', () => {
     it("removes all of the user's rows", async () => {
       const { error } = await admin.auth.admin.deleteUser(userA.id);

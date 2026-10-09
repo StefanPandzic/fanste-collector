@@ -30,9 +30,10 @@ does rate limiting, caching and BGG XML→JSON, and avoids CORS. It accepts bear
 use it unchanged.
 
 - **Routes:**
-  - `(auth)` holds the public pages (sign-in, sign-up).
+  - `(auth)` holds the signed-out pages (sign-in, sign-up, forgot-password, reset-password).
+  - `app/auth/callback` (OAuth PKCE code exchange) and `app/auth/confirm` (email links) are Route Handlers.
   - `(app)` holds the pages inside the sidebar/topbar shell (`components/app-shell`).
-  - `src/features/` will hold feature modules (hooks, components, logic) as later tasks add them.
+  - `src/features/` holds feature modules (hooks, components, logic): `auth/` and `profile/` so far.
   - Nav entries are defined in `components/app-shell/nav-items.ts`.
 - **Data fetching** goes through TanStack Query (`components/providers.tsx`). Defaults: 60 s `staleTime`, and no
   refetch on window focus.
@@ -68,9 +69,39 @@ configured. Don't call the `@fanste/supabase` factories directly.
 | Trusted server writes (metadata cache, FC-08) | `createSupabaseServiceClient()` (service) | secret, **bypasses RLS** |
 
 - Create a server client per request; never cache one in module scope.
-- The server client can't write cookies from a Server Component. Session refresh is the proxy's job (FC-06).
+- The server client can't write cookies from a Server Component. Session refresh is the proxy's job
+  (`src/proxy.ts`, via `lib/supabase/proxy.ts`).
 - `service.ts` is `server-only`. Never serve a user's own data through the service client: RLS is what keeps
   users apart.
+
+## Authentication
+
+Supabase Auth with cookie sessions (`@supabase/ssr`). Dashboard setup is in README → Authentication setup.
+
+- `src/proxy.ts` (Next.js 16's renamed middleware) runs on every non-static request. It refreshes the session and
+  routes by `routeAccess()` in `features/auth/routes.ts`:
+  - signed-out users on protected paths go to `/sign-in?next=…`;
+  - signed-in users on guest-only pages go to `/dashboard`;
+  - `/auth/*`, `/reset-password` and `/api/*` are public. The gateway answers 401 itself (FC-08).
+- The proxy is only the first check. Server code gets the user with `getCurrentUser()` / `requireUser()`
+  (`features/auth/session.ts`, `server-only`, verified with the Auth server, cached per request). Call one in
+  every `(app)` page that loads user data, since the layout's check doesn't cover a page's own payload on
+  client-side navigation. Every Server Action checks the user again, because actions can be called directly.
+- Redirect targets from the URL (`next`) go through `safeNextPath()`, which blocks open redirects.
+- Client Components read the user with `useUser()` / `useSession()` from `features/auth/session-provider.tsx`.
+  The provider wraps the `(app)` layout.
+- Email/password flows are Server Actions (`features/auth/actions.ts`). The forms use `useActionState` with a
+  `FormState`, and the zod schemas come from `@fanste/core`. Show only mapped messages (`authErrorMessage()`),
+  never raw Supabase errors.
+- Email links go to `/auth/confirm?token_hash=…` (templates in `supabase/templates/`), so they work on any
+  device. Google uses PKCE through `/auth/callback`. In the desktop app the Google button opens the provider in
+  the system browser (`window.open`), with `redirectTo: fanste://auth/callback` (see `../desktop/CLAUDE.md`).
+- Deleting an account is the one user-facing use of the service client: `deleteAccount` takes the user ID from
+  the verified session, removes the avatar files, then calls `auth.admin.deleteUser`.
+- Avatars are uploaded from the browser to the `avatars` bucket under `<user id>/`. Storage RLS enforces the
+  folder. `saveAvatar` only accepts paths in the user's own folder, but that isn't a security boundary: RLS lets
+  a user set `profiles.avatar_url` to any `https://` URL directly. Before avatars are shown to other users, add
+  a database check on `avatar_url` (allowing the Storage prefix and Google `picture` URLs).
 
 ## Desktop integration
 

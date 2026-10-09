@@ -1,6 +1,5 @@
 import Link from 'next/link';
 
-import { Button } from '@/components/ui/button';
 import {
   Card,
   CardContent,
@@ -9,24 +8,39 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
+import { Separator } from '@/components/ui/separator';
+import { SignInForm } from '@/features/auth/auth-forms';
+import { callbackErrorMessage } from '@/features/auth/errors';
+import { GoogleSignInButton } from '@/features/auth/google-sign-in-button';
 
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = { title: 'Sign in' };
 
-// Placeholder form; FC-06 wires it to Supabase Auth.
-export default function SignInPage() {
+export default async function SignInPage({ searchParams }: PageProps<'/sign-in'>) {
+  const { next, error } = await searchParams;
+  const nextPath = typeof next === 'string' ? next : undefined;
+  const errorMessage = callbackErrorMessage(typeof error === 'string' ? error : undefined);
+
   return (
     <Card>
       <CardHeader>
         <CardTitle>Sign in</CardTitle>
-        <CardDescription>Authentication arrives in FC-06.</CardDescription>
+        <CardDescription>Welcome back to your collection.</CardDescription>
       </CardHeader>
-      <CardContent className="flex flex-col gap-3">
-        <Input type="email" placeholder="Email" aria-label="Email" disabled />
-        <Input type="password" placeholder="Password" aria-label="Password" disabled />
-        <Button disabled>Sign in</Button>
+      <CardContent className="flex flex-col gap-4">
+        {errorMessage && (
+          <p className="text-sm text-destructive" role="alert">
+            {errorMessage}
+          </p>
+        )}
+        <GoogleSignInButton next={nextPath} />
+        <div className="flex items-center gap-3 text-xs text-muted-foreground uppercase">
+          <Separator className="flex-1" />
+          or
+          <Separator className="flex-1" />
+        </div>
+        <SignInForm next={nextPath} />
       </CardContent>
       <CardFooter className="text-sm text-muted-foreground">
         No account?&nbsp;
