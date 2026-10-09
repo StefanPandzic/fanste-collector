@@ -108,13 +108,13 @@ Status legend: `TODO` · `IN PROGRESS` · `DONE` · `BLOCKED`
 | FC-11 | [IGDB integration (Video Games)](phase-2-api-data/11-igdb-integration.md) | FC-08 | TODO |
 | FC-12 | [BoardGameGeek integration + XML parser](phase-2-api-data/12-bgg-integration.md) | FC-08 | TODO |
 | FC-13 | [Funko Pops / custom items](phase-2-api-data/13-funko-custom-items.md) | FC-05, FC-07 | TODO |
-| FC-14 | [Collection data layer & realtime sync](phase-2-api-data/14-collection-data-layer.md) | FC-06, FC-07 | IN PROGRESS |
-| FC-15 | [Item details & manual overrides](phase-2-api-data/15-item-details-overrides.md) | FC-05, FC-07, FC-14 | TODO |
+| FC-14 | [Collection data layer & realtime sync](phase-2-api-data/14-collection-data-layer.md) | FC-06, FC-07 | DONE |
+| FC-15 | [Item details & manual overrides](phase-2-api-data/15-item-details-overrides.md) | FC-05, FC-07, FC-14 | DONE |
 
 ### Phase 3 — Core Interfaces & Desktop Scanning (Week 3)
 | ID | Task | Depends on | Status |
 |---|---|---|---|
-| FC-16 | [Design system & shared UI](phase-3-ui-scanning/16-design-system.md) | FC-02 | IN PROGRESS |
+| FC-16 | [Design system & shared UI](phase-3-ui-scanning/16-design-system.md) | FC-02 | DONE |
 | FC-17 | [Unified search & add item](phase-3-ui-scanning/17-search-add-item.md) | FC-09–FC-16 | TODO |
 | FC-18 | [Collection gallery & filters](phase-3-ui-scanning/18-collection-gallery-filters.md) | FC-14, FC-15, FC-16 | TODO |
 | FC-19 | [Item detail & edit](phase-3-ui-scanning/19-item-detail-edit.md) | FC-14, FC-15, FC-16 | TODO |

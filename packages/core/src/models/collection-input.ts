@@ -1,8 +1,12 @@
 import { z } from 'zod';
 
 import { ITEM_SOURCES } from './collection-item';
+import { detailsSchemaFor, movieDetailsShape, tvDetailsShape } from './copy-details';
 import { itemCategorySchema, metadataProviderSchema, ownershipStatusSchema } from './enums';
+import { metadataOverridesShape } from './metadata-overrides';
 import { checkProviderIdentity } from './normalized-item';
+
+import type { ItemCategory } from './enums';
 
 // What clients send to the collection repository (FC-14). The database checks the same rules; these
 // schemas catch them before a round trip and give readable messages.
@@ -48,7 +52,8 @@ const copyFields = z.object({
 
 /**
  * A new copy of a provider item. Custom items (`provider: 'custom'`) get their own input in FC-13.
- * `details` stays a loose record until FC-15 types it per category.
+ * `details` is checked against the category's schema (`detailsSchemaFor`); suggest its values with
+ * `prefillDetails`.
  */
 export const addItemInputSchema = copyFields
   .partial()
@@ -59,17 +64,69 @@ export const addItemInputSchema = copyFields
     details: z.record(z.string(), z.unknown()).optional(),
     source: z.enum(ITEM_SOURCES).optional(),
   })
-  .superRefine(checkProviderIdentity);
+  .superRefine(checkProviderIdentity)
+  .transform((input, ctx) => {
+    if (input.details === undefined) return input;
+    const result = detailsSchemaFor(input.category).safeParse(input.details);
+    if (!result.success) {
+      for (const issue of result.error.issues) {
+        ctx.addIssue({ ...issue, path: ['details', ...issue.path] });
+      }
+      return z.NEVER;
+    }
+    return { ...input, details: result.data };
+  });
 
 export type AddItemInput = z.input<typeof addItemInputSchema>;
 
 /**
  * Changes to a copy. Copy details and metadata overrides are edited with their own functions, which
- * merge instead of replacing (FC-15).
+ * merge instead of replacing (`detailsPatchSchemaFor`, `overridesPatchSchema`).
  */
 export const updateItemPatchSchema = copyFields.partial();
 
 export type UpdateItemPatch = z.input<typeof updateItemPatchSchema>;
+
+/** Makes every field of a shape optional and nullable: `null` removes the field. */
+function patchShape<Shape extends z.ZodRawShape>(shape: Shape) {
+  return Object.fromEntries(
+    Object.entries(shape).map(([key, schema]) => [
+      key,
+      (schema as z.ZodType).nullable().optional(),
+    ]),
+  ) as unknown as { [K in keyof Shape]: z.ZodOptional<z.ZodNullable<Shape[K]>> };
+}
+
+const loosePatchSchema = z.record(z.string(), z.unknown());
+
+const DETAILS_PATCH_SCHEMAS = {
+  movie: z.object(patchShape(movieDetailsShape)),
+  tv: z.object(patchShape(tvDetailsShape)),
+  music: loosePatchSchema,
+  video_game: loosePatchSchema,
+  board_game: loosePatchSchema,
+  funko: loosePatchSchema,
+} satisfies Record<ItemCategory, z.ZodType>;
+
+/**
+ * Changes to a copy's `details`: present fields are set, `null` fields removed, others kept. Arrays
+ * (languages, `seasons`) are replaced as a whole. Keys the schema doesn't know are stripped, so a key
+ * from an older schema version can't be removed this way; `parseDetails` ignores it on read.
+ */
+export function detailsPatchSchemaFor<C extends ItemCategory>(
+  category: C,
+): (typeof DETAILS_PATCH_SCHEMAS)[C] {
+  return DETAILS_PATCH_SCHEMAS[category];
+}
+
+export type DetailsPatch<C extends ItemCategory = ItemCategory> = z.input<
+  (typeof DETAILS_PATCH_SCHEMAS)[C]
+>;
+
+/** Changes to the metadata overrides: present fields are set, `null` resets a field to the API value. */
+export const overridesPatchSchema = z.object(patchShape(metadataOverridesShape));
+
+export type OverridesPatch = z.input<typeof overridesPatchSchema>;
 
 /** A user's tag. `color` is a hex color like `#3b82f6`. */
 export const tagInputSchema = z.object({

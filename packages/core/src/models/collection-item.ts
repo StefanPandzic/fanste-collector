@@ -1,6 +1,7 @@
 import { z } from 'zod';
 
 import { itemCategorySchema, metadataProviderSchema, ownershipStatusSchema } from './enums';
+import { metadataOverridesSchema } from './metadata-overrides';
 import { normalizedItemSchema } from './normalized-item';
 
 /**
@@ -26,10 +27,13 @@ export const collectionItemSchema = z.object({
   externalId: z.string().nullable(),
   /** Medium, e.g. `4K UHD Blu-ray` (see `FORMATS_BY_CATEGORY`). Free text, so "Other" fits too. */
   format: z.string().nullable(),
-  // The user's copy (resolution, edition, discs, ...) and their corrections of provider fields. Typed
-  // per category by FC-15; until then they are loose records.
+  /**
+   * The user's copy (resolution, edition, discs, ...). Stored as jsonb, so read it typed with
+   * `parseDetails(item.category, item.details)`.
+   */
   details: z.record(z.string(), z.unknown()),
-  metadataOverrides: z.record(z.string(), z.unknown()),
+  /** The user's corrections of provider fields; show the item with `applyOverrides`. */
+  metadataOverrides: metadataOverridesSchema,
   ownership: ownershipStatusSchema,
   quantity: z.int().min(1),
   /** `YYYY-MM-DD`. */

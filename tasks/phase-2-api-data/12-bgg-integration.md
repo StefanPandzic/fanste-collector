@@ -17,6 +17,12 @@ Adapter for the BoardGameGeek XML API2. BGG returns **XML**, so the gateway conv
 - [ ] Handle BGG `202 Accepted` "request queued" responses with retry/backoff
 - [ ] Rate limit: conservative (~1 req / 2 s)
 - [ ] Unit tests with XML fixtures
+- [ ] Copy details for board games (moved here from FC-15, which shipped Movies & TV only):
+  - [ ] `BoardGameDetails` schema in `packages/core/src/models/copy-details.ts` (replaces the loose record):
+        `edition`, `language`, `expansionsOwned[]`, `condition`, `sleeved`, `complete`; add its patch schema and
+        `parseDetails` branch
+  - [ ] Medium (Physical) in `FORMATS_BY_CATEGORY`
+  - [ ] `prefillDetails` for BGG: the game's expansions are offered in `choices` for `expansionsOwned`
 
 ## Acceptance criteria
 - Searching "Catan" returns results with year and thumbnail.

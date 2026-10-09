@@ -8,6 +8,7 @@ describe('parseMovieExtra', () => {
       runtimeMinutes: 148,
       imdbId: 'tt1375666',
       tagline: 'Your mind is the scene of the crime.',
+      originalLanguage: 'en',
     };
     expect(parseMovieExtra(extra)).toEqual(extra);
   });
@@ -21,6 +22,7 @@ describe('parseTvExtra', () => {
   it('returns the TV fields for valid input', () => {
     const extra = {
       imdbId: 'tt0903747',
+      originalLanguage: 'en',
       status: 'Ended',
       seasonCount: 5,
       networks: ['AMC'],

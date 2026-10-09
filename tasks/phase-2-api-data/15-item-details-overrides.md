@@ -22,7 +22,7 @@ Collection data is **filled automatically from the provider APIs** (and from the
 Displayed values are always `{ ...providerMetadata, ...metadataOverrides }`.
 
 ## Copy details per category (v1)
-All fields are optional. Option lists live in `packages/core/src/constants` and must also allow a free-text "Other" value.
+All fields are optional. Option lists live in `packages/core/src/models/copy-options.ts` and must also allow a free-text "Other" value.
 
 | Category | `format` (medium, top-level column) | `details` fields |
 |---|---|---|
@@ -58,35 +58,35 @@ Overridable metadata fields: `title`, `subtitle`, `releaseYear`, `imageUrl` (cus
 
 ## Subtasks
 ### Model (`packages/core`)
-- [ ] Zod schemas per category: `MovieDetails`, `TvDetails`, `MusicDetails`, `VideoGameDetails`, `BoardGameDetails`, `FunkoDetails`, combined as `CopyDetails` (discriminated by category)
-- [ ] `MetadataOverrides` schema (partial of the overridable `NormalizedItem` fields)
-- [ ] `TvDetails.seasons[]` (`seasonNumber`, `episodesOwned`, per-season language/quality overrides), plus `ownedEpisodeCount()` and `seasonDetails()`
-- [ ] Option-list constants (media, resolutions, HDR, audio channels, file formats, storefronts, regions, conditions, editions) with labels; language codes with `Intl.DisplayNames` labels
-- [ ] `applyOverrides(item, overrides)` → display item + list of overridden field names (for the "edited" marker)
-- [ ] `prefillDetails(category, normalizedItem, context?)` — suggested values when adding an item:
-  - [ ] Discogs release: `formats` → `format` (Vinyl / CD / Cassette), `qty` → `discCount`, descriptions → `vinylSize`, `speed`, `variant`; label catalog number → `catalogNumber`
-  - [ ] IGDB: if the game has exactly one platform, preselect `platform`; otherwise the user picks from the game's platforms
-  - [ ] TMDB TV: the seasons and their episode counts are offered for `seasons[]`
-  - [ ] TMDB: the original language is suggested as the first `audioLanguages` entry. This needs `originalLanguage` in `MovieExtra` / `TvExtra`, mapped from TMDB's `original_language` (small change to the FC-09 mapper and fixtures)
-  - [ ] BGG: expansions list offered for `expansionsOwned`
-  - [ ] Scanner (FC-23): `format: 'Digital file'`; `fileFormat`, `resolution`, `hdr` and `audioChannels` from the filename parser (FC-22); `subtitleLanguages` from sidecar subtitle files (FC-21); for TV, the scanned episodes build `seasons[].episodesOwned`
-  - [ ] Otherwise: the user's last-used values for that category (e.g. always 4K UHD) — stored in `profiles.preferences`
-- [ ] Unit tests for schemas, `applyOverrides` and `prefillDetails` (Discogs/IGDB fixtures)
+- [x] Zod schemas per category: `MovieDetails`, `TvDetails`, combined as `CopyDetails` (discriminated by category). Music, video games, board games and Funko keep a loose record: their schemas moved to FC-10, FC-11, FC-12 and FC-13 (Movies & TV first)
+- [x] `MetadataOverrides` schema (partial of the overridable `NormalizedItem` fields)
+- [x] `TvDetails.seasons[]` (`seasonNumber`, `episodesOwned`, per-season language/quality overrides), plus `ownedEpisodeCount()` and `seasonDetails()`
+- [x] Option-list constants (Movies & TV: media, resolutions, HDR, audio channels, file formats, editions, regions, digital stores; storefronts and conditions come with FC-10/FC-11) with labels; language codes with `Intl.DisplayNames` labels
+- [x] `applyOverrides(item, overrides)` → display item + list of overridden field names (for the "edited" marker)
+- [x] `prefillDetails(category, normalizedItem, context?)` — suggested values when adding an item:
+  - [ ] *(Moved to FC-10)* Discogs release: `formats` → `format` (Vinyl / CD / Cassette), `qty` → `discCount`, descriptions → `vinylSize`, `speed`, `variant`; label catalog number → `catalogNumber`
+  - [ ] *(Moved to FC-11)* IGDB: if the game has exactly one platform, preselect `platform`; otherwise the user picks from the game's platforms
+  - [x] TMDB TV: the seasons and their episode counts are offered for `seasons[]`
+  - [x] TMDB: the original language is suggested as the first `audioLanguages` entry. This needs `originalLanguage` in `MovieExtra` / `TvExtra`, mapped from TMDB's `original_language` (small change to the FC-09 mapper and fixtures)
+  - [ ] *(Moved to FC-12)* BGG: expansions list offered for `expansionsOwned`
+  - [x] Scanner (FC-23): `format: 'Digital file'`; `fileFormat`, `resolution`, `hdr` and `audioChannels` from the filename parser (FC-22); `subtitleLanguages` from sidecar subtitle files (FC-21); for TV, the scanned episodes build `seasons[].episodesOwned`
+  - [x] Otherwise: the user's last-used values for that category (e.g. always 4K UHD) — stored in `profiles.preferences` (saved automatically after each add, `set_copy_defaults`)
+- [x] Unit tests for schemas, `applyOverrides` and `prefillDetails` (TMDB and scanner; Discogs/IGDB fixtures come with FC-10/FC-11)
 
 ### Database (extends FC-05 schema)
-- [ ] Columns `collection_items.details`, `collection_items.metadata_overrides` and `profiles.preferences` are defined in the FC-05 schema; this task adds:
-  - [ ] Checks: `jsonb_typeof(...) = 'object'`, size limit (e.g. `pg_column_size(details) < 8192`)
-  - [ ] GIN index on `details` for filtering (e.g. all 4K movies, all Steam games)
-  - [ ] `collection_items_view` returns display values with overrides applied (`coalesce(metadata_overrides->>'title', mc.title)`, …) plus the raw provider values
+- [x] Columns `collection_items.details`, `collection_items.metadata_overrides` and `profiles.preferences` are defined in the FC-05 schema; this task adds:
+  - [x] Checks: `jsonb_typeof(...) = 'object'`, size limit (`octet_length(details::text) <= 16384`, overrides 32768)
+  - [x] GIN index on `details` for filtering (e.g. all 4K movies, all Steam games)
+  - [x] `collection_items_view` returns display values with overrides applied (`coalesce(metadata_overrides->>'title', mc.title)`, …) plus the raw provider values
 
 ### Data layer (extends FC-14)
-- [ ] `updateItemDetails(id, patch)` and `updateOverrides(id, patch)` — partial jsonb merge, validated with zod before sending
-- [ ] `resetOverride(id, field)` / `resetAllOverrides(id)`
-- [ ] Metadata refresh updates only `metadata_cache`; add a test proving `details` and `metadata_overrides` stay unchanged
+- [x] `updateItemDetails(id, patch)` and `updateOverrides(id, patch)` — partial jsonb merge, validated with zod before sending (merged in the database by `merge_item_details` / `merge_item_overrides`)
+- [x] `resetOverride(id, field)` / `resetAllOverrides(id)`
+- [x] Metadata refresh updates only `metadata_cache`; add a test proving `details` and `metadata_overrides` stay unchanged
 
 ## Acceptance criteria
-- Adding a vinyl release from Discogs prefills medium, number of discs and catalog number; the user can change any of them before saving.
-- A user can set a movie to "4K UHD Blu-ray, 2160p, Dolby Vision, Steelbook, 2 discs" and a game to "Digital, Steam, PC".
+- *(Moved to FC-10)* Adding a vinyl release from Discogs prefills medium, number of discs and catalog number; the user can change any of them before saving.
+- A user can set a movie to "4K UHD Blu-ray, 2160p, Dolby Vision, Steelbook, 2 discs" and a game to "Digital, Steam, PC" (the game part moved to FC-11).
 - A user can record a movie file as "Digital file, MKV, 1080p, 5.1, English audio, English + Serbian subtitles".
 - A user can record a TV show as "season 1 complete, season 2 episodes 1–4, season 2 with Serbian subtitles", and the item shows "1 full season + 4 episodes".
 - A user can override a title or cover; the item shows an "edited" marker and "Reset to original" restores the API value.
