@@ -6,7 +6,8 @@ import { parseInput, readJson } from '@/server/http/responses';
 
 /**
  * `POST /api/match/tmdb` with `{ queries: [{ title, year?, kind }] }`: the best TMDB candidates for
- * each scanned title, with a confidence (`matchResponseSchema`). Needs the TMDB adapter (FC-09).
+ * each scanned title, with a confidence (`matchResponseSchema`). FC-23 scores the candidates from
+ * `tmdbMatcher` (`server/gateway.ts`, FC-09).
  */
 export const POST = gatewayRoute('match.tmdb', async (request) => {
   parseInput(matchRequestSchema, await readJson(request));

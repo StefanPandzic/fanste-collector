@@ -37,6 +37,18 @@ describe('createApiClient', () => {
     expect(item).toEqual(matrix);
   });
 
+  it('sends the release year as a search param', async () => {
+    const fetchFn = fakeFetch({ results: [], page: 1, totalPages: 0, totalResults: 0 });
+    await createApiClient({ baseUrl, fetch: fetchFn }).search({
+      category: 'movie',
+      q: 'Inception',
+      year: 2010,
+    });
+    expect(fetchFn.mock.calls[0]?.[0]).toBe(
+      'https://collector.example.com/api/search?category=movie&q=Inception&year=2010',
+    );
+  });
+
   it('sends the access token as a Bearer header', async () => {
     const fetchFn = fakeFetch(matrix);
     const client = createApiClient({ baseUrl, fetch: fetchFn, getAccessToken: () => 'jwt-abc' });

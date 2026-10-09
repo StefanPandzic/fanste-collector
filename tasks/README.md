@@ -103,7 +103,7 @@ Status legend: `TODO` · `IN PROGRESS` · `DONE` · `BLOCKED`
 |---|---|---|---|
 | FC-07 | [Normalized item model](phase-2-api-data/07-normalized-item-model.md) | FC-01 | DONE |
 | FC-08 | [API gateway, rate limiting & caching](phase-2-api-data/08-api-gateway.md) | FC-02, FC-05, FC-07 | DONE |
-| FC-09 | [TMDB integration (Movies & TV)](phase-2-api-data/09-tmdb-integration.md) | FC-08 | TODO |
+| FC-09 | [TMDB integration (Movies & TV)](phase-2-api-data/09-tmdb-integration.md) | FC-08 | DONE |
 | FC-10 | [Discogs integration (Physical Music)](phase-2-api-data/10-discogs-integration.md) | FC-08 | TODO |
 | FC-11 | [IGDB integration (Video Games)](phase-2-api-data/11-igdb-integration.md) | FC-08 | TODO |
 | FC-12 | [BoardGameGeek integration + XML parser](phase-2-api-data/12-bgg-integration.md) | FC-08 | TODO |

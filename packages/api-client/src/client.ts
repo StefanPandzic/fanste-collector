@@ -107,9 +107,10 @@ export function createApiClient({
   }
 
   return {
-    search({ category, q, page }, options) {
+    search({ category, q, page, year }, options) {
       const params = new URLSearchParams({ category, q });
       if (page !== undefined) params.set('page', String(page));
+      if (year !== undefined) params.set('year', String(year));
       return request(`/api/search?${params.toString()}`, searchResponseSchema, {
         method: 'GET',
         signal: options?.signal,

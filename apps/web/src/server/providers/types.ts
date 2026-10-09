@@ -1,5 +1,11 @@
 import type { ExternalProvider, ItemCategory, NormalizedItem, SearchResponse } from '@fanste/core';
 
+export interface SearchOptions {
+  category: ItemCategory;
+  page: number;
+  year?: number;
+}
+
 /**
  * One metadata provider behind the gateway (FC-09 – FC-12). Adapters make their HTTP calls through
  * `providerFetch()`, so the provider's rate limit and retries apply, and return normalized data only.
@@ -8,6 +14,7 @@ import type { ExternalProvider, ItemCategory, NormalizedItem, SearchResponse } f
 export interface ProviderAdapter {
   provider: ExternalProvider;
   categories: readonly ItemCategory[];
-  search(q: string, opts: { category: ItemCategory; page: number }): Promise<SearchResponse>;
+  /** `year` narrows the results to that release year; adapters whose provider can't filter ignore it. */
+  search(q: string, opts: SearchOptions): Promise<SearchResponse>;
   getById(externalId: string, category: ItemCategory): Promise<NormalizedItem>;
 }

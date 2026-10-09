@@ -9,19 +9,24 @@ export interface SearchServiceDeps {
 }
 
 export interface SearchService {
-  search(query: { category: ItemCategory; q: string; page: number }): Promise<SearchResponse>;
+  search(query: {
+    category: ItemCategory;
+    q: string;
+    page: number;
+    year?: number;
+  }): Promise<SearchResponse>;
 }
 
 /** Searches the category's provider, with an in-memory cache in front. */
 export function createSearchService({ registry, cache }: SearchServiceDeps): SearchService {
   return {
-    async search({ category, q, page }) {
+    async search({ category, q, page, year }) {
       const adapter = registry.forCategory(category);
-      const key = [category, q.trim().toLowerCase(), page].join('\u0000');
+      const key = [category, q.trim().toLowerCase(), page, year ?? ''].join('\u0000');
       const cached = cache.get(key);
       if (cached) return cached;
 
-      const response = await adapter.search(q, { category, page });
+      const response = await adapter.search(q, { category, page, ...(year ? { year } : {}) });
       cache.set(key, response);
       return response;
     },

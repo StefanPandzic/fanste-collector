@@ -1,0 +1,37 @@
+{
+  "id": 27205,
+  "title": "Inception",
+  "original_title": "Inception",
+  "release_date": "2010-07-15",
+  "overview": "Cobb, a skilled thief who commits corporate espionage by infiltrating the subconscious of his targets is offered a chance to regain his old life as payment for a task considered to be impossible: \"inception\", the implantation of another person's idea into a target's subconscious.",
+  "tagline": "Your mind is the scene of the crime.",
+  "runtime": 148,
+  "imdb_id": "tt1375666",
+  "poster_path": "/xlaY2zyzMfkhk0HSC5VUwzoZPU1.jpg",
+  "genres": [
+    {
+      "id": 28,
+      "name": "Action"
+    },
+    {
+      "id": 878,
+      "name": "Science Fiction"
+    },
+    {
+      "id": 12,
+      "name": "Adventure"
+    }
+  ],
+  "credits": {
+    "crew": [
+      {
+        "id": 525,
+        "name": "Christopher Nolan",
+        "job": "Director"
+      }
+    ]
+  },
+  "external_ids": {
+    "imdb_id": "tt1375666"
+  }
+}
