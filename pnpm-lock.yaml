@@ -370,6 +370,9 @@ importers:
       '@fanste/config':
         specifier: workspace:*
         version: link:../config
+      '@fanste/supabase':
+        specifier: workspace:*
+        version: link:../supabase
       eslint:
         specifier: ^9.39.5
         version: 9.39.5(jiti@2.7.0)(supports-color@7.2.0)
