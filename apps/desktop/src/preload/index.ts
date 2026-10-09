@@ -30,6 +30,9 @@ const bridge: FansteDesktopBridge = {
       };
     },
   },
+  window: {
+    setTheme: (theme) => ipcRenderer.invoke(IpcChannel.windowSetTheme, theme) as Promise<void>,
+  },
 };
 
 contextBridge.exposeInMainWorld('fanste', bridge);

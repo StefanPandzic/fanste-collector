@@ -26,6 +26,10 @@ retry until the dev server is up (`main/window.ts`).
 - `src/main/` is the main process:
   - `index.ts`: single-instance lock, deep links and app lifecycle
   - `window.ts`: window creation, and window position/size saved to `userData/window-state.json`
+  - `title-bar.ts`: the window has no OS title bar. The web app's top bar (56px, `TITLE_BAR_HEIGHT`) is
+    the drag region. macOS keeps inset traffic lights; Windows and Linux get a window-controls overlay
+    colored to match the theme. The web app sends its theme through `window.fanste.window.setTheme()`,
+    which sets `nativeTheme.themeSource`, and `window.ts` recolors the chrome on `nativeTheme` updates.
   - `security.ts`: navigation and permission lockdown
   - `ipc.ts`: bridge handlers
 - `src/preload/index.ts` exposes `window.fanste`.
@@ -74,8 +78,8 @@ The renderer is treated as a remote web page: `contextIsolation`, `sandbox`, `no
 ## Testing
 
 Importing `electron` outside Electron fails, so Vitest covers only Electron-free modules: `url-policy`, `web-url`,
-`deep-link`, `window-state` and `shared/platform`. When adding logic, put the decisions in a pure module with a
-co-located `*.test.ts`, and keep the Electron wiring thin.
+`deep-link`, `window-state`, `title-bar` and `shared/platform`. When adding logic, put the decisions in a pure
+module with a co-located `*.test.ts`, and keep the Electron wiring thin.
 
 ## Bundling and env
 

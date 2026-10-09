@@ -15,11 +15,15 @@ interface AppShellProps {
   children: ReactNode;
 }
 
-/** Sidebar + topbar layout for the authenticated app pages. */
+/**
+ * Sidebar + topbar layout for the authenticated app pages. In the desktop app the top bar (and the
+ * sidebar's empty space) is the window's title bar: it drags the window and leaves room for the
+ * window controls.
+ */
 export function AppShell({ profileName, avatarUrl, children }: AppShellProps) {
   return (
     <div className="flex min-h-svh">
-      <aside className="sticky top-0 hidden h-svh w-60 shrink-0 flex-col gap-6 border-r bg-card p-4 md:flex">
+      <aside className="sticky top-0 hidden h-svh w-60 shrink-0 flex-col gap-6 border-r bg-card p-4 app-drag md:flex desktop-mac:pt-14">
         <Link href="/dashboard" className="px-3 text-lg font-semibold tracking-tight">
           {APP_NAME}
         </Link>
@@ -27,7 +31,7 @@ export function AppShell({ profileName, avatarUrl, children }: AppShellProps) {
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="sticky top-0 z-10 flex h-14 items-center gap-2 border-b bg-background/80 px-4 backdrop-blur">
+        <header className="sticky top-0 z-10 flex h-14 items-center gap-2 border-b bg-background/80 px-4 backdrop-blur app-drag desktop-win:pr-window-controls">
           <MobileNav />
           <Link href="/dashboard" className="font-semibold tracking-tight md:hidden">
             {APP_NAME}

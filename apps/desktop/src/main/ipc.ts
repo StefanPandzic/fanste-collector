@@ -1,5 +1,6 @@
-import { ipcMain } from 'electron';
+import { ipcMain, nativeTheme } from 'electron';
 
+import { parseDesktopTheme } from './title-bar';
 import { isAppUrl } from './url-policy';
 import { IpcChannel } from '../shared/ipc-channels';
 
@@ -23,6 +24,11 @@ export function registerIpcHandlers(appOrigin: string): void {
   // The scanner is implemented in FC-21, which also validates the arguments.
   handle(IpcChannel.scannerSelectDirectories, () => notImplemented('scanner.selectDirectories'));
   handle(IpcChannel.scannerStartScan, () => notImplemented('scanner.startScan'));
+
+  // `window.ts` listens for the resulting `nativeTheme` update and recolors the window chrome.
+  handle(IpcChannel.windowSetTheme, (_event, theme) => {
+    nativeTheme.themeSource = parseDesktopTheme(theme);
+  });
 }
 
 function notImplemented(name: string): never {

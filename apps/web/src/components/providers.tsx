@@ -5,6 +5,8 @@ import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import { ThemeProvider } from 'next-themes';
 import { useState, type ReactNode } from 'react';
 
+import { DesktopIntegration } from './desktop-integration';
+
 function createQueryClient() {
   return new QueryClient({
     defaultOptions: {
@@ -25,6 +27,7 @@ export function Providers({ children }: { children: ReactNode }) {
     <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
       <QueryClientProvider client={queryClient}>
         {children}
+        <DesktopIntegration />
         <ReactQueryDevtools buttonPosition="bottom-right" />
       </QueryClientProvider>
     </ThemeProvider>
