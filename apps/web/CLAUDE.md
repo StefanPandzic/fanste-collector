@@ -108,12 +108,12 @@ Supabase Auth with cookie sessions (`@supabase/ssr`). Dashboard setup is in READ
 Route Handlers in `src/app/api/*`; the logic lives in `src/server/` (FC-08). The request/response schemas and
 the error shape are in `@fanste/core` (`gateway/`), and clients call the gateway through `@fanste/api-client`.
 
-| Route                                  | Does                                                           |
-| -------------------------------------- | -------------------------------------------------------------- |
-| `GET /api/search?category=&q=&page=`   | One page from the category's provider (in-memory LRU in front) |
-| `GET /api/items/:provider/:externalId` | Full `NormalizedItem`, cache-first                             |
-| `POST /api/items/batch`                | Many items: one cache read, only misses go to providers        |
-| `POST /api/match/tmdb`                 | Scanner matching; returns 501 until FC-23                      |
+| Route                                      | Does                                                           |
+| ------------------------------------------ | -------------------------------------------------------------- |
+| `GET /api/search?category=&q=&page=&year=` | One page from the category's provider (in-memory LRU in front) |
+| `GET /api/items/:provider/:externalId`     | Full `NormalizedItem`, cache-first                             |
+| `POST /api/items/batch`                    | Many items: one cache read, only misses go to providers        |
+| `POST /api/match/tmdb`                     | Scanner matching; returns 501 until FC-23                      |
 
 - Every route is wrapped in `gatewayRoute()` (`server/gateway.ts`). It authenticates (session cookies, or
   `Authorization: Bearer <jwt>` for a future mobile app; an invalid bearer is a 401), applies the per-user limit,
@@ -122,9 +122,15 @@ the error shape are in `@fanste/core` (`gateway/`), and clients call the gateway
 - All limits, TTLs and `Cache-Control` values are in `server/limits.ts`. In-memory limits and the search LRU
   are per instance (best effort); `metadata_cache` is the shared cache. Stale rows are served and refreshed
   with `after()`.
-- **Adding a provider (FC-09 – FC-12):** implement `ProviderAdapter` (`server/providers/types.ts`), make every
+- **Adding a provider (FC-10 – FC-12):** implement `ProviderAdapter` (`server/providers/types.ts`), make every
   HTTP call through `providerFetch()` (throttle, retry on 429/503 with `Retry-After`, logging), and register
-  the adapter in `server/gateway.ts`. Pass secrets in headers, never in logged URLs.
+  the adapter in `server/gateway.ts`. Pass secrets in headers, never in logged URLs. `server/providers/tmdb/`
+  is the model to follow: zod schemas for the provider payloads, pure mappers, and the adapter.
+- **TMDB (FC-09)** is registered only when `TMDB_API_READ_TOKEN` is set; `TMDB_LANGUAGE` (default `en-US`)
+  applies to the whole deployment, because `metadata_cache` isn't keyed by language. `tmdbMatcher` in
+  `server/gateway.ts` gives the scanner's matching (FC-23) raw candidates with popularity to score.
+- Adapter tests replay recorded responses from `__fixtures__/`, never live calls. Re-record the TMDB ones with
+  `pnpm fixtures:tmdb` (needs the token).
 
 ## Desktop integration
 

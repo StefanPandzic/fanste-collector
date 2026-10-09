@@ -24,6 +24,7 @@
     "db:diff": "node scripts/supabase.mjs db diff --linked --schema public",
     "db:drift": "node scripts/db-drift.mjs",
     "db:types": "node scripts/db-types.mjs",
+    "fixtures:tmdb": "node scripts/record-tmdb-fixtures.mjs",
     "prepare": "husky"
   },
   "devDependencies": {

@@ -37,4 +37,28 @@ describe('createSearchService', () => {
     expect(search).toHaveBeenCalledTimes(1);
     expect(search).toHaveBeenCalledWith('The Matrix', { category: 'movie', page: 1 });
   });
+
+  it('passes the year to the provider and caches each year separately', async () => {
+    const search = vi.fn<ProviderAdapter['search']>(() => Promise.resolve(matrixPage));
+    const adapter: ProviderAdapter = {
+      provider: 'tmdb',
+      categories: ['movie', 'tv'],
+      search,
+      getById: () => Promise.reject(new Error('not used')),
+    };
+    const service = createSearchService({
+      registry: createRegistry([adapter]),
+      cache: createLruCache<SearchResponse>({ maxEntries: 10, ttlMs: 60_000 }),
+    });
+
+    await service.search({ category: 'movie', q: 'The Matrix', page: 1, year: 1999 });
+    await service.search({ category: 'movie', q: 'The Matrix', page: 1, year: 1999 });
+    await service.search({ category: 'movie', q: 'The Matrix', page: 1 });
+    expect(search).toHaveBeenCalledTimes(2);
+    expect(search).toHaveBeenNthCalledWith(1, 'The Matrix', {
+      category: 'movie',
+      page: 1,
+      year: 1999,
+    });
+  });
 });

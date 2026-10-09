@@ -1,0 +1,47 @@
+{
+  "page": 1,
+  "total_pages": 1,
+  "total_results": 5,
+  "results": [
+    {
+      "id": 1396,
+      "name": "Breaking Bad",
+      "original_name": "Breaking Bad",
+      "first_air_date": "2008-01-20",
+      "poster_path": "/anFx9aTOOYqgS3v7x3R84Kz67ly.jpg",
+      "popularity": 220.9743
+    },
+    {
+      "id": 232533,
+      "name": "Breaking Bad Fortune Teller",
+      "original_name": "绝命卦师",
+      "first_air_date": "2016-04-11",
+      "poster_path": "/n8dKkbPkdEPFCFmjNvrUl1gUAYr.jpg",
+      "popularity": 2.3317
+    },
+    {
+      "id": 337563,
+      "name": "Breaking Bad: Original Minisodes",
+      "original_name": "Breaking Bad: Original Minisodes",
+      "first_air_date": "2009-02-17",
+      "poster_path": "/dMXwKX2u98yuAXrslSRmteztMoE.jpg",
+      "popularity": 0.4093
+    },
+    {
+      "id": 326283,
+      "name": "Breaking the Deal with My Hockey Bad Boy",
+      "original_name": "Breaking the Deal with My Hockey Bad Boy",
+      "first_air_date": "2025-06-08",
+      "poster_path": "/cjvq9nh9oVMC2ike0s6L9f72pZF.jpg",
+      "popularity": 1.2311
+    },
+    {
+      "id": 302540,
+      "name": "The Bad Guys: The Series",
+      "original_name": "The Bad Guys: The Series",
+      "first_air_date": "2025-11-06",
+      "poster_path": "/1F19BFivPc2N3sXJ4461cWsrK33.jpg",
+      "popularity": 25.5574
+    }
+  ]
+}

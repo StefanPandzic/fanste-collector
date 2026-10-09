@@ -1,0 +1,47 @@
+{
+  "page": 1,
+  "total_pages": 1,
+  "total_results": 12,
+  "results": [
+    {
+      "id": 27205,
+      "title": "Inception",
+      "original_title": "Inception",
+      "release_date": "2010-07-15",
+      "poster_path": "/xlaY2zyzMfkhk0HSC5VUwzoZPU1.jpg",
+      "popularity": 53.0331
+    },
+    {
+      "id": 542438,
+      "title": "Bikini Inception",
+      "original_title": "Bikini Inception",
+      "release_date": "2015-05-19",
+      "poster_path": "/mNASlEOFX2c9upxaSbgeKFvIr1L.jpg",
+      "popularity": 1.8452
+    },
+    {
+      "id": 64956,
+      "title": "Inception: The Cobol Job",
+      "original_title": "Inception: The Cobol Job",
+      "release_date": "2010-12-07",
+      "poster_path": "/sNxqwtyHMNQwKWoFYDqcYTui5Ok.jpg",
+      "popularity": 2.0758
+    },
+    {
+      "id": 1359046,
+      "title": "Inception",
+      "original_title": "Эхлэл",
+      "release_date": "1980-01-23",
+      "poster_path": null,
+      "popularity": 0.8187
+    },
+    {
+      "id": 250845,
+      "title": "WWA The Inception",
+      "original_title": "WWA The Inception",
+      "release_date": "2001-10-26",
+      "poster_path": null,
+      "popularity": 0.9661
+    }
+  ]
+}

@@ -29,7 +29,7 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 
 /** Conservative limits, below what each provider allows (FC-09 – FC-12 document the real ones). */
 export const PROVIDER_LIMITS: Record<ExternalProvider, ProviderLimits> = {
-  // ~50 req/s allowed.
+  // ~50 req/s allowed (FC-09); 20 leaves room for bursts from several instances.
   tmdb: {
     ratePerSecond: 20,
     burst: 20,

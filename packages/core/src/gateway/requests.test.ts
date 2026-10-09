@@ -22,6 +22,15 @@ describe('searchQuerySchema', () => {
     expect(searchQuerySchema.parse({ category: 'board_game', q: 'Catan' }).page).toBe(1);
   });
 
+  it('coerces an optional release year', () => {
+    expect(searchQuerySchema.parse({ category: 'movie', q: 'Inception', year: '2010' }).year).toBe(
+      2010,
+    );
+    expect(searchQuerySchema.parse({ category: 'movie', q: 'Inception' })).not.toHaveProperty(
+      'year',
+    );
+  });
+
   it('rejects an empty query and unknown categories', () => {
     expect(searchQuerySchema.safeParse({ category: 'movie', q: '   ' }).success).toBe(false);
     expect(searchQuerySchema.safeParse({ category: 'books', q: 'Dune' }).success).toBe(false);
