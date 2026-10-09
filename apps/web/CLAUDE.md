@@ -33,10 +33,15 @@ use it unchanged.
   - `(auth)` holds the signed-out pages (sign-in, sign-up, forgot-password, reset-password).
   - `app/auth/callback` (OAuth PKCE code exchange) and `app/auth/confirm` (email links) are Route Handlers.
   - `(app)` holds the pages inside the sidebar/topbar shell (`components/app-shell`).
-  - `src/features/` holds feature modules (hooks, components, logic): `auth/` and `profile/` so far.
+  - `src/features/` holds feature modules (hooks, components, logic): `auth/`, `profile/` and `collection/`
+    so far.
   - Nav entries are defined in `components/app-shell/nav-items.ts`.
 - **Data fetching** goes through TanStack Query (`components/providers.tsx`). Defaults: 60 s `staleTime`, and no
   refetch on window focus.
+- **Collection data** comes from the `@fanste/collection` hooks (`useCollection`, `useAddItem`, …), never from
+  direct Supabase queries. `AppCollectionProvider` (`features/collection/`, in the `(app)` layout) gives them the
+  browser Supabase client and the gateway client, turns failed mutations into toasts, and keeps Realtime sync
+  running. The collection queries refetch on window focus and reconnect.
 - **Cover images** from providers load through `next/image`. The allowed hosts are in `images.remotePatterns` in
   `next.config.ts`; add a provider's image host there.
 
@@ -108,12 +113,12 @@ Supabase Auth with cookie sessions (`@supabase/ssr`). Dashboard setup is in READ
 Route Handlers in `src/app/api/*`; the logic lives in `src/server/` (FC-08). The request/response schemas and
 the error shape are in `@fanste/core` (`gateway/`), and clients call the gateway through `@fanste/api-client`.
 
-| Route                                      | Does                                                           |
-| ------------------------------------------ | -------------------------------------------------------------- |
-| `GET /api/search?category=&q=&page=&year=` | One page from the category's provider (in-memory LRU in front) |
-| `GET /api/items/:provider/:externalId`     | Full `NormalizedItem`, cache-first                             |
-| `POST /api/items/batch`                    | Many items: one cache read, only misses go to providers        |
-| `POST /api/match/tmdb`                     | Scanner matching; returns 501 until FC-23                      |
+| Route                                      | Does                                                                                                                                           |
+| ------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| `GET /api/search?category=&q=&page=&year=` | One page from the category's provider (in-memory LRU in front)                                                                                 |
+| `GET /api/items/:provider/:externalId`     | Full `NormalizedItem`, cache-first                                                                                                             |
+| `POST /api/items/batch`                    | Many items: one cache read, only misses go to providers. Refs it can't load come back in `missing` with a reason: `not_found` or `retry_later` |
+| `POST /api/match/tmdb`                     | Scanner matching; returns 501 until FC-23                                                                                                      |
 
 - Every route is wrapped in `gatewayRoute()` (`server/gateway.ts`). It authenticates (session cookies, or
   `Authorization: Bearer <jwt>` for a future mobile app; an invalid bearer is a 401), applies the per-user limit,

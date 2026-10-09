@@ -1,7 +1,7 @@
 name: DB drift
 
 # Checks that `supabase/migrations` fully describes the dev Supabase Cloud project's schema (FC-04),
-# and runs the RLS integration tests against it (FC-05).
+# and runs the RLS (FC-05) and collection repository (FC-14) integration tests against it.
 # `supabase db diff` needs Docker for its shadow database, which GitHub-hosted runners provide.
 # The scheduled runs also keep the free-tier dev project from pausing after a week without activity.
 on:
@@ -9,7 +9,7 @@ on:
   # Also right after a schema change lands (its migrations are pushed to dev before the merge).
   push:
     branches: [main]
-    paths: ['supabase/**', 'packages/supabase/**']
+    paths: ['supabase/**', 'packages/supabase/**', 'packages/collection/**']
   schedule:
     - cron: '0 6 * * 1,4' # Mondays and Thursdays, 06:00 UTC
 

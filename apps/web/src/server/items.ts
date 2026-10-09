@@ -7,7 +7,13 @@ import { gatewayLog } from './log';
 
 import type { CachedItem, MetadataCacheStore } from './cache/metadata-cache';
 import type { ProviderRegistry } from './providers/registry';
-import type { BatchResponse, ExternalProvider, ItemRef, NormalizedItem } from '@fanste/core';
+import type {
+  BatchResponse,
+  ExternalProvider,
+  ItemRef,
+  MissingItem,
+  NormalizedItem,
+} from '@fanste/core';
 
 export interface ItemServiceDeps {
   registry: ProviderRegistry;
@@ -22,7 +28,8 @@ export interface ItemService {
   getItem(ref: ItemRef): Promise<NormalizedItem>;
   /**
    * Many items: one cache read, then only the misses go to the providers (throttled), at most
-   * `maxFetchesPerRequest` per provider. Misses beyond that are reported in `missing`.
+   * `maxFetchesPerRequest` per provider. Misses beyond that, and failed fetches, are reported in
+   * `missing`: `not_found` when the provider has no such item, otherwise `retry_later`.
    */
   getItemsBatch(refs: readonly ItemRef[]): Promise<BatchResponse>;
 }
@@ -71,10 +78,10 @@ export function createItemService({
   async function fetchMany(
     refs: readonly ItemRef[],
     event: string,
-  ): Promise<{ fetched: NormalizedItem[]; failed: ItemRef[] }> {
+  ): Promise<{ fetched: NormalizedItem[]; failed: MissingItem[] }> {
     const results = await Promise.allSettled(refs.map(fetchFromProvider));
     const fetched: NormalizedItem[] = [];
-    const failed: ItemRef[] = [];
+    const failed: MissingItem[] = [];
     results.forEach((result, index) => {
       const ref = refs[index];
       if (!ref) return;
@@ -82,8 +89,9 @@ export function createItemService({
         fetched.push(result.value);
         return;
       }
-      failed.push(ref);
       const reason: unknown = result.reason;
+      const notFound = reason instanceof GatewayError && reason.code === 'not_found';
+      failed.push({ ...ref, reason: notFound ? 'not_found' : 'retry_later' });
       if (reason instanceof GatewayError) {
         gatewayLog.warn(event, { item: refKey(ref), code: reason.code });
       } else {
@@ -168,7 +176,8 @@ export function createItemService({
       const { fetched, failed } = await fetchMany(within, 'batch.fetch_failed');
       await store(fetched);
 
-      return { items: [...items, ...fetched], missing: [...failed, ...over] };
+      const deferred = over.map((ref): MissingItem => ({ ...ref, reason: 'retry_later' }));
+      return { items: [...items, ...fetched], missing: [...failed, ...deferred] };
     },
   };
 }

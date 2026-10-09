@@ -1,4 +1,5 @@
 export * from './category-meta';
+export * from './collection-input';
 export * from './collection-item';
 export * from './enums';
 export * from './external-id';

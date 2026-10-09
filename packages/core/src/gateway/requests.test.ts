@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
   batchRequestSchema,
+  batchResponseSchema,
   categoryOfExternalId,
   itemRefSchema,
   MAX_BATCH_ITEMS,
@@ -72,6 +73,27 @@ describe('batchRequestSchema', () => {
       batchRequestSchema.safeParse({
         items: Array.from({ length: MAX_BATCH_ITEMS + 1 }, () => matrixRef),
       }).success,
+    ).toBe(false);
+  });
+});
+
+describe('batchResponseSchema', () => {
+  it('accepts missing refs with a reason', () => {
+    const response = {
+      items: [],
+      missing: [
+        { ...matrixRef, reason: 'not_found' },
+        { provider: 'bgg', externalId: '13', reason: 'retry_later' },
+      ],
+    };
+    expect(batchResponseSchema.parse(response)).toEqual(response);
+  });
+
+  it('rejects missing refs without a known reason', () => {
+    expect(batchResponseSchema.safeParse({ items: [], missing: [matrixRef] }).success).toBe(false);
+    expect(
+      batchResponseSchema.safeParse({ items: [], missing: [{ ...matrixRef, reason: 'gone' }] })
+        .success,
     ).toBe(false);
   });
 });

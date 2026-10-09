@@ -1,0 +1,9 @@
+{
+  "extends": "@fanste/config/tsconfig.library.json",
+  "compilerOptions": {
+    // Timers and `crypto.randomUUID()`; the hooks run in browsers (and later React Native).
+    "lib": ["ES2023", "DOM"],
+    "jsx": "react-jsx"
+  },
+  "include": ["src", "*.config.ts"]
+}

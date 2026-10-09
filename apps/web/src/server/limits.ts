@@ -18,7 +18,7 @@ export interface ProviderLimits {
   maxQueue: number;
   /**
    * Cache misses (and background refreshes) one request may send to the provider. A batch reports
-   * the rest in `missing`, and the client asks for them again later.
+   * the rest in `missing` as `retry_later`, and the client asks for them again later.
    */
   maxFetchesPerRequest: number;
   /** How long a `metadata_cache` row is fresh; a stale row is served and refreshed in the background. */

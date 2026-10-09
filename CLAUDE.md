@@ -50,7 +50,7 @@ pnpm --filter <pkg> <script> # one package: web, desktop, @fanste/core, ...
 pnpm db <command>            # Supabase CLI with the root .env* loaded (scripts/supabase.mjs)
 pnpm db migration new <name> # then: pnpm db:push → pnpm db:types (commit the regenerated types)
 pnpm check:bundle            # after `pnpm build`: fails if a server secret is in the web client bundle
-pnpm test:rls                # RLS integration tests against the dev project (not part of `pnpm test`)
+pnpm test:rls                # RLS + collection integration tests against the dev project (not in `pnpm test`)
 ```
 
 `pnpm db:diff` and `pnpm db:drift` need Docker for the CLI's shadow database, so drift is checked by the
@@ -97,6 +97,21 @@ the server client takes a cookie adapter, so the package reads no env and import
   metadata cache). Apps wrap it in a `server-only` module.
 
 The web app's wrappers live in `apps/web/src/lib/supabase/` (see `apps/web/CLAUDE.md`).
+
+**`@fanste/collection`** is the collection data layer (FC-14). It is framework-free apart from React and
+TanStack Query (peer dependencies), so a future mobile app can reuse it:
+
+- `repository/`: functions that take a Supabase client, e.g. `listItems` (reads `collection_items_view`),
+  `addItem`, `updateItem`, `bulkDelete`, the tag functions and `getStats` (the `collection_stats()` RPC).
+  `addItem` loads the metadata through the gateway first, so `metadata_cache` is filled.
+- Errors come out as a `CollectionError` with a `code`. Show `collectionErrorMessage()` to users, never the raw
+  database text.
+- `realtime/`: `subscribeToCollectionChanges()` joins the private `user:<id>` Broadcast topic, and joins it
+  again with backoff after a drop.
+- `react/`: `CollectionProvider` and the hooks (`useCollection`, `useAddItem`, …). Mutations update the cache
+  optimistically and roll back on error. Realtime events invalidate queries, debounced. Metadata that isn't
+  cached yet is fetched through `/api/items/batch`; `not_found` refs are never requested again.
+- Integration tests (`*.integration.test.ts`) run with `pnpm test:rls`, not `pnpm test`.
 
 **Env vars live only in the repo-root `.env*` files.** Both apps load them from there. A new variable goes in
 `.env.example`, tagged with the FC task that introduces it. How each app reads and validates them is covered in
