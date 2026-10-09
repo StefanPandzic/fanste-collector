@@ -8,10 +8,8 @@ app using Supabase Auth (SRS §3.1). Apple sign-in is optional for v1 (see Notes
 
 ## Subtasks
 ### Supabase config (dev + prod projects)
-- [ ] Enable email provider (email confirmation on), configure email templates with Fanste Collector branding — templates done in `supabase/templates/` (links go to `/auth/confirm`); enabling and pasting them is manual, see README → Authentication setup
-- [ ] Configure custom SMTP (the built-in Supabase mailer is heavily rate-limited on the free tier) — manual, see README → Authentication setup
-- [ ] Google OAuth: create a Google Cloud OAuth client (web), set up the consent screen, add credentials to Supabase — manual, see README → Authentication setup
-- [ ] Redirect URL allow-list: localhost, production web URL, `fanste://auth/callback` (desktop) — manual, see README → Authentication setup
+- [x] Email templates with Fanste Collector branding — done in `supabase/templates/` (links go to `/auth/confirm`)
+- [x] ~~Manual dashboard setup: enable the email provider and paste the templates, custom SMTP, Google OAuth client, redirect URL allow-list~~ — moved to [FC-30](../phase-5-post-v1/30-auth-provider-setup.md)
 
 ### Web (Next.js)
 - [x] Sign-in, sign-up, forgot-password, reset-password pages

@@ -7,12 +7,12 @@ Set up **Supabase Cloud** (hosted PostgreSQL, Auth, Realtime, Storage) on the fr
 tracked in the repo and applied to the cloud projects via the Supabase CLI. No local Docker database is used.
 
 ## Subtasks
-- [ ] Create two Supabase Cloud projects (free tier allows two active projects) — manual, see README → Supabase:
-  - [ ] `fanste-collector-dev` — used by developers and CI
-  - [ ] `fanste-collector-prod` — production (configured in FC-29)
-- [ ] Pick the region closest to users (e.g. `eu-central-1`) for both — manual, at project creation
+- [x] Create two Supabase Cloud projects (free tier allows two active projects) — manual, see README → Supabase:
+  - [x] `fanste-collector-dev` — used by developers and CI
+  - [x] ~~`fanste-collector-prod` — production~~ — skipped for now, moved to FC-29
+- [x] Pick the region closest to users — dev is in `eu-west-1`; create prod in the same region (FC-29)
 - [x] Install Supabase CLI as a dev dependency; `supabase init` at repo root → `supabase/` folder (migrations, seed)
-- [ ] `supabase link --project-ref <dev-ref>`; document how to switch the link to prod — `pnpm db:link` and the docs are done; linking needs the dev project
+- [x] `supabase link --project-ref <dev-ref>`; document how to switch the link to prod — `pnpm db:link` and the docs are done; the CLI is linked to the dev project
 - [x] Migration workflow (documented in README):
   - [x] `supabase migration new <name>` → write SQL (`pnpm db migration new <name>`)
   - [x] `supabase db push` → apply to the linked cloud project (`pnpm db:push`)
@@ -25,7 +25,7 @@ tracked in the repo and applied to the cloud projects via the Supabase CLI. No l
 - [x] Env vars: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, `SUPABASE_SECRET_KEY`, `SUPABASE_PROJECT_REF`, `SUPABASE_DB_PASSWORD` and `SUPABASE_ACCESS_TOKEN` (CLI only). The new publishable/secret keys replace the deprecated anon/service_role keys.
 - [x] Seed data (`supabase/seed.sql`): sample items for the dev project only (`supabase db push --include-seed` on dev) — placeholder file and workflow; the sample rows arrive with the schema in FC-05
 - [x] ~~Two test users in the dev project for integration/RLS tests; credentials stored as CI secrets~~ — superseded in FC-05: the RLS tests create and delete throwaway users per run with the admin API (`pnpm test:rls`)
-- [ ] Share dev project access with the team (Supabase organization members) — manual
+- [x] ~~Share dev project access with the team (Supabase organization members)~~ — not needed, single-developer project
 
 ## Acceptance criteria
 - A new developer can clone the repo, fill `.env.local` with dev project keys, run `pnpm db:types`, and use the dev backend.

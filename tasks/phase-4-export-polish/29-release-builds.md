@@ -8,6 +8,7 @@ macOS (SRS §5 Phase 4, without mobile).
 
 ## Subtasks
 ### Supabase Cloud (production)
+- [ ] Create the `fanste-collector-prod` project in the same region as dev (`eu-west-1`) — moved from FC-04
 - [ ] Link the CLI to `fanste-collector-prod` and run `supabase db push` (no seed data)
 - [ ] Auth settings: Site URL + redirect URLs for the production domain and `fanste://auth/callback`
 - [ ] Google OAuth consent screen published (out of "testing" mode)

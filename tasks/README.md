@@ -94,9 +94,9 @@ Status legend: `TODO` · `IN PROGRESS` · `DONE` · `BLOCKED`
 | FC-01 | [Monorepo setup & tooling](phase-1-foundation/01-monorepo-setup.md) | — | DONE |
 | FC-02 | [Web app scaffold (Next.js)](phase-1-foundation/02-web-app-nextjs.md) | FC-01 | DONE |
 | FC-03 | [Desktop shell (Electron)](phase-1-foundation/03-desktop-app-electron.md) | FC-02 | DONE |
-| FC-04 | [Supabase Cloud project & tooling](phase-1-foundation/04-supabase-setup.md) | FC-01 | IN PROGRESS |
+| FC-04 | [Supabase Cloud project & tooling](phase-1-foundation/04-supabase-setup.md) | FC-01 | DONE |
 | FC-05 | [Database schema & RLS](phase-1-foundation/05-database-schema.md) | FC-04 | DONE |
-| FC-06 | [Authentication](phase-1-foundation/06-authentication.md) | FC-02, FC-03, FC-05 | IN PROGRESS |
+| FC-06 | [Authentication](phase-1-foundation/06-authentication.md) | FC-02, FC-03, FC-05 | DONE |
 
 ### Phase 2 — API & Data Modeling (Week 2)
 | ID | Task | Depends on | Status |
@@ -132,6 +132,11 @@ Status legend: `TODO` · `IN PROGRESS` · `DONE` · `BLOCKED`
 | FC-27 | [Branding & provider attribution](phase-4-export-polish/27-branding-attribution.md) | FC-16 | TODO |
 | FC-28 | [Testing & cross-platform QA](phase-4-export-polish/28-testing-qa.md) | Phase 3 | TODO |
 | FC-29 | [Production builds & release](phase-4-export-polish/29-release-builds.md) | FC-28 | TODO |
+
+### Phase 5 — Post-v1 follow-ups
+| ID | Task | Depends on | Status |
+|---|---|---|---|
+| FC-30 | [Auth provider setup (Supabase dashboard + Google Cloud)](phase-5-post-v1/30-auth-provider-setup.md) | FC-06 | TODO |
 
 ---
 
