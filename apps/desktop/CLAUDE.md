@@ -61,7 +61,12 @@ The renderer is treated as a remote web page: `contextIsolation`, `sandbox`, `no
 - Deep links use `fanste://`:
   - A second launch forwards its argv to the running instance.
   - macOS delivers the link through `open-url` instead.
-  - FC-06 will use `fanste://auth/callback` for OAuth.
+  - `fanste://auth/callback?code=…` finishes Google sign-in. The web app opens the provider in the system browser
+    (`window.open`, routed by `security.ts`). `authCallbackUrl()` (`main/deep-link.ts`) maps the link to
+    `<web origin>/auth/callback?code=…`, carrying over only `code` or `error`, and `index.ts` loads it in the
+    window. The window holds the PKCE verifier cookie, so a link with someone else's code can't sign anyone in.
+    A link that arrives before the window exists (macOS cold start via `open-url`, Windows launch argv) is
+    opened as the window's first page.
   - Never log deep-link query strings, because they can contain auth codes.
 - Packaged builds set Electron fuses in `electron-builder.yml` (`runAsNode: false`, ASAR integrity, and others).
 - `appId` in `electron-builder.yml` must match `APP_ID` in `main/index.ts`.

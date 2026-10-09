@@ -168,12 +168,66 @@ The database is an index, not a media host: it stores provider + external ID and
   `user:<user id>`, and only that user may join it. Postgres Changes isn't used, because it doesn't apply RLS to
   DELETE events. In both projects, turn off **Realtime → Settings → Allow public access**, so only private channels
   can be joined.
-- The drift check compares only the `public` schema. The `realtime.messages` policy is covered by `pnpm test:rls`.
+- **Storage:** the public `avatars` bucket holds profile pictures as `<user id>/<uuid>.<ext>` (PNG, JPEG or WebP,
+  up to 2 MB). Each user can list, upload and delete only inside their own folder; the files are served by public
+  URL.
+- The drift check compares only the `public` schema. The `realtime.messages` and Storage policies are covered by
+  `pnpm test:rls`.
+
+### Authentication setup
+
+Supabase Auth settings live in the dashboard, not in migrations. Configure each project (dev now, prod in FC-29)
+once:
+
+1. **Authentication → Sign In / Providers → Email:** enabled, **Confirm email** on, **Secure email change** on,
+   minimum password length **8** (matches `PASSWORD_MIN_LENGTH` in `@fanste/core`).
+2. **Authentication → URL Configuration:**
+   - **Site URL:** `http://localhost:3000` for dev, the production web URL for prod. The email links are built
+     from it.
+   - **Redirect URLs:** `http://localhost:3000/**`, the production URL with `/**` (prod), and
+     `fanste://auth/callback` (desktop Google sign-in).
+3. **Authentication → Emails → Templates:** paste the HTML from [`supabase/templates/`](supabase/templates) and set
+   the subjects:
+
+   | Template             | File                | Subject                               |
+   | -------------------- | ------------------- | ------------------------------------- |
+   | Confirm sign up      | `confirmation.html` | Confirm your Fanste Collector account |
+   | Reset password       | `recovery.html`     | Reset your Fanste Collector password  |
+   | Change email address | `email-change.html` | Confirm your new email address        |
+   | Magic link           | `magic-link.html`   | Your Fanste Collector sign-in link    |
+
+   The links go to `/auth/confirm?token_hash=…`, which signs the user in on whichever device opens the email.
+   Keep it that way when you edit a template.
+
+4. **Authentication → Emails → SMTP Settings:** the built-in mailer only sends a few emails per hour, so set up
+   custom SMTP (for example Resend or Brevo on their free tiers) with a sender address on a domain you control.
+   Then raise **Rate Limits → emails per hour**.
+5. **Google sign-in:**
+   1. In [Google Cloud Console](https://console.cloud.google.com/), set up the **OAuth consent screen** (app name
+      Fanste Collector, support email, scopes `openid`, `email`, `profile`) and publish it.
+   2. Create an **OAuth client ID** of type _Web application_. Under **Authorized redirect URIs**, add the
+      callback URL shown in Supabase under **Authentication → Sign In / Providers → Google** (it looks like
+      `https://<project-ref>.supabase.co/auth/v1/callback`).
+   3. In Supabase, enable the Google provider and enter the client ID and secret. One Google client can serve
+      dev and prod, if you add both projects' callback URLs.
+6. **Realtime → Settings:** turn off **Allow public access** (see Schema above).
+
+**How sign-in works:**
+
+- **Email/password:** Server Actions in `apps/web/src/features/auth/actions.ts`. The session lives in cookies,
+  and `apps/web/src/proxy.ts` refreshes it and redirects signed-out users to `/sign-in`.
+- **Google in the browser:** PKCE. Google sends the user to `/auth/callback?code=…`, which exchanges the code
+  for a session.
+- **Google in the desktop app:** the app opens Google in the system browser. Supabase then redirects to
+  `fanste://auth/callback?code=…`, and the desktop app loads `/auth/callback?code=…` in its own window, which
+  holds the PKCE verifier cookie.
+- **Email links** (confirmation, password reset) open in the system browser, also when you signed up in the
+  desktop app. After confirming, sign in on the desktop with your email and password.
 
 ### RLS tests
 
-`pnpm test:rls` checks the policies against the dev project: users can't read or change each other's rows or
-join each other's Realtime topic, and anonymous visitors can't read anything. It needs `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`
+`pnpm test:rls` checks the policies against the dev project: users can't read or change each other's rows,
+avatar files or Realtime topic, and anonymous visitors can't read anything. It needs `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`
 and `SUPABASE_SECRET_KEY`. Each run creates two throwaway users (`rls-test-<uuid>@example.com`) with the admin API
 and deletes them afterwards, together with their rows. It isn't part of `pnpm test`, which stays offline.
 

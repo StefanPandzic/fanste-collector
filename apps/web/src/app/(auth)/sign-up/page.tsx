@@ -1,6 +1,5 @@
 import Link from 'next/link';
 
-import { Button } from '@/components/ui/button';
 import {
   Card,
   CardContent,
@@ -9,24 +8,29 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
+import { Separator } from '@/components/ui/separator';
+import { SignUpForm } from '@/features/auth/auth-forms';
+import { GoogleSignInButton } from '@/features/auth/google-sign-in-button';
 
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = { title: 'Sign up' };
 
-// Placeholder form; FC-06 wires it to Supabase Auth.
 export default function SignUpPage() {
   return (
     <Card>
       <CardHeader>
         <CardTitle>Create an account</CardTitle>
-        <CardDescription>Authentication arrives in FC-06.</CardDescription>
+        <CardDescription>Track your whole collection in one place.</CardDescription>
       </CardHeader>
-      <CardContent className="flex flex-col gap-3">
-        <Input type="email" placeholder="Email" aria-label="Email" disabled />
-        <Input type="password" placeholder="Password" aria-label="Password" disabled />
-        <Button disabled>Sign up</Button>
+      <CardContent className="flex flex-col gap-4">
+        <GoogleSignInButton />
+        <div className="flex items-center gap-3 text-xs text-muted-foreground uppercase">
+          <Separator className="flex-1" />
+          or
+          <Separator className="flex-1" />
+        </div>
+        <SignUpForm />
       </CardContent>
       <CardFooter className="text-sm text-muted-foreground">
         Already have an account?&nbsp;

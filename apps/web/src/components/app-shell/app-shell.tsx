@@ -5,11 +5,18 @@ import { APP_NAME } from '@fanste/core';
 import { MobileNav } from './mobile-nav';
 import { NavLinks } from './nav-links';
 import { ThemeToggle } from './theme-toggle';
+import { UserMenu } from './user-menu';
 
 import type { ReactNode } from 'react';
 
+interface AppShellProps {
+  profileName: string | null;
+  avatarUrl: string | null;
+  children: ReactNode;
+}
+
 /** Sidebar + topbar layout for the authenticated app pages. */
-export function AppShell({ children }: { children: ReactNode }) {
+export function AppShell({ profileName, avatarUrl, children }: AppShellProps) {
   return (
     <div className="flex min-h-svh">
       <aside className="sticky top-0 hidden h-svh w-60 shrink-0 flex-col gap-6 border-r bg-card p-4 md:flex">
@@ -26,8 +33,8 @@ export function AppShell({ children }: { children: ReactNode }) {
             {APP_NAME}
           </Link>
           <div className="ml-auto flex items-center gap-1">
-            {/* The user menu (profile, sign-out) goes here in FC-06. */}
             <ThemeToggle />
+            <UserMenu profileName={profileName} avatarUrl={avatarUrl} />
           </div>
         </header>
         <main className="flex-1 p-4 md:p-8">{children}</main>

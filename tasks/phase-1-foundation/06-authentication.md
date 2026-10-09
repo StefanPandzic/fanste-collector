@@ -8,25 +8,25 @@ app using Supabase Auth (SRS §3.1). Apple sign-in is optional for v1 (see Notes
 
 ## Subtasks
 ### Supabase config (dev + prod projects)
-- [ ] Enable email provider (email confirmation on), configure email templates with Fanste Collector branding
-- [ ] Configure custom SMTP (the built-in Supabase mailer is heavily rate-limited on the free tier)
-- [ ] Google OAuth: create a Google Cloud OAuth client (web), set up the consent screen, add credentials to Supabase
-- [ ] Redirect URL allow-list: localhost, production web URL, `fanste://auth/callback` (desktop)
+- [ ] Enable email provider (email confirmation on), configure email templates with Fanste Collector branding — templates done in `supabase/templates/` (links go to `/auth/confirm`); enabling and pasting them is manual, see README → Authentication setup
+- [ ] Configure custom SMTP (the built-in Supabase mailer is heavily rate-limited on the free tier) — manual, see README → Authentication setup
+- [ ] Google OAuth: create a Google Cloud OAuth client (web), set up the consent screen, add credentials to Supabase — manual, see README → Authentication setup
+- [ ] Redirect URL allow-list: localhost, production web URL, `fanste://auth/callback` (desktop) — manual, see README → Authentication setup
 
 ### Web (Next.js)
-- [ ] Sign-in, sign-up, forgot-password, reset-password pages
-- [ ] `/auth/callback` route handler exchanging the code for a session (PKCE)
-- [ ] Middleware refreshing the session and protecting `(app)` routes
-- [ ] Sign-out in the user menu
+- [x] Sign-in, sign-up, forgot-password, reset-password pages
+- [x] `/auth/callback` route handler exchanging the code for a session (PKCE), plus `/auth/confirm` for email links (`token_hash`, works across devices)
+- [x] Middleware refreshing the session and protecting `(app)` routes — `src/proxy.ts` (Next.js 16 renamed middleware to proxy), plus `requireUser()` in the `(app)` layout
+- [x] Sign-out in the user menu
 
 ### Desktop (Electron)
-- [ ] Email/password works as-is inside the web view
-- [ ] OAuth: open the provider URL in the system browser, receive `fanste://auth/callback?code=...` via the protocol handler, forward it to the renderer, and exchange the code for a session
-- [ ] Handle Windows (`second-instance` argv) and macOS (`open-url`) deep-link delivery
+- [x] Email/password works as-is inside the web view
+- [x] OAuth: open the provider URL in the system browser, receive `fanste://auth/callback?code=...` via the protocol handler, forward it to the renderer, and exchange the code for a session — the main process loads `<web origin>/auth/callback?code=…` in the window (`authCallbackUrl()`), no bridge change
+- [x] Handle Windows (`second-instance` argv) and macOS (`open-url`) deep-link delivery, including links that arrive before the window exists
 
 ### Shared
-- [ ] `useSession()` / `useUser()` hooks
-- [ ] Profile settings page: display name, avatar, default currency; delete account
+- [x] `useSession()` / `useUser()` hooks (`features/auth/session-provider.tsx`)
+- [x] Profile settings page: display name, avatar (upload to the `avatars` Storage bucket, migration `avatars_bucket`), default currency; delete account (Server Action + admin API)
 
 ## Acceptance criteria
 - A user can create an account with email and sign in on web and desktop with the same credentials.

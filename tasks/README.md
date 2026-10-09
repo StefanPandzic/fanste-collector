@@ -96,7 +96,7 @@ Status legend: `TODO` · `IN PROGRESS` · `DONE` · `BLOCKED`
 | FC-03 | [Desktop shell (Electron)](phase-1-foundation/03-desktop-app-electron.md) | FC-02 | DONE |
 | FC-04 | [Supabase Cloud project & tooling](phase-1-foundation/04-supabase-setup.md) | FC-01 | IN PROGRESS |
 | FC-05 | [Database schema & RLS](phase-1-foundation/05-database-schema.md) | FC-04 | DONE |
-| FC-06 | [Authentication](phase-1-foundation/06-authentication.md) | FC-02, FC-03, FC-05 | TODO |
+| FC-06 | [Authentication](phase-1-foundation/06-authentication.md) | FC-02, FC-03, FC-05 | IN PROGRESS |
 
 ### Phase 2 — API & Data Modeling (Week 2)
 | ID | Task | Depends on | Status |
