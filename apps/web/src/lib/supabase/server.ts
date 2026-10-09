@@ -13,8 +13,10 @@ import type { FansteSupabaseClient } from '@fanste/supabase';
  * signed-in user from the request cookies (RLS applies). Create one per request; never cache it.
  */
 export async function createSupabaseServerClient(): Promise<FansteSupabaseClient> {
-  const config = supabasePublicConfig();
+  // `cookies()` first: it marks the route dynamic, so `next build` doesn't prerender it and the config
+  // check below only runs on real requests (CI builds without Supabase env).
   const cookieStore = await cookies();
+  const config = supabasePublicConfig();
 
   return createServerClient(config, {
     getAll: () => cookieStore.getAll(),
