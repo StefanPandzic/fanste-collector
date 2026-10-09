@@ -29,3 +29,7 @@ through Supabase Realtime: an item added in the browser shows up in the desktop 
 ## Notes
 - `collection_items.format_key` is a generated column (FC-05): the generated Insert/Update types allow it, but Postgres rejects writes to it. Omit it from the repository's write types, and never send a whole `select('*')` row back.
 - The Realtime triggers send one message per row: a bulk delete (plus its cascaded tag links) or a scanner import (FC-23) produces hundreds of events. Debounce the query invalidation instead of refetching per event.
+- From the FC-08 review: `missing` in the batch response mixes refs over the per-request fetch budget (ask again
+  later) with refs the provider no longer has (`not_found`), and `not_found` isn't cached. Before the UI re-requests
+  `missing` automatically, add a reason per entry or negative caching, so deleted items don't cost provider quota on
+  every load.

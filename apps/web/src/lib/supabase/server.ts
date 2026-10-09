@@ -32,3 +32,12 @@ export async function createSupabaseServerClient(): Promise<FansteSupabaseClient
     },
   });
 }
+
+/**
+ * Supabase client with the publishable key and no cookies, for requests that authenticate with an
+ * `Authorization: Bearer` token instead (the API gateway, FC-08). Pass the token to
+ * `auth.getClaims(token)`; the client itself has no session.
+ */
+export function createSupabaseTokenClient(): FansteSupabaseClient {
+  return createServerClient(supabasePublicConfig(), { getAll: () => [] });
+}

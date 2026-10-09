@@ -103,6 +103,29 @@ Supabase Auth with cookie sessions (`@supabase/ssr`). Dashboard setup is in READ
   a user set `profiles.avatar_url` to any `https://` URL directly. Before avatars are shown to other users, add
   a database check on `avatar_url` (allowing the Storage prefix and Google `picture` URLs).
 
+## API gateway
+
+Route Handlers in `src/app/api/*`; the logic lives in `src/server/` (FC-08). The request/response schemas and
+the error shape are in `@fanste/core` (`gateway/`), and clients call the gateway through `@fanste/api-client`.
+
+| Route                                  | Does                                                           |
+| -------------------------------------- | -------------------------------------------------------------- |
+| `GET /api/search?category=&q=&page=`   | One page from the category's provider (in-memory LRU in front) |
+| `GET /api/items/:provider/:externalId` | Full `NormalizedItem`, cache-first                             |
+| `POST /api/items/batch`                | Many items: one cache read, only misses go to providers        |
+| `POST /api/match/tmdb`                 | Scanner matching; returns 501 until FC-23                      |
+
+- Every route is wrapped in `gatewayRoute()` (`server/gateway.ts`). It authenticates (session cookies, or
+  `Authorization: Bearer <jwt>` for a future mobile app; an invalid bearer is a 401), applies the per-user limit,
+  and turns errors into `{ error: { code, message, provider? } }`. Only `GatewayError` messages reach the client.
+- Parse input with `parseInput()` and answer with `jsonOk(schema, …)`, so responses match the contract.
+- All limits, TTLs and `Cache-Control` values are in `server/limits.ts`. In-memory limits and the search LRU
+  are per instance (best effort); `metadata_cache` is the shared cache. Stale rows are served and refreshed
+  with `after()`.
+- **Adding a provider (FC-09 – FC-12):** implement `ProviderAdapter` (`server/providers/types.ts`), make every
+  HTTP call through `providerFetch()` (throttle, retry on 429/503 with `Retry-After`, logging), and register
+  the adapter in `server/gateway.ts`. Pass secrets in headers, never in logged URLs.
+
 ## Desktop integration
 
 - `isDesktop()` / `useIsDesktop()` (`src/lib/platform.ts`) detect the Electron preload bridge (`window.fanste`,

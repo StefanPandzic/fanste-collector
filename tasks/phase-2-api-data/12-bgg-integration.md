@@ -24,3 +24,6 @@ Adapter for the BoardGameGeek XML API2. BGG returns **XML**, so the gateway conv
 
 ## Notes
 - Attribution "Powered by BoardGameGeek" with a link back (FC-27).
+- From the FC-08 review: the per-user limit counts a batch as one request, so one user can still fill BGG's small
+  throttle queue (`maxQueue` 8) and others get `provider_error` "busy". Consider charging the user limiter per
+  cache miss, or a per-user outbound budget, when this adapter lands.
