@@ -6,4 +6,6 @@ export const IpcChannel = {
   scannerStartScan: 'scanner:start-scan',
   /** main → renderer event carrying a `ScanProgress` */
   scannerProgress: 'scanner:progress',
+  /** invoke(theme: DesktopTheme) → `void` */
+  windowSetTheme: 'window:set-theme',
 } as const;

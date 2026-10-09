@@ -132,6 +132,26 @@ the error shape are in `@fanste/core` (`gateway/`), and clients call the gateway
 - Adapter tests replay recorded responses from `__fixtures__/`, never live calls. Re-record the TMDB ones with
   `pnpm fixtures:tmdb` (needs the token).
 
+## Design system
+
+Tokens are in `packages/config/tailwind/theme.css`. On top of shadcn's colors it has status colors
+(`success`/`warning`/`info`), one accent per category (`bg-category-movie`, `text-category-video-game`, …),
+a type scale (`text-display`/`title`/`heading`/`caption`), `shadow-card`, `p-page`/`p-card`, `aspect-cover`
+(2:3) and a `3xl` breakpoint. Use the tokens, never raw colors, so light and dark mode both work.
+
+- Category and ownership labels, icon names and accents come from `CATEGORY_META` / `OWNERSHIP_META` in
+  `@fanste/core`. `components/items/category-style.ts` maps them to Tailwind classes, written out in full
+  because Tailwind can't see class names built at runtime.
+- Item UI is in `components/items/`: `ItemCard` (takes `ItemCardData`; pass `href` or `onSelect` to make
+  it interactive), `ItemGrid` (window-virtualized, arrow-key navigation), `CoverImage` (blur placeholder,
+  category fallback art), `CategoryBadge`, `OwnershipBadge`, `TagChip` and the skeletons. `EmptyState` and
+  `ErrorState` are in `components/states/`. Layout math lives in `grid-layout.ts`; keep it in sync with
+  the card's padding.
+- `/design` (`features/design-system/`) shows every component, plus a 1,000-item grid. It's development
+  only (`notFound()` in production) and not in the nav. Add new shared components to it.
+- Icon-only buttons need an `aria-label`, and decorative icons get `aria-hidden`. Don't rely on color
+  alone (badges pair the color with a label).
+
 ## Desktop integration
 
 - `isDesktop()` / `useIsDesktop()` (`src/lib/platform.ts`) detect the Electron preload bridge (`window.fanste`,
@@ -140,6 +160,18 @@ the error shape are in `@fanste/core` (`gateway/`), and clients call the gateway
 - `<DesktopOnly fallback={…}>` renders its children only in the desktop app.
 - Nav items marked `desktopOnly` (the Scanner) are hidden in the browser.
 - Call desktop features only through `window.fanste`. To add a bridge method, follow `../desktop/CLAUDE.md`.
+- The desktop window has no OS title bar. `DesktopIntegration` (in `providers.tsx`) sets
+  `data-desktop-os` on `<html>` and syncs the theme to the window chrome. `globals.css` uses that
+  attribute for:
+  - the `desktop:`, `desktop-mac:` and `desktop-win:` variants;
+  - thin scrollbars;
+  - no text selection on chrome (header, nav, buttons, badges).
+- A top bar must carry `app-drag` (controls inside stay clickable), `desktop-win:pr-window-controls`
+  (room for the Windows controls overlay) and room for the macOS traffic lights in the top-left corner
+  (`desktop-mac:pl-20` in the `(auth)` layout; the app shell pushes its sidebar down with
+  `desktop-mac:pt-14`). Portaled overlays get `no-drag` from a global rule in `globals.css`; extend its
+  selector list for new overlay kinds. A new full-screen layout needs the same, or the window can't
+  be moved.
 
 ## Conventions
 

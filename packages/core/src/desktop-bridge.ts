@@ -4,11 +4,16 @@
  * normal browser `window.fanste` is `undefined`.
  *
  * Everything crossing the bridge is copied (structured clone), so only plain data and functions.
+ *
+ * The desktop app loads the deployed web app, so an older desktop build can lack members added
+ * later (e.g. `window`, FC-16). Web code calling such a member on every page should check it exists.
  */
 export interface FansteDesktopBridge {
   readonly platform: DesktopPlatformInfo;
   /** Local media scanner (SRS §3.2), implemented in FC-21. */
   readonly scanner: DesktopScannerApi;
+  /** The native window around the web app (FC-16). */
+  readonly window: DesktopWindowApi;
 }
 
 /** Operating system the desktop app runs on. Linux is not a v1 target but works for development. */
@@ -34,4 +39,15 @@ export interface ScanProgress {
   readonly filesFound: number;
   /** Absolute path of the directory being scanned. */
   readonly currentDirectory: string;
+}
+
+/** The app's theme setting, as next-themes stores it. */
+export type DesktopTheme = 'light' | 'dark' | 'system';
+
+export interface DesktopWindowApi {
+  /**
+   * Makes the native window chrome (title-bar controls, background) follow the app theme. Also sets
+   * the renderer's `prefers-color-scheme`, so `system` hands the choice back to the OS.
+   */
+  setTheme(theme: DesktopTheme): Promise<void>;
 }

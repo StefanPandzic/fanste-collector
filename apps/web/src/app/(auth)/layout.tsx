@@ -7,7 +7,8 @@ import type { ReactNode } from 'react';
 export default function AuthLayout({ children }: { children: ReactNode }) {
   return (
     <div className="flex min-h-svh flex-col">
-      <header className="flex h-14 items-center justify-between px-4">
+      {/* The desktop window's title bar, like the app shell's top bar. */}
+      <header className="flex h-14 items-center justify-between px-4 app-drag desktop-mac:pl-20 desktop-win:pr-window-controls">
         <span className="font-semibold tracking-tight">{APP_NAME}</span>
         <ThemeToggle />
       </header>

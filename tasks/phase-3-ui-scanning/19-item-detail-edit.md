@@ -15,11 +15,12 @@ user edit it.
   - [ ] Board game: players, playtime, age, weight
   - [ ] Funko: series, number, variant, exclusive
 - [ ] "My copy" section: format (medium), ownership, quantity, acquired date, purchase price, estimated value, currency, tags, notes — inline editing with validation
-- [ ] Category-specific copy details (FC-15), editable: e.g. movie resolution / HDR / edition / discs / region; game platform / storefront / discs / edition / completeness; music discs / vinyl size / speed / variant / condition
+- [ ] Category-specific copy details (FC-15), editable: e.g. movie resolution / HDR / audio channels / file format / audio and subtitle languages / edition / discs / region; game platform / storefront / discs / edition / completeness; music discs / vinyl size / speed / variant / condition
 - [ ] "Edit metadata" mode for overridable API fields (title, subtitle, year, cover image, description, genres, creators):
   - [ ] Overridden fields show an "edited" marker with the original API value on hover
   - [ ] "Reset to original" per field and "Reset all"
   - [ ] Custom cover: paste a URL or upload an image (FC-13 storage bucket)
+- [ ] TV seasons editor: one row per TMDB season (owned or not, all or selected episodes, per-season subtitles and overrides) and an "N seasons + M episodes owned" summary
 - [ ] Multiple copies of the same title (e.g. DVD + 4K) shown together, each with its own details
 - [ ] Delete with confirmation + undo toast
 - [ ] "View on provider" link (attribution)

@@ -3,6 +3,33 @@
 @import 'shadcn/tailwind.css';
 @import '@fanste/config/tailwind/theme.css';
 
+/*
+ * Desktop app (FC-16). `DesktopIntegration` sets `data-desktop-os` on <html> inside Electron, so
+ * these variants and rules do nothing in a browser.
+ */
+@custom-variant desktop (&:where([data-desktop-os] *));
+@custom-variant desktop-mac (&:where([data-desktop-os='macos'] *));
+@custom-variant desktop-win (&:where([data-desktop-os='windows'] *, [data-desktop-os='linux'] *));
+
+/*
+ * The window has no OS title bar: an element with `app-drag` moves the window. Controls inside it
+ * stay clickable.
+ */
+@utility app-drag {
+  -webkit-app-region: drag;
+  app-region: drag;
+
+  & :is(a, button, input, select, textarea, [role='button'], [tabindex]) {
+    -webkit-app-region: no-drag;
+    app-region: no-drag;
+  }
+}
+
+/* Keeps content clear of the Windows/Linux window controls (the title-bar overlay). */
+@utility pr-window-controls {
+  padding-right: calc(100vw - env(titlebar-area-x, 0px) - env(titlebar-area-width, 100vw) + 0.5rem);
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;
@@ -14,5 +41,40 @@
 
   body {
     @apply bg-background text-foreground antialiased;
+  }
+
+  /* Thin scrollbars in the theme's colors, like native apps. */
+  /* On <html> too: the page's own scrollbar takes its width from the root element. */
+  [data-desktop-os] {
+    scrollbar-color: color-mix(in oklch, var(--muted-foreground) 50%, transparent) transparent;
+
+    &,
+    & * {
+      scrollbar-width: thin;
+    }
+  }
+
+  /*
+   * Portaled overlays (menus, dialogs, popovers, toasts) aren't inside the top bar, so `app-drag`'s
+   * no-drag rule doesn't reach them. Where one covers the drag region it would move the window
+   * instead of taking clicks.
+   */
+  [data-desktop-os]
+    :is(
+      [role='dialog'],
+      [role='alertdialog'],
+      [role='menu'],
+      [role='listbox'],
+      [data-slot$='-content'],
+      [data-sonner-toaster]
+    ) {
+    -webkit-app-region: no-drag;
+    app-region: no-drag;
+  }
+
+  /* UI chrome isn't selectable, as in native apps; content (text, inputs) still is. */
+  [data-desktop-os] :is(header, nav, aside, button, label, [role='menuitem'], [data-slot='badge']) {
+    -webkit-user-select: none;
+    user-select: none;
   }
 }

@@ -114,7 +114,7 @@ Status legend: `TODO` · `IN PROGRESS` · `DONE` · `BLOCKED`
 ### Phase 3 — Core Interfaces & Desktop Scanning (Week 3)
 | ID | Task | Depends on | Status |
 |---|---|---|---|
-| FC-16 | [Design system & shared UI](phase-3-ui-scanning/16-design-system.md) | FC-02 | TODO |
+| FC-16 | [Design system & shared UI](phase-3-ui-scanning/16-design-system.md) | FC-02 | IN PROGRESS |
 | FC-17 | [Unified search & add item](phase-3-ui-scanning/17-search-add-item.md) | FC-09–FC-16 | TODO |
 | FC-18 | [Collection gallery & filters](phase-3-ui-scanning/18-collection-gallery-filters.md) | FC-14, FC-15, FC-16 | TODO |
 | FC-19 | [Item detail & edit](phase-3-ui-scanning/19-item-detail-edit.md) | FC-14, FC-15, FC-16 | TODO |

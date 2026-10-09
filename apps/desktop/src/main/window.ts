@@ -6,12 +6,12 @@ import { app, BrowserWindow, nativeTheme, screen } from 'electron';
 import { APP_NAME } from '@fanste/core';
 
 import { restrictNavigation } from './security';
+import { titleBarOptions, titleBarOverlay, WINDOW_BACKGROUND } from './title-bar';
 import { isOnScreen, readWindowState, writeWindowState } from './window-state';
+import { toDesktopOs } from '../shared/platform';
 
 const DEFAULT_SIZE = { width: 1280, height: 800 };
 const MIN_SIZE = { width: 768, height: 560 };
-// `--background` of the shared theme, so the window doesn't flash white before the page paints.
-const BACKGROUND_COLOR = { light: '#ffffff', dark: '#09090b' };
 
 /**
  * Creates the app window, restores its last position and size, and loads the web app: `startUrl` if
@@ -23,15 +23,18 @@ export function createMainWindow(webUrl: URL, startUrl: URL = webUrl): BrowserWi
   const workAreas = screen.getAllDisplays().map((display) => display.workArea);
   const restored = saved && isOnScreen(saved.bounds, workAreas) ? saved : undefined;
 
+  const os = toDesktopOs(process.platform);
+  const dark = nativeTheme.shouldUseDarkColors;
+
   const window = new BrowserWindow({
     ...(restored?.bounds ?? DEFAULT_SIZE),
     minWidth: MIN_SIZE.width,
     minHeight: MIN_SIZE.height,
     title: APP_NAME,
     show: false,
-    backgroundColor: nativeTheme.shouldUseDarkColors
-      ? BACKGROUND_COLOR.dark
-      : BACKGROUND_COLOR.light,
+    backgroundColor: dark ? WINDOW_BACKGROUND.dark : WINDOW_BACKGROUND.light,
+    // The web app's top bar is the title bar (drag region); see `title-bar.ts`.
+    ...titleBarOptions(os, dark),
     // Windows/Linux: the menu bar appears when Alt is pressed.
     autoHideMenuBar: true,
     webPreferences: {
@@ -60,6 +63,16 @@ export function createMainWindow(webUrl: URL, startUrl: URL = webUrl): BrowserWi
       console.warn('[window] Could not save window state', error);
     }
   });
+
+  // Follow the theme: the web app sets `nativeTheme.themeSource` (`window.fanste.window.setTheme`),
+  // or the OS changes it while the app follows the system.
+  const onThemeUpdated = () => {
+    const isDark = nativeTheme.shouldUseDarkColors;
+    window.setBackgroundColor(isDark ? WINDOW_BACKGROUND.dark : WINDOW_BACKGROUND.light);
+    if (os !== 'macos') window.setTitleBarOverlay(titleBarOverlay(isDark));
+  };
+  nativeTheme.on('updated', onThemeUpdated);
+  window.on('closed', () => nativeTheme.off('updated', onThemeUpdated));
 
   restrictNavigation(window.webContents, webUrl.origin);
   void loadWebApp(window, startUrl);
