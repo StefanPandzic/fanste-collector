@@ -13,6 +13,8 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@fanste/api-client": "workspace:*",
+    "@fanste/collection": "workspace:*",
     "@fanste/core": "workspace:*",
     "@fanste/supabase": "workspace:*",
     "@tanstack/react-query": "^5.103.2",

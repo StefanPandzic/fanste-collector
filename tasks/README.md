@@ -108,7 +108,7 @@ Status legend: `TODO` · `IN PROGRESS` · `DONE` · `BLOCKED`
 | FC-11 | [IGDB integration (Video Games)](phase-2-api-data/11-igdb-integration.md) | FC-08 | TODO |
 | FC-12 | [BoardGameGeek integration + XML parser](phase-2-api-data/12-bgg-integration.md) | FC-08 | TODO |
 | FC-13 | [Funko Pops / custom items](phase-2-api-data/13-funko-custom-items.md) | FC-05, FC-07 | TODO |
-| FC-14 | [Collection data layer & realtime sync](phase-2-api-data/14-collection-data-layer.md) | FC-06, FC-07 | TODO |
+| FC-14 | [Collection data layer & realtime sync](phase-2-api-data/14-collection-data-layer.md) | FC-06, FC-07 | IN PROGRESS |
 | FC-15 | [Item details & manual overrides](phase-2-api-data/15-item-details-overrides.md) | FC-05, FC-07, FC-14 | TODO |
 
 ### Phase 3 — Core Interfaces & Desktop Scanning (Week 3)

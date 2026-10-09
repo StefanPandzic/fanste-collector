@@ -1,6 +1,7 @@
 import { AppShell } from '@/components/app-shell/app-shell';
 import { requireUser } from '@/features/auth/session';
 import { SessionProvider } from '@/features/auth/session-provider';
+import { AppCollectionProvider } from '@/features/collection/collection-provider';
 import { getProfile } from '@/features/profile/queries';
 
 import type { ReactNode } from 'react';
@@ -13,9 +14,14 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
 
   return (
     <SessionProvider initialUser={user}>
-      <AppShell profileName={profile?.display_name ?? null} avatarUrl={profile?.avatar_url ?? null}>
-        {children}
-      </AppShell>
+      <AppCollectionProvider>
+        <AppShell
+          profileName={profile?.display_name ?? null}
+          avatarUrl={profile?.avatar_url ?? null}
+        >
+          {children}
+        </AppShell>
+      </AppCollectionProvider>
     </SessionProvider>
   );
 }

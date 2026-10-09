@@ -75,12 +75,25 @@ export const batchRequestSchema = z.object({
 export type BatchRequest = z.output<typeof batchRequestSchema>;
 
 /**
- * Items in no particular order. `missing` lists the refs that couldn't be loaded this time: the
- * provider failed, or the request used up its per-provider fetch budget. Ask for them again later.
+ * Why a batch ref has no item:
+ * - `not_found`: the provider doesn't have it (deleted or never existed). Don't ask again.
+ * - `retry_later`: the provider failed, or the request used up its per-provider fetch budget.
  */
+export const MISSING_REASONS = ['not_found', 'retry_later'] as const;
+export type MissingReason = (typeof MISSING_REASONS)[number];
+
+/** A batch ref the gateway couldn't load, with the reason. */
+export const missingItemSchema = z.object({
+  provider: externalProviderSchema,
+  externalId: z.string(),
+  reason: z.enum(MISSING_REASONS),
+});
+export type MissingItem = z.output<typeof missingItemSchema>;
+
+/** Items in no particular order, plus the refs that couldn't be loaded (see `MissingReason`). */
 export const batchResponseSchema = z.object({
   items: z.array(normalizedItemSchema),
-  missing: z.array(itemRefSchema),
+  missing: z.array(missingItemSchema),
 });
 export type BatchResponse = z.output<typeof batchResponseSchema>;
 

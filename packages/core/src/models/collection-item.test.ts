@@ -21,6 +21,7 @@ const row = {
   source: 'search',
   createdAt: '2026-09-25T14:02:32.123456+00:00',
   updatedAt: '2026-09-25T14:02:32.123456+00:00',
+  tagIds: [],
   metadata: null,
 };
 

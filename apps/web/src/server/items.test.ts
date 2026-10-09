@@ -133,7 +133,7 @@ describe('createItemService', () => {
       unknownRef,
     ]);
     expect(response.items).toEqual([movie('movie:603'), movie('movie:604')]);
-    expect(response.missing).toEqual([unknownRef]);
+    expect(response.missing).toEqual([{ ...unknownRef, reason: 'not_found' }]);
     expect(getById).toHaveBeenCalledTimes(2);
     expect(cache.upsert).toHaveBeenCalledWith([movie('movie:604')]);
   });
@@ -144,7 +144,9 @@ describe('createItemService', () => {
     const response = await service.getItemsBatch(games);
     expect(getById).toHaveBeenCalledTimes(3);
     expect(response.items).toHaveLength(3);
-    expect(response.missing).toEqual(games.slice(3));
+    expect(response.missing).toEqual(
+      games.slice(3).map((ref) => ({ ...ref, reason: 'retry_later' })),
+    );
   });
 
   it('fetches from the providers when the cache read fails', async () => {

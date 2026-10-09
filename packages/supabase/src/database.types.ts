@@ -284,6 +284,7 @@ export type Database = {
           image_url: string | null;
           metadata_fetched_at: string | null;
           metadata_overrides: Json | null;
+          metadata_payload: Json | null;
           notes: string | null;
           ownership: Database['public']['Enums']['ownership_status'] | null;
           provider: Database['public']['Enums']['metadata_provider'] | null;
@@ -304,7 +305,17 @@ export type Database = {
       };
     };
     Functions: {
-      [_ in never]: never;
+      collection_stats: {
+        Args: never;
+        Returns: {
+          category: Database['public']['Enums']['item_category'];
+          currency: string;
+          estimated_value_total: number;
+          item_count: number;
+          ownership: Database['public']['Enums']['ownership_status'];
+          quantity_total: number;
+        }[];
+      };
     };
     Enums: {
       item_category: 'movie' | 'tv' | 'music' | 'video_game' | 'board_game' | 'funko';

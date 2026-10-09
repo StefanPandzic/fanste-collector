@@ -45,6 +45,8 @@ export const collectionItemSchema = z.object({
   source: z.enum(ITEM_SOURCES),
   createdAt: timestamp,
   updatedAt: timestamp,
+  /** IDs of the user's tags on this copy (`collection_item_tags`). */
+  tagIds: z.array(z.uuid()),
   /**
    * Provider metadata (or the custom item's own data, FC-13), without the user's overrides. `null`
    * while it isn't cached yet: fetch it through the gateway's batch endpoint (FC-14).
