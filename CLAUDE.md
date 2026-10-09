@@ -81,9 +81,10 @@ the web app and adds local-only features through the `window.fanste` preload bri
 - Desktop bundles it (it goes in `devDependencies`, as `apps/desktop/CLAUDE.md` explains).
 
 Keep packages free of Next.js/Electron imports so a future mobile app can reuse them, and use relative imports
-inside packages (the `@/*` alias is for apps only). `api-client` and `export` are still empty stubs.
-`core` holds constants, the bridge types and the auth/profile zod schemas, and will hold the normalized item model
-and filename parser. `config` holds the tsconfig, ESLint and Tailwind presets.
+inside packages (the `@/*` alias is for apps only). `export` is still an empty stub.
+`core` holds constants, the bridge types, the auth/profile zod schemas, the normalized item model and the API
+gateway contracts (`gateway/`), and will hold the filename parser. `api-client` is the typed client for the
+gateway. `config` holds the tsconfig, ESLint and Tailwind presets.
 
 **`@fanste/supabase`** holds the generated `Database` types (`database.types.ts`, written by `pnpm db:types`;
 never edit it by hand) and three framework-free client factories. They take the URL and keys as arguments, and
