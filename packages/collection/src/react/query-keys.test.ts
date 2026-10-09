@@ -21,6 +21,15 @@ describe('collectionKeys', () => {
       'item-1',
     ]);
   });
+
+  it('nests copies lookups under the copies key', () => {
+    const refKeys = ['tmdb:movie:27205', 'tmdb:movie:603'];
+    expect(collectionKeys.copiesOf(userId, refKeys)).toEqual([
+      ...collectionKeys.copies(userId),
+      refKeys,
+    ]);
+    expect(collectionKeys.copies(userId)).toEqual(['collection', userId, 'copies']);
+  });
 });
 
 describe('collectionMutationKey / missingMetadataKey', () => {

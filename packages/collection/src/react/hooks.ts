@@ -1,4 +1,10 @@
-import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import {
+  keepPreviousData,
+  queryOptions,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from '@tanstack/react-query';
 
 import {
   COPY_DETAIL_STATUSES,
@@ -9,11 +15,13 @@ import {
 
 import { toCollectionError } from '../errors';
 import {
+  addCopy,
   addToPage,
   applyPatch,
   isOptimisticId,
   mergeRecord,
   OPTIMISTIC_ID_PREFIX,
+  removeCopy,
   removeFromPage,
   restoreToPage,
   undoAddToPage,
@@ -22,6 +30,7 @@ import {
 import { useCollectionContext } from './context';
 import { useMissingMetadata } from './missing-metadata';
 import { collectionKeys, collectionMutationKey, copyDefaultsKey } from './query-keys';
+import { findCopies, refKey } from '../repository/copies';
 import {
   getCopyDefaults,
   resetAllOverrides,
@@ -49,12 +58,14 @@ import {
 } from '../repository/tags';
 
 import type { CollectionContextValue } from './context';
+import type { CopiesByRef } from '../repository/copies';
 import type { DetailsChange } from '../repository/details';
 import type { CollectionPage } from '../repository/items';
 import type {
   AddItemInput,
   CollectionItem,
   CollectionQuery,
+  ItemRef,
   NormalizedItem,
   OverridableField,
   OverridesPatch,
@@ -125,10 +136,34 @@ export function useCollectionStats() {
   });
 }
 
+/**
+ * The user's copies of some provider items, e.g. to mark search results already in the collection.
+ * Keeps showing the previous answer while the refs change (more results loaded).
+ */
+export function useCollectionCopies(refs: readonly ItemRef[]) {
+  const { client, userId } = useCollectionContext();
+  const keys = [...new Set(refs.map(refKey))].sort();
+  return useQuery({
+    queryKey: collectionKeys.copiesOf(userId, keys),
+    queryFn: () => findCopies(client, refs),
+    enabled: keys.length > 0,
+    placeholderData: keepPreviousData,
+    ...LIVE_QUERY,
+  });
+}
+
 /** The user's last-used medium and details per category: the `defaults` of `prefillDetails`. */
 export function useCopyDefaults() {
   const { client, userId } = useCollectionContext();
-  return useQuery({
+  return useQuery(copyDefaultsQuery(client, userId));
+}
+
+/**
+ * Query options of the user's last-used values, for loading them outside a component, e.g.
+ * `queryClient.fetchQuery(copyDefaultsQuery(client, userId))` before a quick add.
+ */
+export function copyDefaultsQuery(client: CollectionContextValue['client'], userId: string) {
+  return queryOptions({
     queryKey: copyDefaultsKey(userId),
     queryFn: () => getCopyDefaults(client),
     staleTime: 5 * 60 * 1000,
@@ -184,6 +219,21 @@ function updateItemEverywhere(
   queryClient.setQueryData<CollectionItem | null>(collectionKeys.detail(userId, id), (item) =>
     item ? update(item) : item,
   );
+}
+
+/** Applies `update` to every cached copies lookup (`useCollectionCopies`). */
+function updateCopies(
+  queryClient: QueryClient,
+  userId: string,
+  update: (copies: CopiesByRef) => CopiesByRef,
+): void {
+  queryClient.setQueriesData<CopiesByRef>({ queryKey: collectionKeys.copies(userId) }, (copies) =>
+    copies ? update(copies) : copies,
+  );
+}
+
+function toCopy({ id, format, ownership }: CollectionItem) {
+  return { id, format, ownership };
 }
 
 /** The cached version of an item (detail first, then any list), for undoing changes to it. */
@@ -281,7 +331,10 @@ export function useAddItem() {
         changed.push({ key, written: next });
         queryClient.setQueryData(key, next);
       }
+      const copyKey = refKey({ provider: input.provider, externalId: input.externalId });
+      updateCopies(queryClient, userId, (copies) => addCopy(copies, copyKey, toCopy(optimistic)));
       return () => {
+        updateCopies(queryClient, userId, (copies) => removeCopy(copies, copyKey, optimistic.id));
         for (const { key, written } of changed) {
           queryClient.setQueryData<CollectionPage>(key, (page) => {
             if (!page) return page;
@@ -296,6 +349,10 @@ export function useAddItem() {
       // Swap the optimistic row for the stored one (other mutations may delay the refetch).
       undo();
       updateLists(queryClient, userId, (page, query) => addToPage(page, item, query));
+      if (item.externalId !== null) {
+        const copyKey = refKey({ provider: input.provider, externalId: item.externalId });
+        updateCopies(queryClient, userId, (copies) => addCopy(copies, copyKey, toCopy(item)));
+      }
       // Remember the medium and detail habits for the next add of this category. Only copies the
       // user has carry details, and scanner imports aren't the user's choice.
       if (COPY_DETAIL_STATUSES.includes(item.ownership) && input.source !== 'scanner') {

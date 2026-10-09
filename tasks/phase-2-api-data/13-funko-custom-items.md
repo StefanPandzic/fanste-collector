@@ -20,6 +20,8 @@ Funko Pops are part of the product scope but there is no official public API. In
   - [ ] Or paste an image URL
 - [ ] Store in `collection_items.custom_data`; normalize to `NormalizedItem` on read
 - [ ] "Can't find it? Add manually" entry point in search (FC-17) for all categories
+  (moved here from FC-17). The search page shows Funko Pops as "Coming soon" until then; enable the tab and
+  point it at the manual form.
 
 ## Acceptance criteria
 - A user can add a Funko Pop with a name, number, series and photo, and it shows up in the gallery like any other item.

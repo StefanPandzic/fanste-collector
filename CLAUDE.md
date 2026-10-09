@@ -83,8 +83,9 @@ the web app and adds local-only features through the `window.fanste` preload bri
 Keep packages free of Next.js/Electron imports so a future mobile app can reuse them, and use relative imports
 inside packages (the `@/*` alias is for apps only). `export` is still an empty stub.
 `core` holds constants, the bridge types, the auth/profile zod schemas, the normalized item model (with the
-category/ownership display metadata, `CATEGORY_META`), the copy details and metadata overrides (`copy-details.ts`,
-`metadata-overrides.ts`, `prefill.ts`) and the API gateway contracts (`gateway/`), and will hold the filename
+category/ownership display metadata, `CATEGORY_META`, and provider names, `providerLabel`), the copy details and
+metadata overrides (`copy-details.ts`, `metadata-overrides.ts`, `prefill.ts`), the recent-searches list logic
+(`search-history.ts`) and the API gateway contracts (`gateway/`), and will hold the filename
 parser. `api-client` is the typed client for the gateway. `config` holds the tsconfig, ESLint and
 Tailwind presets (the design tokens).
 
@@ -103,7 +104,8 @@ The web app's wrappers live in `apps/web/src/lib/supabase/` (see `apps/web/CLAUD
 TanStack Query (peer dependencies), so a future mobile app can reuse it:
 
 - `repository/`: functions that take a Supabase client, e.g. `listItems` (reads `collection_items_view`),
-  `addItem`, `updateItem`, `bulkDelete`, the tag functions and `getStats` (the `collection_stats()` RPC).
+  `addItem`, `updateItem`, `bulkDelete`, the tag functions, `getStats` (the `collection_stats()` RPC) and
+  `findCopies` (the user's copies of given provider items, e.g. "In collection" on search results).
   `addItem` loads the metadata through the gateway first, so `metadata_cache` is filled.
 - Errors come out as a `CollectionError` with a `code`. Show `collectionErrorMessage()` to users, never the raw
   database text.

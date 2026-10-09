@@ -1,6 +1,6 @@
 'use client';
 
-import { Search } from 'lucide-react';
+import { Plus, Search } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
 
@@ -14,6 +14,7 @@ import { OwnershipBadge } from '@/components/items/ownership-badge';
 import { TagChip } from '@/components/items/tag-chip';
 import { EmptyState } from '@/components/states/empty-state';
 import { ErrorState } from '@/components/states/error-state';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 
 import { mockItems } from './mock-items';
@@ -87,6 +88,23 @@ export function DesignShowcase() {
             <ItemCard key={item.id} item={item} onSelect={() => toast(`Selected ${item.title}`)} />
           ))}
           <ItemCard item={{ title: 'Not clickable', category: 'funko' }} />
+          <ItemCard
+            item={{ title: 'With badge and action', category: 'movie', releaseYear: 2010 }}
+            onSelect={() => toast('Selected the card')}
+            badge={
+              <Badge className="bg-background/90 text-foreground shadow-sm">In collection</Badge>
+            }
+            action={
+              <Button
+                size="icon"
+                className="rounded-full shadow-md"
+                aria-label="Quick add"
+                onClick={() => toast('Quick add')}
+              >
+                <Plus aria-hidden />
+              </Button>
+            }
+          />
           <ItemCardSkeleton />
         </div>
       </Section>

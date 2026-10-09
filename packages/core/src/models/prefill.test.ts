@@ -1,6 +1,13 @@
 import { describe, expect, it } from 'vitest';
 
-import { copyDefaultsFrom, parsePreferences, prefillDetails } from './prefill';
+import {
+  allSeasonsOwned,
+  copyDefaultsFrom,
+  ownAllSeasons,
+  parsePreferences,
+  prefillDetails,
+  quickAddInput,
+} from './prefill';
 
 import type { NormalizedItem } from './normalized-item';
 
@@ -33,8 +40,37 @@ describe('prefillDetails', () => {
       format: '4K UHD Blu-ray',
       details: { resolution: '2160p', hdr: 'HDR10', audioLanguages: ['en'] },
       choices: {},
+      sources: {
+        format: 'defaults',
+        resolution: 'defaults',
+        hdr: 'defaults',
+        audioLanguages: 'provider',
+      },
     });
     expect(prefillDetails('tv', breakingBad).choices).toEqual({ seasons: breakingBadSeasons });
+  });
+
+  it('suggests the same values for a TV show and offers its seasons', () => {
+    expect(prefillDetails('tv', breakingBad, { defaults })).toEqual({
+      format: '4K UHD Blu-ray',
+      details: { resolution: '2160p', hdr: 'HDR10', audioLanguages: ['en'] },
+      choices: { seasons: breakingBadSeasons },
+      sources: {
+        format: 'defaults',
+        resolution: 'defaults',
+        hdr: 'defaults',
+        audioLanguages: 'provider',
+      },
+    });
+  });
+
+  it('drops the source of an invalid last-used value', () => {
+    const stale = { details: { resolution: 2160, hdr: 'HDR10' } };
+    expect(prefillDetails('movie', null, { defaults: stale })).toEqual({
+      details: { hdr: 'HDR10' },
+      choices: {},
+      sources: { hdr: 'defaults' },
+    });
   });
 
   it('uses the scan instead of the last-used values', () => {
@@ -58,6 +94,14 @@ describe('prefillDetails', () => {
         subtitleLanguages: ['en', 'sr'],
       },
       choices: {},
+      sources: {
+        format: 'scan',
+        fileFormat: 'scan',
+        resolution: 'scan',
+        audioChannels: 'scan',
+        audioLanguages: 'provider',
+        subtitleLanguages: 'scan',
+      },
     });
   });
 
@@ -71,6 +115,61 @@ describe('prefillDetails', () => {
       { seasonNumber: 1, episodesOwned: 'all' },
       { seasonNumber: 2, episodesOwned: [1, 2] },
     ]);
+  });
+});
+
+describe('allSeasonsOwned', () => {
+  it('owns every season but the Specials in full', () => {
+    expect(
+      allSeasonsOwned([
+        { seasonNumber: 0, name: 'Specials', episodeCount: 2, airYear: 2009 },
+        ...breakingBadSeasons,
+      ]),
+    ).toEqual([
+      { seasonNumber: 1, episodesOwned: 'all' },
+      { seasonNumber: 2, episodesOwned: 'all' },
+    ]);
+  });
+});
+
+describe('ownAllSeasons', () => {
+  it('suggests every season of a TV show, marked as from the provider', () => {
+    const prefill = ownAllSeasons('tv', prefillDetails('tv', breakingBad));
+    expect(prefill.details.seasons).toEqual([
+      { seasonNumber: 1, episodesOwned: 'all' },
+      { seasonNumber: 2, episodesOwned: 'all' },
+    ]);
+    expect(prefill.sources.seasons).toBe('provider');
+  });
+});
+
+describe('quickAddInput', () => {
+  it('adds an owned copy with the suggested medium and details', () => {
+    expect(
+      quickAddInput({ category: 'movie', provider: 'tmdb', externalId: 'movie:27205' }, inception, {
+        format: '4K UHD Blu-ray',
+        details: { resolution: '2160p' },
+      }),
+    ).toEqual({
+      category: 'movie',
+      provider: 'tmdb',
+      externalId: 'movie:27205',
+      ownership: 'owned',
+      format: '4K UHD Blu-ray',
+      details: { resolution: '2160p', audioLanguages: ['en'] },
+      source: 'search',
+    });
+  });
+
+  it('owns every season of a TV show but the Specials', () => {
+    const target = { category: 'tv', provider: 'tmdb', externalId: 'tv:1396' } as const;
+    expect(quickAddInput(target, breakingBad, undefined).details).toEqual({
+      audioLanguages: ['en'],
+      seasons: [
+        { seasonNumber: 1, episodesOwned: 'all' },
+        { seasonNumber: 2, episodesOwned: 'all' },
+      ],
+    });
   });
 });
 

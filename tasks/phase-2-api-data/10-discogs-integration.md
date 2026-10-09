@@ -23,8 +23,15 @@ Adapter for the Discogs API to catalog vinyl, CD and cassette releases with pres
   - [ ] `prefillDetails` for Discogs releases: `formats` → `format`, `qty` → `discCount`, descriptions →
         `vinylSize`, `speed`, `variant`; label catalog number → `catalogNumber` (tests with fixtures)
   - [ ] `REMEMBERED_DETAIL_FIELDS.music`
+- [ ] Search & add UI for music (moved here from FC-17, which shipped Movies & TV only):
+  - [ ] Enable Music in the search category selector (`SEARCHABLE_CATEGORIES` in
+        `apps/web/src/features/search/search-state.ts`)
+  - [ ] Music filters (Vinyl / CD / Cassette) on the search page
+  - [ ] Music copy-details fields in the "Add with details" dialog (medium, discs, vinyl size/speed/variant,
+        catalog number), prefilled and marked "from Discogs"
 
 ## Acceptance criteria
+- A user can find and add a music release from search in the browser and the desktop app (from FC-17).
 - Searching "Abbey Road" with the Vinyl filter returns vinyl releases with cover art.
 - Adding a vinyl release from Discogs prefills medium, number of discs and catalog number; the user can change any
   of them before saving (from FC-15).

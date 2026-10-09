@@ -29,6 +29,7 @@ export function useCollectionRealtime(): void {
     const batcher = createBatcher<CollectionChange>(REALTIME_DEBOUNCE_MS, (changes) => {
       void queryClient.invalidateQueries({ queryKey: collectionKeys.lists(userId) });
       void queryClient.invalidateQueries({ queryKey: collectionKeys.stats(userId) });
+      void queryClient.invalidateQueries({ queryKey: collectionKeys.copies(userId) });
       if (changes.some((change) => change.table === 'collection_item_tags')) {
         // Tags themselves aren't broadcast, but a new link may use a tag made on another device.
         void queryClient.invalidateQueries({ queryKey: collectionKeys.tags(userId) });

@@ -2,15 +2,12 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { EXTERNAL_PROVIDERS } from '@fanste/core';
 
+import { refKey } from '../repository/copies';
 import { metadataRetryDelay } from '../timing';
 import { useCollectionContext } from './context';
 import { collectionKeys, missingMetadataKey } from './query-keys';
 
 import type { CollectionItem, ExternalProvider, ItemRef } from '@fanste/core';
-
-export function refKey(ref: ItemRef): string {
-  return `${ref.provider}:${ref.externalId}`;
-}
 
 /**
  * Refs of provider items whose metadata isn't cached yet, deduplicated and sorted (a stable query
