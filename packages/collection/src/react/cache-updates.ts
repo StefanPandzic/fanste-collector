@@ -8,8 +8,7 @@ import type { CollectionItem, CollectionQuery, UpdateItemPatch } from '@fanste/c
 
 /** The title the user sees: their override, else the provider's. */
 function displayTitle(item: CollectionItem): string {
-  const override = item.metadataOverrides.title;
-  return typeof override === 'string' && override ? override : (item.metadata?.title ?? '');
+  return item.metadataOverrides.title ?? item.metadata?.title ?? '';
 }
 
 /** Whether `item` belongs in the results of `query` (filters only, not the page). */
@@ -51,6 +50,19 @@ export function applyPatch(item: CollectionItem, patch: UpdateItemPatch): Collec
     Object.entries(parsed.data).filter(([, value]) => value !== undefined),
   );
   return { ...item, ...changes };
+}
+
+/**
+ * A jsonb merge like `merge_item_details` / `merge_item_overrides` do it: present keys are set,
+ * `null` keys removed, the rest kept.
+ */
+export function mergeRecord<T extends object>(record: T, patch: Record<string, unknown>): T {
+  const merged: Record<string, unknown> = { ...(record as Record<string, unknown>) };
+  for (const [key, value] of Object.entries(patch)) {
+    if (value === null) delete merged[key];
+    else if (value !== undefined) merged[key] = value;
+  }
+  return merged as T;
 }
 
 /** Replaces the item with `id` in a page using `update`. */

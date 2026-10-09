@@ -31,3 +31,10 @@ user edit it.
 - A user can change a movie from "Blu-ray, 1080p" to "4K UHD Blu-ray, 2160p" or mark a game as "Digital, Steam", and see it immediately in the gallery.
 - After "Refresh metadata", user-entered details and overrides are unchanged.
 - Detail loads from cache instantly and fetches extended details from the gateway in the background.
+
+## Notes
+- **Custom covers (from the FC-15 review):** `metadataOverrides.imageUrl` accepts any `https` URL, but covers
+  render through `next/image`, whose `images.remotePatterns` allow only the provider hosts. Render an overridden
+  cover with `unoptimized` (or a plain `<img>`) and fall back to the category artwork on error. Never widen
+  `remotePatterns` to `**`: that turns `/_next/image` into an open server-side fetch proxy (SSRF). Once the FC-13
+  storage bucket exists, uploads can use its host through the optimizer.

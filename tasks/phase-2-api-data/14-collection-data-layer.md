@@ -13,7 +13,7 @@ through Supabase Realtime: an item added in the browser shows up in the desktop 
   - [x] Tag CRUD + assign/unassign
   - [x] `getStats()` — counts per category / ownership, total estimated value (for FC-20)
 - [x] `addItem` from search: call the gateway so `metadata_cache` is filled, then insert the `collection_items` row with prefilled `format` / `details` (FC-15)
-- [ ] Editing copy details and metadata overrides (`updateItemDetails`, `updateOverrides`, `resetOverride`) is specified in FC-15
+- [x] Editing copy details and metadata overrides (`updateItemDetails`, `updateOverrides`, `resetOverride`) is specified in FC-15 (delivered there)
 - [x] Query hooks: `useCollection`, `useCollectionItem`, `useAddItem`, `useUpdateItem`, `useDeleteItem`, `useTags`, `useCollectionStats`
 - [x] Optimistic updates with rollback on error
 - [x] Realtime: subscribe to the current user's private Broadcast topic (`supabase.channel('user:<id>', { config: { private: true } })`, after `supabase.realtime.setAuth()`); FC-05 triggers send `INSERT` / `UPDATE` / `DELETE` events for `collection_items` and `collection_item_tags` there. Invalidate/patch the query cache from them

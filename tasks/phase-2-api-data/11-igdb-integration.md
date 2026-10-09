@@ -16,8 +16,21 @@ Adapter for IGDB (Twitch) to catalog video games with per-platform granularity.
 - [ ] Unit tests with fixtures
 - [ ] *(Stretch)* RAWG adapter as a fallback provider behind the same interface
 
+- [ ] Copy details for video games (moved here from FC-15, which shipped Movies & TV only):
+  - [ ] `VideoGameDetails` schema in `packages/core/src/models/copy-details.ts` (replaces the loose record):
+        `platform` (from the IGDB platform list), `storefront` (Steam, Epic Games Store, GOG, PlayStation Store,
+        Xbox Store, Nintendo eShop, Battle.net, EA app, Ubisoft Connect, itch.io), `discCount`, `edition`
+        (Standard, Deluxe, GOTY, Collector's), `region` (PAL, NTSC-U, NTSC-J, Region-free), `completeness`
+        (Sealed, CIB, Loose), `dlcNotes`; add its patch schema and `parseDetails` branch
+  - [ ] Media (Disc, Cartridge, Digital, Digital code) in `FORMATS_BY_CATEGORY` and the option lists in
+        `copy-options.ts`
+  - [ ] `prefillDetails` for IGDB: a game with exactly one platform preselects `platform`; otherwise the game's
+        platforms are offered in `choices`
+  - [ ] `REMEMBERED_DETAIL_FIELDS.video_game`
+
 ## Acceptance criteria
 - Searching "Elden Ring" returns the game with cover art and its platforms.
+- A user can record a game as "Digital, Steam, PC" (from FC-15).
 - The token is refreshed automatically after expiry without failing a user request.
 
 ## Notes

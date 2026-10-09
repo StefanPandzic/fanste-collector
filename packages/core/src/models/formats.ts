@@ -2,7 +2,7 @@ import type { ItemCategory } from './enums';
 
 /**
  * Media offered for movies and TV (`collection_items.format`). The field is free text, so the UI also
- * accepts an "Other" value. Copy details (resolution, HDR, edition, ...) are defined in FC-15.
+ * accepts an "Other" value. Copy details (resolution, HDR, edition, ...) are in `copy-details.ts`.
  */
 export const MOVIE_TV_FORMATS = [
   'DVD',

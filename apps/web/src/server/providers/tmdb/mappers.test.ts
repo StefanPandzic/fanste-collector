@@ -85,8 +85,17 @@ describe('mapMovie', () => {
       creators: ['Christopher Nolan'],
       sourceUrl: 'https://www.themoviedb.org/movie/27205',
     });
-    expect(item?.extra).toMatchObject({ runtimeMinutes: 148, imdbId: 'tt1375666' });
+    expect(item?.extra).toMatchObject({
+      runtimeMinutes: 148,
+      imdbId: 'tt1375666',
+      originalLanguage: 'en',
+    });
     expect(item?.extra).not.toHaveProperty('originalTitle');
+  });
+
+  it('drops the TMDB "xx" no-language code', () => {
+    const item = mapMovie({ ...inception, original_language: 'xx' }, images);
+    expect(item?.extra).not.toHaveProperty('originalLanguage');
   });
 });
 
@@ -101,7 +110,12 @@ describe('mapTv', () => {
       releaseYear: 2008,
       creators: ['Vince Gilligan'],
     });
-    expect(item?.extra).toMatchObject({ imdbId: 'tt0903747', seasonCount: 5, networks: ['AMC'] });
+    expect(item?.extra).toMatchObject({
+      imdbId: 'tt0903747',
+      originalLanguage: 'en',
+      seasonCount: 5,
+      networks: ['AMC'],
+    });
     expect(item?.extra).toHaveProperty('seasons');
   });
 });

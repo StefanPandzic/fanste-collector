@@ -15,6 +15,14 @@ import { createServiceClient, requireSupabaseEnv } from '@fanste/supabase';
 import { CollectionError } from './errors';
 import { subscribeToCollectionChanges } from './realtime/subscribe';
 import {
+  getCopyDefaults,
+  resetAllOverrides,
+  resetOverride,
+  saveCopyDefaults,
+  updateItemDetails,
+  updateOverrides,
+} from './repository/details';
+import {
   addItem,
   bulkDelete,
   deleteItem,
@@ -27,7 +35,7 @@ import { assignTag, createTag, deleteTag, listTags, unassignTag } from './reposi
 
 import type { CollectionChange } from './realtime/events';
 import type { AddItemDeps } from './repository/items';
-import type { NormalizedItem } from '@fanste/core';
+import type { DetailsPatch, NormalizedItem } from '@fanste/core';
 import type { Database, FansteSupabaseClient } from '@fanste/supabase';
 
 const env = requireSupabaseEnv({
@@ -239,6 +247,78 @@ describe('collection repository (dev Supabase project)', () => {
       { timeout: 2000, interval: 50 },
     );
     unsubscribe();
+  });
+
+  it('merges copy details and overrides, and a metadata refresh keeps them (FC-15)', async () => {
+    const [item] = (await listItems(deviceA, { search: 'incep' })).items;
+    if (!item) throw new Error('No Inception item.');
+    const movie = (changes: DetailsPatch<'movie'>) => ({ category: 'movie' as const, changes });
+
+    await updateItemDetails(
+      deviceA,
+      item.id,
+      movie({ resolution: '2160p', hdr: 'Dolby Vision', edition: 'Steelbook', discCount: 2 }),
+    );
+    // Two devices changing different fields at once: both changes are kept.
+    await Promise.all([
+      updateItemDetails(deviceA, item.id, movie({ region: 'B' })),
+      updateItemDetails(deviceB, item.id, movie({ audioLanguages: ['en'] })),
+    ]);
+    const merged = await updateItemDetails(deviceA, item.id, movie({ edition: null }));
+    expect(merged.details).toEqual({
+      resolution: '2160p',
+      hdr: 'Dolby Vision',
+      discCount: 2,
+      region: 'B',
+      audioLanguages: ['en'],
+    });
+
+    const cover = 'https://example.com/fc15-cover.jpg';
+    await updateOverrides(deviceA, item.id, { title: 'FC15 My Inception', imageUrl: cover });
+
+    // A refresh rewrites only the shared metadata cache, like the gateway does.
+    const { error } = await admin.from('metadata_cache').upsert({
+      ...toMetadataCacheRow({
+        ...inception,
+        title: 'FC14 Inception (refreshed)',
+        releaseYear: 2011,
+      }),
+      fetched_at: new Date().toISOString(),
+    });
+    if (error) throw error;
+
+    const refreshed = await getItem(deviceA, item.id);
+    expect(refreshed).toMatchObject({
+      details: merged.details,
+      metadataOverrides: { title: 'FC15 My Inception', imageUrl: cover },
+      metadata: { title: 'FC14 Inception (refreshed)', releaseYear: 2011 },
+    });
+    // The view searches the displayed title, which is the override.
+    expect((await listItems(deviceA, { search: 'My Inception' })).total).toBe(1);
+
+    expect((await resetOverride(deviceA, item.id, 'title')).metadataOverrides).toEqual({
+      imageUrl: cover,
+    });
+    expect((await resetAllOverrides(deviceA, item.id)).metadataOverrides).toEqual({});
+    await expect(
+      updateItemDetails(deviceA, randomUUID(), movie({ region: 'A' })),
+    ).rejects.toMatchObject({ code: 'not_found' });
+    // A patch checked against another category's schema doesn't reach a movie.
+    await expect(
+      updateItemDetails(deviceA, item.id, { category: 'music', changes: { anything: 1 } }),
+    ).rejects.toMatchObject({ code: 'not_found' });
+  });
+
+  it('remembers the last-used copy details per category (FC-15)', async () => {
+    await saveCopyDefaults(deviceA, 'movie', {
+      format: '4K UHD Blu-ray',
+      details: { resolution: '2160p' },
+    });
+    await saveCopyDefaults(deviceA, 'tv', { format: 'Digital file', details: {} });
+    expect(await getCopyDefaults(deviceB)).toEqual({
+      movie: { format: '4K UHD Blu-ray', details: { resolution: '2160p' } },
+      tv: { format: 'Digital file', details: {} },
+    });
   });
 
   it('deletes items one by one and in bulk', async () => {

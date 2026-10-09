@@ -9,6 +9,8 @@ const text = z.string().trim().min(1);
 const count = z.int().min(0);
 /** IMDb title ID, e.g. `tt1375666`. */
 const imdbId = z.string().regex(/^tt\d+$/);
+/** ISO 639-1 code of the original language, e.g. `en`. Suggested as the main audio (FC-15). */
+const languageCode = z.string().regex(/^[a-z]{2}$/);
 
 export const movieExtraSchema = z.object({
   runtimeMinutes: count.optional(),
@@ -16,6 +18,7 @@ export const movieExtraSchema = z.object({
   /** Title in the original language, when it differs from `title`. */
   originalTitle: text.optional(),
   tagline: text.optional(),
+  originalLanguage: languageCode.optional(),
 });
 
 export type MovieExtra = z.output<typeof movieExtraSchema>;
@@ -33,13 +36,14 @@ export type TvSeason = z.output<typeof tvSeasonSchema>;
 export const tvExtraSchema = z.object({
   imdbId: imdbId.optional(),
   originalTitle: text.optional(),
+  originalLanguage: languageCode.optional(),
   /** Provider status, e.g. `Returning Series`, `Ended`, `Canceled`. */
   status: text.optional(),
   seasonCount: count.optional(),
   episodeCount: count.optional(),
   episodeRuntimeMinutes: count.optional(),
   networks: z.array(text).optional(),
-  /** Offered as the `seasonsOwned` options of the copy details (FC-15). */
+  /** Offered as the `seasons` choices of the copy details (FC-15, `prefillDetails`). */
   seasons: z.array(tvSeasonSchema).optional(),
 });
 

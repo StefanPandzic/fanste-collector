@@ -56,6 +56,12 @@ function compact<T extends object>(value: T): T | undefined {
   return entries.length > 0 ? (Object.fromEntries(entries) as T) : undefined;
 }
 
+/** An ISO 639-1 code; TMDB's `xx` ("no language") and other values become `undefined`. */
+function languageCode(value: string | null | undefined): string | undefined {
+  const code = text(value)?.toLowerCase();
+  return code && /^[a-z]{2}$/.test(code) && code !== 'xx' ? code : undefined;
+}
+
 /** The original title, only when it differs from the (localized) title. */
 function originalTitle(original: string | null | undefined, title: string): string | undefined {
   const value = text(original);
@@ -114,6 +120,7 @@ export function mapMovie(movie: TmdbMovie, images: TmdbImageConfig): NormalizedI
     imdbId: imdbId(movie.imdb_id, movie.external_ids?.imdb_id),
     originalTitle: originalTitle(movie.original_title, title),
     tagline: text(movie.tagline),
+    originalLanguage: languageCode(movie.original_language),
   });
   return {
     provider: 'tmdb',
@@ -150,6 +157,7 @@ export function mapTv(show: TmdbTv, images: TmdbImageConfig): NormalizedItem | u
   const extra = compact<TvExtra>({
     imdbId: imdbId(show.external_ids?.imdb_id),
     originalTitle: originalTitle(show.original_name, title),
+    originalLanguage: languageCode(show.original_language),
     status: text(show.status),
     seasonCount: count(show.number_of_seasons),
     episodeCount: count(show.number_of_episodes),

@@ -5,6 +5,7 @@ import {
   applyPatch,
   isOptimisticId,
   matchesQuery,
+  mergeRecord,
   OPTIMISTIC_ID_PREFIX,
   removeFromPage,
   restoreToPage,
@@ -106,6 +107,17 @@ describe('applyPatch', () => {
 
   it('leaves the item unchanged for an invalid patch', () => {
     expect(applyPatch(inception, { quantity: 0 })).toBe(inception);
+  });
+});
+
+describe('mergeRecord', () => {
+  it('sets present keys, removes null keys and keeps the rest', () => {
+    expect(
+      mergeRecord(
+        { resolution: '1080p', edition: 'Steelbook', discCount: 2 },
+        { resolution: '2160p', edition: null, discCount: undefined },
+      ),
+    ).toEqual({ resolution: '2160p', discCount: 2 });
   });
 });
 

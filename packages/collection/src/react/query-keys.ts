@@ -27,3 +27,9 @@ export const collectionMutationKey = (userId: string) => ['collection-mutation',
  */
 export const missingMetadataKey = (userId: string, refKeys: readonly string[]) =>
   ['collection-missing-metadata', userId, refKeys] as const;
+
+/**
+ * Key of the user's last-used copy details per category (`profiles.preferences`). Outside
+ * `collectionKeys.all`, so collection mutations don't refetch or cancel it.
+ */
+export const copyDefaultsKey = (userId: string) => ['collection-copy-defaults', userId] as const;

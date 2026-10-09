@@ -8,7 +8,12 @@ Funko Pops are part of the product scope but there is no official public API. In
 
 ## Subtasks
 - [ ] `FunkoExtra` fields (describe the product): series/line, number (e.g. #123), franchise, exclusive, variant (chase, flocked, glow)
-- [ ] Copy-level fields (box condition, sticker, protector) live in `details` like every other category (FC-15)
+- [ ] Copy-level fields live in `details` like every other category (FC-15 shipped Movies & TV only): add a
+      `FunkoDetails` schema in `packages/core/src/models/copy-details.ts` (replaces the loose record) with
+      `boxCondition` (Mint, Near mint, Damaged, Out of box), `sticker` (exclusive / convention sticker) and
+      `protector`, its patch schema and `parseDetails` branch, and the medium (Physical) in `FORMATS_BY_CATEGORY`
+- [ ] Custom cover upload for **overrides** of provider items too (FC-15 accepts only an image URL in
+      `metadataOverrides.imageUrl` until this bucket exists)
 - [ ] Zod schema for custom item input: title (required), category, image, year, description + category `extra`
 - [ ] Image upload for custom items:
   - [ ] Supabase Storage bucket `custom-images` (per-user folder, RLS policies, max 1 MB, client-side resize/compress to WebP)

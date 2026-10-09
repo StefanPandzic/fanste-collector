@@ -1,10 +1,18 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
+import {
+  COPY_DETAIL_STATUSES,
+  copyDefaultsFrom,
+  detailsPatchSchemaFor,
+  overridesPatchSchema,
+} from '@fanste/core';
+
 import { toCollectionError } from '../errors';
 import {
   addToPage,
   applyPatch,
   isOptimisticId,
+  mergeRecord,
   OPTIMISTIC_ID_PREFIX,
   removeFromPage,
   restoreToPage,
@@ -13,7 +21,15 @@ import {
 } from './cache-updates';
 import { useCollectionContext } from './context';
 import { useMissingMetadata } from './missing-metadata';
-import { collectionKeys, collectionMutationKey } from './query-keys';
+import { collectionKeys, collectionMutationKey, copyDefaultsKey } from './query-keys';
+import {
+  getCopyDefaults,
+  resetAllOverrides,
+  resetOverride,
+  saveCopyDefaults,
+  updateItemDetails,
+  updateOverrides,
+} from '../repository/details';
 import {
   addItem,
   bulkDelete,
@@ -33,12 +49,15 @@ import {
 } from '../repository/tags';
 
 import type { CollectionContextValue } from './context';
+import type { DetailsChange } from '../repository/details';
 import type { CollectionPage } from '../repository/items';
 import type {
   AddItemInput,
   CollectionItem,
   CollectionQuery,
   NormalizedItem,
+  OverridableField,
+  OverridesPatch,
   Tag,
   TagInput,
   UpdateItemPatch,
@@ -103,6 +122,16 @@ export function useCollectionStats() {
     queryKey: collectionKeys.stats(userId),
     queryFn: () => getStats(client),
     ...LIVE_QUERY,
+  });
+}
+
+/** The user's last-used medium and details per category: the `defaults` of `prefillDetails`. */
+export function useCopyDefaults() {
+  const { client, userId } = useCollectionContext();
+  return useQuery({
+    queryKey: copyDefaultsKey(userId),
+    queryFn: () => getCopyDefaults(client),
+    staleTime: 5 * 60 * 1000,
   });
 }
 
@@ -263,12 +292,30 @@ export function useAddItem() {
         }
       };
     },
-    onSuccess: (item, _variables, undo) => {
+    onSuccess: (item, { input }, undo) => {
       // Swap the optimistic row for the stored one (other mutations may delay the refetch).
       undo();
       updateLists(queryClient, userId, (page, query) => addToPage(page, item, query));
+      // Remember the medium and detail habits for the next add of this category. Only copies the
+      // user has carry details, and scanner imports aren't the user's choice.
+      if (COPY_DETAIL_STATUSES.includes(item.ownership) && input.source !== 'scanner') {
+        rememberCopyDefaults(item);
+      }
     },
   });
+
+  function rememberCopyDefaults(item: CollectionItem): void {
+    const key = copyDefaultsKey(userId);
+    const defaults = copyDefaultsFrom(item.category, item.format, item.details);
+    queryClient.setQueryData<Awaited<ReturnType<typeof getCopyDefaults>>>(key, (current) =>
+      current ? { ...current, [item.category]: defaults } : current,
+    );
+    // Best effort: failing to remember a default must not fail the add.
+    saveCopyDefaults(client, item.category, defaults).then(
+      () => queryClient.invalidateQueries({ queryKey: key }),
+      () => undefined,
+    );
+  }
 }
 
 export interface UpdateItemVariables {
@@ -296,6 +343,110 @@ export function useUpdateItem() {
         const reverted = Object.fromEntries(fields.map((field) => [field, before[field]]));
         updateItemEverywhere(queryClient, userId, id, (item) => ({ ...item, ...reverted }));
       };
+    },
+  });
+}
+
+type JsonField = 'details' | 'metadataOverrides';
+
+/**
+ * Optimistically merges `patch` into a jsonb field of an item. The undo puts back only the patched
+ * keys, keeping other changes to the field.
+ */
+function mergeOptimistically(
+  queryClient: QueryClient,
+  userId: string,
+  id: string,
+  field: JsonField,
+  patch: Record<string, unknown>,
+): Undo {
+  const before = cachedItem(queryClient, userId, id)?.[field];
+  updateItemEverywhere(queryClient, userId, id, (item) => ({
+    ...item,
+    [field]: mergeRecord(item[field], patch),
+  }));
+  return () => {
+    if (!before) return;
+    const restore = Object.fromEntries(
+      Object.keys(patch).map((key) => [key, (before as Record<string, unknown>)[key] ?? null]),
+    );
+    updateItemEverywhere(queryClient, userId, id, (item) => ({
+      ...item,
+      [field]: mergeRecord(item[field], restore),
+    }));
+  };
+}
+
+export interface UpdateItemDetailsVariables {
+  id: string;
+  change: DetailsChange;
+}
+
+/** Merges changes into an item's copy details, optimistically. */
+export function useUpdateItemDetails() {
+  const context = useCollectionContext();
+  const { client, userId } = context;
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    ...mutationOptions(queryClient, context),
+    mutationFn: ({ id, change }: UpdateItemDetailsVariables) =>
+      updateItemDetails(client, id, change),
+    onMutate: async ({ id, change }): Promise<Undo> => {
+      await cancelRefetches(queryClient, userId);
+      // Merge what will be stored (trimmed, deduplicated, sorted), not the raw input.
+      const parsed = detailsPatchSchemaFor(change.category).safeParse(change.changes);
+      if (!parsed.success) return () => undefined;
+      return mergeOptimistically(queryClient, userId, id, 'details', parsed.data);
+    },
+  });
+}
+
+export interface UpdateOverridesVariables {
+  id: string;
+  patch: OverridesPatch;
+}
+
+/** Merges changes into an item's metadata overrides, optimistically (`null` resets a field). */
+export function useUpdateOverrides() {
+  const context = useCollectionContext();
+  const { client, userId } = context;
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    ...mutationOptions(queryClient, context),
+    mutationFn: ({ id, patch }: UpdateOverridesVariables) => updateOverrides(client, id, patch),
+    onMutate: async ({ id, patch }): Promise<Undo> => {
+      await cancelRefetches(queryClient, userId);
+      const parsed = overridesPatchSchema.safeParse(patch);
+      if (!parsed.success) return () => undefined;
+      return mergeOptimistically(queryClient, userId, id, 'metadataOverrides', parsed.data);
+    },
+  });
+}
+
+export interface ResetOverridesVariables {
+  id: string;
+  /** The field to reset; all fields when left out. */
+  field?: OverridableField;
+}
+
+/** "Reset to original" for one field or the whole item, optimistically. */
+export function useResetOverrides() {
+  const context = useCollectionContext();
+  const { client, userId } = context;
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    ...mutationOptions(queryClient, context),
+    mutationFn: ({ id, field }: ResetOverridesVariables) =>
+      field ? resetOverride(client, id, field) : resetAllOverrides(client, id),
+    onMutate: async ({ id, field }): Promise<Undo> => {
+      await cancelRefetches(queryClient, userId);
+      const current = cachedItem(queryClient, userId, id)?.metadataOverrides ?? {};
+      const fields = field ? [field] : Object.keys(current);
+      const patch = Object.fromEntries(fields.map((key) => [key, null]));
+      return mergeOptimistically(queryClient, userId, id, 'metadataOverrides', patch);
     },
   });
 }

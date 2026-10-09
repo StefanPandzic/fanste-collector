@@ -1,4 +1,10 @@
-import { fromMetadataCacheRow, ITEM_CATEGORIES, OWNERSHIP_STATUSES } from '@fanste/core';
+import {
+  COPY_DETAIL_STATUSES,
+  fromMetadataCacheRow,
+  ITEM_CATEGORIES,
+  OWNERSHIP_STATUSES,
+  parseOverrides,
+} from '@fanste/core';
 
 import type {
   addItemInputSchema,
@@ -35,7 +41,7 @@ export function toCollectionItem(row: ItemViewRow): CollectionItem {
     externalId: row.external_id,
     format: row.format,
     details: asRecord(row.details),
-    metadataOverrides: asRecord(row.metadata_overrides),
+    metadataOverrides: parseOverrides(row.metadata_overrides),
     ownership: row.ownership ?? 'owned',
     quantity: row.quantity ?? 1,
     acquiredAt: row.acquired_at,
@@ -85,8 +91,6 @@ export function toInsertRow(input: ParsedAddItem): TablesInsert<'collection_item
     category: input.category,
     provider: input.provider,
     external_id: input.externalId,
-    // Prefilling `format` / `details` from the provider (`prefillDetails`) is FC-15; until then
-    // they are whatever the caller passes.
     details: (input.details ?? {}) as Json,
     source: input.source ?? 'manual',
     ...toUpdateRow(input),
@@ -152,9 +156,9 @@ export interface ValueTotal {
 
 /**
  * Statuses whose items count towards the collection's value: the copies the user has (or has paid
- * for). Wishlist and sold items are left out.
+ * for), the same statuses that carry copy details. Wishlist and sold items are left out.
  */
-export const VALUED_STATUSES: readonly OwnershipStatus[] = ['owned', 'loaned_out', 'preordered'];
+export const VALUED_STATUSES: readonly OwnershipStatus[] = COPY_DETAIL_STATUSES;
 
 export interface CollectionStats {
   totals: ItemCounts;

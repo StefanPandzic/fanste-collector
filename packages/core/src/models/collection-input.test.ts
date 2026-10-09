@@ -3,6 +3,8 @@ import { describe, expect, it } from 'vitest';
 import {
   addItemInputSchema,
   collectionQuerySchema,
+  detailsPatchSchemaFor,
+  overridesPatchSchema,
   tagInputSchema,
   updateItemPatchSchema,
 } from './collection-input';
@@ -26,6 +28,15 @@ describe('addItemInputSchema', () => {
         .success,
     ).toBe(false);
   });
+
+  it('checks details against the category schema', () => {
+    expect(
+      addItemInputSchema.parse({ ...inception, details: { audioLanguages: ['EN'] } }).details,
+    ).toEqual({ audioLanguages: ['en'] });
+    const result = addItemInputSchema.safeParse({ ...inception, details: { discCount: 0 } });
+    expect(result.success).toBe(false);
+    expect(result.error?.issues[0]?.path).toEqual(['details', 'discCount']);
+  });
 });
 
 describe('updateItemPatchSchema', () => {
@@ -40,6 +51,25 @@ describe('updateItemPatchSchema', () => {
     expect(updateItemPatchSchema.safeParse({ quantity: 0 }).success).toBe(false);
     expect(updateItemPatchSchema.safeParse({ currency: 'eur' }).success).toBe(false);
     expect(updateItemPatchSchema.safeParse({ acquiredAt: '31.01.2026' }).success).toBe(false);
+  });
+});
+
+describe('detailsPatchSchemaFor', () => {
+  it('accepts set and removed fields of the category', () => {
+    expect(detailsPatchSchemaFor('movie').parse({ resolution: '2160p', edition: null })).toEqual({
+      resolution: '2160p',
+      edition: null,
+    });
+    expect(detailsPatchSchemaFor('movie').safeParse({ discCount: 0 }).success).toBe(false);
+  });
+});
+
+describe('overridesPatchSchema', () => {
+  it('accepts set fields and null resets', () => {
+    expect(
+      overridesPatchSchema.parse({ title: ' Inception (Steelbook) ', imageUrl: null }),
+    ).toEqual({ title: 'Inception (Steelbook)', imageUrl: null });
+    expect(overridesPatchSchema.safeParse({ releaseYear: 'soon' }).success).toBe(false);
   });
 });
 

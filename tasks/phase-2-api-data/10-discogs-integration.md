@@ -14,9 +14,20 @@ Adapter for the Discogs API to catalog vinyl, CD and cassette releases with pres
 - [ ] Strict rate limiting: authenticated limit is ~60 req/min — configure the throttle and read `X-Discogs-Ratelimit-Remaining` headers
 - [ ] Always go cache-first (FC-08); never fetch details for gallery views
 - [ ] Unit tests with fixtures
+- [ ] Copy details for music (moved here from FC-15, which shipped Movies & TV only):
+  - [ ] `MusicDetails` schema in `packages/core/src/models/copy-details.ts` (replaces the loose record):
+        `discCount`, `vinylSize` (7", 10", 12"), `speed` (33⅓, 45, 78), `variant` (color / picture disc),
+        `catalogNumber`, `mediaCondition` + `sleeveCondition` (Goldmine M, NM, VG+, VG, G, P); add its patch
+        schema and `parseDetails` branch
+  - [ ] Media (Vinyl, CD, Cassette, Digital) in `FORMATS_BY_CATEGORY` and the option lists in `copy-options.ts`
+  - [ ] `prefillDetails` for Discogs releases: `formats` → `format`, `qty` → `discCount`, descriptions →
+        `vinylSize`, `speed`, `variant`; label catalog number → `catalogNumber` (tests with fixtures)
+  - [ ] `REMEMBERED_DETAIL_FIELDS.music`
 
 ## Acceptance criteria
 - Searching "Abbey Road" with the Vinyl filter returns vinyl releases with cover art.
+- Adding a vinyl release from Discogs prefills medium, number of discs and catalog number; the user can change any
+  of them before saving (from FC-15).
 - Loading a gallery of 50 music items does not call Discogs when metadata is cached.
 - Hitting the rate limit results in queued/retried requests, not errors shown to the user.
 

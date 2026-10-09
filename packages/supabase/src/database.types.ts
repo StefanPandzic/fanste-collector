@@ -316,6 +316,25 @@ export type Database = {
           quantity_total: number;
         }[];
       };
+      merge_item_details: {
+        Args: {
+          p_category: Database['public']['Enums']['item_category'];
+          p_id: string;
+          p_patch: Json;
+        };
+        Returns: string[];
+      };
+      merge_item_overrides: {
+        Args: { p_id: string; p_patch: Json };
+        Returns: string[];
+      };
+      set_copy_defaults: {
+        Args: {
+          p_category: Database['public']['Enums']['item_category'];
+          p_defaults: Json;
+        };
+        Returns: undefined;
+      };
     };
     Enums: {
       item_category: 'movie' | 'tv' | 'music' | 'video_game' | 'board_game' | 'funko';

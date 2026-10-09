@@ -5,4 +5,4 @@ export * from './hooks';
 export { missingMetadataRefs, useMissingMetadata } from './missing-metadata';
 export { CollectionProvider } from './provider';
 export type { CollectionProviderProps } from './provider';
-export { collectionKeys, collectionMutationKey } from './query-keys';
+export { collectionKeys, collectionMutationKey, copyDefaultsKey } from './query-keys';
