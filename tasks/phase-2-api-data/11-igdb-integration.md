@@ -27,8 +27,14 @@ Adapter for IGDB (Twitch) to catalog video games with per-platform granularity.
   - [ ] `prefillDetails` for IGDB: a game with exactly one platform preselects `platform`; otherwise the game's
         platforms are offered in `choices`
   - [ ] `REMEMBERED_DETAIL_FIELDS.video_game`
+- [ ] Search & add UI for video games (moved here from FC-17, which shipped Movies & TV only):
+  - [ ] Enable Video Games in the search category selector (`SEARCHABLE_CATEGORIES` in
+        `apps/web/src/features/search/search-state.ts`)
+  - [ ] Game copy-details fields in the "Add with details" dialog (platform, medium, storefront, discs, …),
+        prefilled and marked "from IGDB"
 
 ## Acceptance criteria
+- A user can find and add a game from search in the browser and the desktop app (from FC-17).
 - Searching "Elden Ring" returns the game with cover art and its platforms.
 - A user can record a game as "Digital, Steam, PC" (from FC-15).
 - The token is refreshed automatically after expiry without failing a user request.

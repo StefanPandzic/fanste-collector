@@ -1,5 +1,6 @@
 import { collectionQuerySchema, updateItemPatchSchema } from '@fanste/core';
 
+import type { CopiesByRef, ItemCopy } from '../repository/copies';
 import type { CollectionPage } from '../repository/items';
 import type { CollectionItem, CollectionQuery, UpdateItemPatch } from '@fanste/core';
 
@@ -100,6 +101,23 @@ export function undoAddToPage(page: CollectionPage, optimisticId: string): Colle
     return removeFromPage(page, new Set([optimisticId]));
   }
   return { ...page, total: Math.max(0, page.total - 1) };
+}
+
+/**
+ * Adds a copy to a cached copies lookup. Only lookups that asked for the item (they have an entry
+ * for every requested ref) change.
+ */
+export function addCopy(copies: CopiesByRef, key: string, copy: ItemCopy): CopiesByRef {
+  const list = copies[key];
+  if (!list || list.some((entry) => entry.id === copy.id)) return copies;
+  return { ...copies, [key]: [...list, copy] };
+}
+
+/** Removes a copy (e.g. an optimistic one) from a cached copies lookup. */
+export function removeCopy(copies: CopiesByRef, key: string, id: string): CopiesByRef {
+  const list = copies[key];
+  if (!list?.some((entry) => entry.id === id)) return copies;
+  return { ...copies, [key]: list.filter((entry) => entry.id !== id) };
 }
 
 /** Puts a removed item back at `index` (undoing a delete), unless it is already there. */

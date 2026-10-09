@@ -1,4 +1,4 @@
-import type { ItemCategory, OwnershipStatus } from './enums';
+import type { ItemCategory, MetadataProvider, OwnershipStatus } from './enums';
 
 /**
  * Icon names from the Lucide set (https://lucide.dev). Core stays free of React, so each app maps
@@ -85,6 +85,19 @@ export const OWNERSHIP_META = {
   loaned_out: { label: 'Loaned out', tone: 'warning' },
   sold: { label: 'Sold', tone: 'neutral' },
 } as const satisfies Record<OwnershipStatus, OwnershipMeta>;
+
+/** How each metadata provider is named in the UI, e.g. "from TMDB" on prefilled fields. */
+export const PROVIDER_LABELS = {
+  tmdb: 'TMDB',
+  discogs: 'Discogs',
+  igdb: 'IGDB',
+  bgg: 'BoardGameGeek',
+  custom: 'Custom',
+} as const satisfies Record<MetadataProvider, string>;
+
+export function providerLabel(provider: MetadataProvider): string {
+  return PROVIDER_LABELS[provider];
+}
 
 /** `Movie`, `Video Game`, ...; `plural` gives `Movies`, `Video Games`, ... */
 export function categoryLabel(category: ItemCategory, { plural = false } = {}): string {

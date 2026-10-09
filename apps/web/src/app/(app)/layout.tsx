@@ -1,4 +1,5 @@
 import { AppShell } from '@/components/app-shell/app-shell';
+import { SearchShortcut } from '@/components/search-shortcut';
 import { requireUser } from '@/features/auth/session';
 import { SessionProvider } from '@/features/auth/session-provider';
 import { AppCollectionProvider } from '@/features/collection/collection-provider';
@@ -21,6 +22,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
         >
           {children}
         </AppShell>
+        <SearchShortcut />
       </AppCollectionProvider>
     </SessionProvider>
   );

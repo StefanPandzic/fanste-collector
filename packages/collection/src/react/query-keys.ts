@@ -16,6 +16,10 @@ export const collectionKeys = {
   detail: (userId: string, id: string) => [...collectionKeys.details(userId), id] as const,
   tags: (userId: string) => [...collectionKeys.all(userId), 'tags'] as const,
   stats: (userId: string) => [...collectionKeys.all(userId), 'stats'] as const,
+  copies: (userId: string) => [...collectionKeys.all(userId), 'copies'] as const,
+  /** The user's copies of some provider items (`refKey`s, sorted), e.g. for search results. */
+  copiesOf: (userId: string, refKeys: readonly string[]) =>
+    [...collectionKeys.copies(userId), refKeys] as const,
 };
 
 /** Mutation key shared by every collection mutation, to tell when the last one has settled. */

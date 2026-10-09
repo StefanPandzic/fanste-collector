@@ -7,6 +7,7 @@ import { OwnershipBadge } from './ownership-badge';
 
 import type { ItemCategory, OwnershipStatus } from '@fanste/core';
 import type { Route } from 'next';
+import type { ReactNode } from 'react';
 
 /**
  * What a card shows. A `NormalizedItem` (search results) fits as is; a collection item adds its
@@ -27,6 +28,13 @@ interface ItemCardProps {
   href?: Route;
   /** Makes the whole card a button (e.g. to open a detail dialog). Ignored when `href` is set. */
   onSelect?: () => void;
+  /** Overlay in the cover's top-right corner, e.g. an "In collection" badge. */
+  badge?: ReactNode;
+  /**
+   * Overlay in the cover's bottom-right corner, e.g. a quick-add button. It sits above the card's
+   * link or button, so it stays clickable on its own.
+   */
+  action?: ReactNode;
   /** Rendered width of the card, for the cover's `sizes`. */
   sizes?: string;
   priority?: boolean;
@@ -36,7 +44,16 @@ interface ItemCardProps {
 const DEFAULT_SIZES = '(max-width: 639px) 50vw, 240px';
 
 /** Cover, title, year, category and ownership of one item. */
-export function ItemCard({ item, href, onSelect, sizes, priority, className }: ItemCardProps) {
+export function ItemCard({
+  item,
+  href,
+  onSelect,
+  badge,
+  action,
+  sizes,
+  priority,
+  className,
+}: ItemCardProps) {
   const interactive = href !== undefined || onSelect !== undefined;
   // The title is the link/button; `after:` stretches its hit area over the whole card.
   const stretched = 'outline-none after:absolute after:inset-0 after:rounded-xl';
@@ -65,6 +82,8 @@ export function ItemCard({ item, href, onSelect, sizes, priority, className }: I
             className="absolute top-2 left-2"
           />
         )}
+        {badge && <div className="absolute top-2 right-2">{badge}</div>}
+        {action && <div className="absolute right-2 bottom-2 z-10">{action}</div>}
       </div>
 
       <div className="flex min-w-0 flex-col gap-1 px-1.5">

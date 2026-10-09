@@ -5,8 +5,9 @@ import { parseDetails } from './copy-details';
 import { itemCategorySchema } from './enums';
 import { parseMovieExtra, parseTvExtra } from './extras';
 
-import type { DetailsByCategory, TvSeasonDetails } from './copy-details';
-import type { ItemCategory } from './enums';
+import type { AddItemInput } from './collection-input';
+import type { DetailsByCategory, TvDetails, TvSeasonDetails } from './copy-details';
+import type { ExternalProvider, ItemCategory } from './enums';
 import type { TvSeason } from './extras';
 import type { NormalizedItem } from './normalized-item';
 
@@ -100,6 +101,12 @@ export interface PrefillContext {
   defaults?: CopyDefaults;
 }
 
+/**
+ * Where a suggested value came from: the user's last-used values, the provider metadata or the
+ * desktop scanner. The add dialog (FC-17) marks prefilled fields with it.
+ */
+export type PrefillSource = 'defaults' | 'provider' | 'scan';
+
 export interface PrefillResult<C extends ItemCategory = ItemCategory> {
   /** Suggested medium (`format` column). */
   format?: string;
@@ -108,6 +115,8 @@ export interface PrefillResult<C extends ItemCategory = ItemCategory> {
   choices: {
     seasons?: TvSeason[];
   };
+  /** The source of each suggested value, keyed by `format` or the `details` field name. */
+  sources: Record<string, PrefillSource>;
 }
 
 /**
@@ -120,17 +129,25 @@ export function prefillDetails<C extends ItemCategory>(
   { scan, defaults }: PrefillContext = {},
 ): PrefillResult<C> {
   let format: string | undefined;
-  let details: Record<string, unknown> = {};
+  const details: Record<string, unknown> = {};
   const choices: PrefillResult['choices'] = {};
+  const sources: Record<string, PrefillSource> = {};
+
+  function suggest(field: string, value: unknown, source: PrefillSource) {
+    details[field] = value;
+    sources[field] = source;
+  }
 
   if (defaults && !scan) {
     format = defaults.format;
-    details = { ...defaults.details };
+    if (format) sources.format = 'defaults';
+    for (const [field, value] of Object.entries(defaults.details))
+      suggest(field, value, 'defaults');
   }
 
   if (item && (category === 'movie' || category === 'tv')) {
     const extra = category === 'movie' ? parseMovieExtra(item.extra) : parseTvExtra(item.extra);
-    if (extra?.originalLanguage) details.audioLanguages = [extra.originalLanguage];
+    if (extra?.originalLanguage) suggest('audioLanguages', [extra.originalLanguage], 'provider');
     if (category === 'tv') {
       const seasons = extra && 'seasons' in extra ? extra.seasons : undefined;
       if (seasons && seasons.length > 0) choices.seasons = seasons;
@@ -139,18 +156,78 @@ export function prefillDetails<C extends ItemCategory>(
 
   if (scan) {
     format = 'Digital file';
+    sources.format = 'scan';
     for (const key of ['fileFormat', 'resolution', 'hdr', 'audioChannels'] as const) {
-      if (scan[key]) details[key] = scan[key];
+      if (scan[key]) suggest(key, scan[key], 'scan');
     }
     if (scan.subtitleLanguages && scan.subtitleLanguages.length > 0) {
-      details.subtitleLanguages = scan.subtitleLanguages;
+      suggest('subtitleLanguages', scan.subtitleLanguages, 'scan');
     }
     if (category === 'tv' && scan.episodes && scan.episodes.length > 0) {
-      details.seasons = seasonsFromEpisodes(scan.episodes, choices.seasons);
+      suggest('seasons', seasonsFromEpisodes(scan.episodes, choices.seasons), 'scan');
     }
   }
 
-  return { ...(format ? { format } : {}), details: parseDetails(category, details), choices };
+  const parsed = parseDetails(category, details);
+  // Invalid values are dropped while parsing, and so are their sources.
+  const kept = new Set([...Object.keys(parsed), ...(format ? ['format'] : [])]);
+  return {
+    ...(format ? { format } : {}),
+    details: parsed,
+    choices,
+    sources: Object.fromEntries(Object.entries(sources).filter(([field]) => kept.has(field))),
+  };
+}
+
+/**
+ * Every season of a show as fully owned, without Specials (season 0): the default of a new TV copy
+ * from search (FC-17).
+ */
+export function allSeasonsOwned(seasons: readonly TvSeason[] | undefined): TvSeasonDetails[] {
+  return (seasons ?? [])
+    .filter((season) => season.seasonNumber > 0)
+    .map((season) => ({ seasonNumber: season.seasonNumber, episodesOwned: 'all' }));
+}
+
+/**
+ * For a TV prefill without owned seasons (no scan), suggests every season but the Specials, marked
+ * as coming from the provider. Other prefills are returned as they are.
+ */
+export function ownAllSeasons<C extends ItemCategory>(
+  category: C,
+  prefill: PrefillResult<C>,
+): PrefillResult<C> {
+  if (category !== 'tv' || (prefill.details as TvDetails).seasons) return prefill;
+  const seasons = allSeasonsOwned(prefill.choices.seasons);
+  if (seasons.length === 0) return prefill;
+  return {
+    ...prefill,
+    details: { ...prefill.details, seasons },
+    sources: { ...prefill.sources, seasons: 'provider' },
+  };
+}
+
+/**
+ * The input of a one-click add from search (FC-17): owned, with the suggested medium and details
+ * (the user's last-used values and the provider's original language). A TV copy owns every season
+ * but the Specials.
+ */
+export function quickAddInput(
+  target: { category: ItemCategory; provider: ExternalProvider; externalId: string },
+  item: NormalizedItem,
+  defaults: CopyDefaults | undefined,
+): AddItemInput {
+  const prefill = ownAllSeasons(
+    target.category,
+    prefillDetails(target.category, item, { defaults }),
+  );
+  return {
+    ...target,
+    ownership: 'owned',
+    ...(prefill.format ? { format: prefill.format } : {}),
+    details: prefill.details,
+    source: 'search',
+  };
 }
 
 /**

@@ -44,6 +44,13 @@ export const PROVIDER_CATEGORIES = {
   bgg: ['board_game'],
 } as const satisfies Record<ExternalProvider, readonly ItemCategory[]>;
 
+/** The external provider that serves `category`, or `undefined` when none does (Funko Pops). */
+export function providerOfCategory(category: ItemCategory): ExternalProvider | undefined {
+  return (Object.keys(PROVIDER_CATEGORIES) as ExternalProvider[]).find((provider) =>
+    (PROVIDER_CATEGORIES[provider] as readonly ItemCategory[]).includes(category),
+  );
+}
+
 /** Whether `provider` may hold items of `category` (always true for `custom`). */
 export function providerSupportsCategory(
   provider: MetadataProvider,

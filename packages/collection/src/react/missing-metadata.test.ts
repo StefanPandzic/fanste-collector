@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
-import { missingMetadataRefs, refKey } from './missing-metadata';
+import { missingMetadataRefs } from './missing-metadata';
+import { refKey } from '../repository/copies';
 
 import type { CollectionItem } from '@fanste/core';
 

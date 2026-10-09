@@ -1,6 +1,20 @@
 import { describe, expect, it } from 'vitest';
 
-import { providerSupportsCategory } from './enums';
+import { providerOfCategory, providerSupportsCategory } from './enums';
+
+describe('providerOfCategory', () => {
+  it('returns the external provider that serves the category', () => {
+    expect(providerOfCategory('movie')).toBe('tmdb');
+    expect(providerOfCategory('tv')).toBe('tmdb');
+    expect(providerOfCategory('music')).toBe('discogs');
+    expect(providerOfCategory('video_game')).toBe('igdb');
+    expect(providerOfCategory('board_game')).toBe('bgg');
+  });
+
+  it('returns undefined for Funko Pops', () => {
+    expect(providerOfCategory('funko')).toBeUndefined();
+  });
+});
 
 describe('providerSupportsCategory', () => {
   it('allows the categories each external provider serves', () => {

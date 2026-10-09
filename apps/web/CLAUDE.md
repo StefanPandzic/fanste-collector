@@ -137,6 +137,23 @@ the error shape are in `@fanste/core` (`gateway/`), and clients call the gateway
 - Adapter tests replay recorded responses from `__fixtures__/`, never live calls. Re-record the TMDB ones with
   `pnpm fixtures:tmdb` (needs the token).
 
+## Search & add (FC-17)
+
+`/search` is `features/search/`. Its page (Server Component) reads the URL and the user's default currency and
+renders `SearchPageClient`.
+
+- The search (`category`, `q`, `year`) lives in the URL. The client updates it with `window.history.replaceState`,
+  so typing doesn't make a server round trip. `SEARCHABLE_CATEGORIES` (`search-state.ts`) lists the categories
+  whose provider is built; the others show as "Coming soon".
+- Results come from `useSearchResults` (an infinite query over `api.search`; busy providers are retried, and
+  `failureCount > 0` while fetching shows the "retrying…" banner). `useCollectionCopies` marks results already
+  in the collection.
+- Quick add (`use-quick-add.ts`) and the "Add with details" dialog both load the full item through
+  `providerItemQuery` and prefill with `prefillDetails`. The dialog marks prefilled fields with their source until
+  they change. Form → `AddItemInput` conversion is the pure `add-item-form.ts`.
+- Recent searches are in `localStorage`, per user (`recent-searches.ts`); the list logic is in `@fanste/core`.
+- `SearchShortcut` (in the `(app)` layout) binds Ctrl+K / Cmd+K in the desktop app only.
+
 ## Design system
 
 Tokens are in `packages/config/tailwind/theme.css`. On top of shadcn's colors it has status colors
@@ -148,9 +165,10 @@ a type scale (`text-display`/`title`/`heading`/`caption`), `shadow-card`, `p-pag
   `@fanste/core`. `components/items/category-style.ts` maps them to Tailwind classes, written out in full
   because Tailwind can't see class names built at runtime.
 - Item UI is in `components/items/`: `ItemCard` (takes `ItemCardData`; pass `href` or `onSelect` to make
-  it interactive), `ItemGrid` (window-virtualized, arrow-key navigation), `CoverImage` (blur placeholder,
-  category fallback art), `CategoryBadge`, `OwnershipBadge`, `TagChip` and the skeletons. `EmptyState` and
-  `ErrorState` are in `components/states/`. Layout math lives in `grid-layout.ts`; keep it in sync with
+  it interactive, `badge` and `action` for cover overlays such as a quick-add button), `ItemGrid`
+  (window-virtualized, arrow-key navigation), `CoverImage` (blur placeholder, category fallback art),
+  `CategoryBadge`, `OwnershipBadge`, `TagChip` and the skeletons. `EmptyState` and `ErrorState` are in
+  `components/states/`. Layout math lives in `grid-layout.ts`; keep it in sync with
   the card's padding.
 - `/design` (`features/design-system/`) shows every component, plus a 1,000-item grid. It's development
   only (`notFound()` in production) and not in the nav. Add new shared components to it.

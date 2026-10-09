@@ -1,18 +1,21 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  addCopy,
   addToPage,
   applyPatch,
   isOptimisticId,
   matchesQuery,
   mergeRecord,
   OPTIMISTIC_ID_PREFIX,
+  removeCopy,
   removeFromPage,
   restoreToPage,
   undoAddToPage,
   updateInPage,
 } from './cache-updates';
 
+import type { CopiesByRef, ItemCopy } from '../repository/copies';
 import type { CollectionPage } from '../repository/items';
 import type { CollectionItem } from '@fanste/core';
 
@@ -50,6 +53,9 @@ const matrix: CollectionItem = {
 };
 
 const page: CollectionPage = { items: [matrix], total: 1, page: 1, pageSize: 60 };
+
+const matrixCopy: ItemCopy = { id: matrix.id, format: '4K UHD Blu-ray', ownership: 'owned' };
+const copies: CopiesByRef = { 'tmdb:movie:603': [matrixCopy], 'tmdb:movie:27205': [] };
 
 describe('matchesQuery', () => {
   it('matches items that pass every filter', () => {
@@ -153,6 +159,31 @@ describe('undoAddToPage', () => {
 
   it('lowers the total when the page only counted the item', () => {
     expect(undoAddToPage({ ...page, total: 2 }, `${OPTIMISTIC_ID_PREFIX}1`)).toEqual(page);
+  });
+});
+
+describe('addCopy', () => {
+  it('adds the copy to a lookup that asked for the item', () => {
+    const copy: ItemCopy = { id: inception.id, format: 'Blu-ray', ownership: 'owned' };
+    expect(addCopy(copies, 'tmdb:movie:27205', copy)).toEqual({
+      ...copies,
+      'tmdb:movie:27205': [copy],
+    });
+  });
+
+  it('leaves other lookups and known copies alone', () => {
+    expect(addCopy(copies, 'tmdb:tv:1396', matrixCopy)).toBe(copies);
+    expect(addCopy(copies, 'tmdb:movie:603', matrixCopy)).toBe(copies);
+  });
+});
+
+describe('removeCopy', () => {
+  it('removes the copy and leaves the lookup alone when it lacks it', () => {
+    expect(removeCopy(copies, 'tmdb:movie:603', matrix.id)).toEqual({
+      ...copies,
+      'tmdb:movie:603': [],
+    });
+    expect(removeCopy(copies, 'tmdb:movie:27205', matrix.id)).toBe(copies);
   });
 });
 
