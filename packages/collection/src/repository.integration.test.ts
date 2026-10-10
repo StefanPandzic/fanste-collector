@@ -9,7 +9,7 @@ import { randomInt, randomUUID } from 'node:crypto';
 import { createClient } from '@supabase/supabase-js';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 
-import { toMetadataCacheRow } from '@fanste/core';
+import { findRemovedFiles, planScannedFileUpserts, toMetadataCacheRow } from '@fanste/core';
 import { createServiceClient, requireSupabaseEnv } from '@fanste/supabase';
 
 import { CollectionError } from './errors';
@@ -32,6 +32,11 @@ import {
   listItems,
   updateItem,
 } from './repository/items';
+import {
+  listScannedFiles,
+  markScannedFilesRemoved,
+  upsertScannedFiles,
+} from './repository/scanned-files';
 import { getStats } from './repository/stats';
 import {
   assignTag,
@@ -44,7 +49,7 @@ import {
 
 import type { CollectionChange } from './realtime/events';
 import type { AddItemDeps } from './repository/items';
-import type { DetailsPatch, NormalizedItem } from '@fanste/core';
+import type { DetailsPatch, NormalizedItem, ScannedFileInfo } from '@fanste/core';
 import type { Database, FansteSupabaseClient } from '@fanste/supabase';
 
 const env = requireSupabaseEnv({
@@ -381,5 +386,45 @@ describe('collection repository (dev Supabase project)', () => {
       ),
     ).toBe(rest.length);
     expect((await listItems(deviceA)).total).toBe(0);
+  });
+
+  it('writes only new and changed scanned files, and marks missing ones removed (FC-21)', async () => {
+    const device = `test-device-${randomUUID()}`;
+    const file = (name: string, size: number): ScannedFileInfo => ({
+      path: `D:/Movies/${name}`,
+      pathKey: `d:/movies/${name.toLowerCase()}`,
+      size,
+      modifiedAt: '2026-10-01T10:00:00.000Z',
+      subtitleLanguages: ['en'],
+    });
+    const scan = async (found: ScannedFileInfo[]) => {
+      const known = new Map(
+        (await listScannedFiles(deviceA, device)).map((row) => [row.pathKey, row]),
+      );
+      return upsertScannedFiles(deviceA, device, planScannedFileUpserts(known, found));
+    };
+
+    expect(await scan([file('Inception.mkv', 100), file('Matrix.mkv', 200)])).toHaveLength(2);
+    // Same files again: nothing to write. One changed: only that one, keyed by path_key (no duplicate).
+    expect(await scan([file('Inception.mkv', 100), file('Matrix.mkv', 200)])).toHaveLength(0);
+    const [changed] = await scan([file('INCEPTION.mkv', 150), file('Matrix.mkv', 200)]);
+    expect(changed).toMatchObject({
+      size: 150,
+      filePath: 'D:/Movies/INCEPTION.mkv',
+      matchStatus: 'pending',
+    });
+
+    const rows = await listScannedFiles(deviceA, device);
+    expect(rows).toHaveLength(2);
+    const removed = findRemovedFiles(rows, new Set(['d:/movies/inception.mkv']), ['d:/movies']);
+    await markScannedFilesRemoved(deviceA, removed);
+    const after = await listScannedFiles(deviceA, device);
+    expect(after.filter((row) => row.removedAt !== null).map((row) => row.pathKey)).toEqual([
+      'd:/movies/matrix.mkv',
+    ]);
+    // Signed out, the table can't be read at all (no grant for `anon`).
+    await expect(listScannedFiles(createPublicClient(), device)).rejects.toMatchObject({
+      code: 'forbidden',
+    });
   });
 });

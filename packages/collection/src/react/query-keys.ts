@@ -42,3 +42,10 @@ export const missingMetadataKey = (userId: string, refKeys: readonly string[]) =
  * `collectionKeys.all`, so collection mutations don't refetch or cancel it.
  */
 export const copyDefaultsKey = (userId: string) => ['collection-copy-defaults', userId] as const;
+
+/**
+ * Key of a device's scanned files (FC-21). Outside `collectionKeys.all`, so collection mutations and
+ * Realtime don't reload thousands of rows; the scanner hooks update it themselves.
+ */
+export const scannedFilesKey = (userId: string, deviceId: string) =>
+  ['scanned-files', userId, deviceId] as const;
