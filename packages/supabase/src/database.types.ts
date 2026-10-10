@@ -394,8 +394,9 @@ export type Database = {
         };
       };
       collection_stats: {
-        Args: never;
+        Args: { p_time_zone?: string };
         Returns: {
+          added_month: string;
           category: Database['public']['Enums']['item_category'];
           currency: string;
           estimated_value_total: number;

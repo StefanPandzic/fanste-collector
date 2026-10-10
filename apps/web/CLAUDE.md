@@ -193,6 +193,21 @@ currency and renders `ItemDetailPageClient`.
 - Delete goes back to the gallery with an "Undo" toast (`useRestoreItem`). "Refresh metadata" calls the
   refresh route (`useRefreshMetadata`) and never touches details or overrides.
 
+## Dashboard (FC-20)
+
+`/dashboard` (the landing page after sign-in) is `features/dashboard/`. Its page (Server Component)
+reads the user's default currency and renders `DashboardPageClient`.
+
+- Every number comes from `useCollectionStats` (one `collection_stats()` call, months in the device's
+  time zone); Realtime invalidates it like the gallery. Never count items on the client.
+- "Items" and the category counts are the copies the user has (`inCollection`: owned, preordered,
+  lent); wishlist has its own tile, sold items aren't counted. The value is shown in the default
+  currency; totals in other currencies are listed apart, never converted.
+- The pure `dashboard-view.ts` shapes the stats for the tiles, category cards (unbuilt categories
+  are "Coming soon"), and the two charts, which are plain CSS bars (no chart library).
+- "Recently added" is a 12-item `useCollection` page sorted by `added_desc`. An empty collection
+  shows `DashboardOnboarding` (search, and in the desktop app the scanner).
+
 ## Design system
 
 Tokens are in `packages/config/tailwind/theme.css`. On top of shadcn's colors it has status colors

@@ -7,6 +7,8 @@ interface AccentClasses {
   soft: string;
   /** Gradient and icon color of the fallback cover artwork. */
   fallback: string;
+  /** Solid accent background, e.g. for chart bars. */
+  solid: string;
 }
 
 // Tailwind only generates classes it finds written out in full, so these can't be built from the
@@ -15,26 +17,32 @@ const ACCENT_CLASSES: Record<CategoryAccent, AccentClasses> = {
   movie: {
     soft: 'bg-category-movie/10 text-category-movie',
     fallback: 'from-category-movie/30 to-category-movie/5 text-category-movie',
+    solid: 'bg-category-movie',
   },
   tv: {
     soft: 'bg-category-tv/10 text-category-tv',
     fallback: 'from-category-tv/30 to-category-tv/5 text-category-tv',
+    solid: 'bg-category-tv',
   },
   music: {
     soft: 'bg-category-music/10 text-category-music',
     fallback: 'from-category-music/30 to-category-music/5 text-category-music',
+    solid: 'bg-category-music',
   },
   'video-game': {
     soft: 'bg-category-video-game/10 text-category-video-game',
     fallback: 'from-category-video-game/30 to-category-video-game/5 text-category-video-game',
+    solid: 'bg-category-video-game',
   },
   'board-game': {
     soft: 'bg-category-board-game/10 text-category-board-game',
     fallback: 'from-category-board-game/30 to-category-board-game/5 text-category-board-game',
+    solid: 'bg-category-board-game',
   },
   funko: {
     soft: 'bg-category-funko/10 text-category-funko',
     fallback: 'from-category-funko/30 to-category-funko/5 text-category-funko',
+    solid: 'bg-category-funko',
   },
 };
 

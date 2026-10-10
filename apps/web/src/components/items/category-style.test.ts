@@ -7,6 +7,7 @@ describe('categoryClasses', () => {
     expect(categoryClasses('video_game').soft).toContain('category-video-game');
     expect(categoryClasses('video_game').fallback).toContain('text-category-video-game');
     expect(categoryClasses('movie').soft).toBe('bg-category-movie/10 text-category-movie');
+    expect(categoryClasses('board_game').solid).toBe('bg-category-board-game');
   });
 });
 

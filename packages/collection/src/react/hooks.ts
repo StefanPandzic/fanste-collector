@@ -138,11 +138,13 @@ export function useTags() {
   });
 }
 
+/** The dashboard numbers (`getStats`), with months in the device's time zone. */
 export function useCollectionStats() {
   const { client, userId } = useCollectionContext();
+  const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
   return useQuery({
-    queryKey: collectionKeys.stats(userId),
-    queryFn: () => getStats(client),
+    queryKey: [...collectionKeys.stats(userId), timeZone],
+    queryFn: () => getStats(client, { now: new Date(), timeZone }),
     ...LIVE_QUERY,
   });
 }
