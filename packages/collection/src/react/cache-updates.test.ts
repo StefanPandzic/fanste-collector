@@ -6,6 +6,7 @@ import {
   applyPatch,
   isOptimisticId,
   matchesQuery,
+  mergePages,
   mergeRecord,
   OPTIMISTIC_ID_PREFIX,
   removeCopy,
@@ -75,6 +76,35 @@ describe('matchesQuery', () => {
     expect(matchesQuery(inception, { ownership: ['wishlist'] })).toBe(false);
     expect(matchesQuery(matrix, { tagIds: [tagId] })).toBe(false);
     expect(matchesQuery(inception, { search: 'matrix' })).toBe(false);
+  });
+
+  it('applies the media, source, acquisition date and copy-details filters', () => {
+    const steelbook: CollectionItem = {
+      ...inception,
+      acquiredAt: '2024-05-01',
+      details: { resolution: '2160p', edition: 'Steelbook', audioLanguages: ['en', 'de'] },
+    };
+    expect(
+      matchesQuery(steelbook, {
+        formats: ['4K UHD Blu-ray'],
+        sources: ['search'],
+        acquiredFrom: '2024-01-01',
+        acquiredTo: '2024-12-31',
+        details: { resolution: ['2160p'], edition: ['Steelbook'], audioLanguages: ['de'] },
+      }),
+    ).toBe(true);
+    expect(matchesQuery(steelbook, { formats: ['DVD'] })).toBe(false);
+    expect(matchesQuery(steelbook, { sources: ['scanner'] })).toBe(false);
+    expect(matchesQuery(steelbook, { acquiredFrom: '2025-01-01' })).toBe(false);
+    expect(matchesQuery(steelbook, { details: { audioLanguages: ['fr'] } })).toBe(false);
+  });
+
+  it('searches the subtitle as well as the title', () => {
+    const subtitled: CollectionItem = {
+      ...inception,
+      metadataOverrides: { subtitle: 'Christopher Nolan' },
+    };
+    expect(matchesQuery(subtitled, { search: 'nolan' })).toBe(true);
   });
 });
 
@@ -195,5 +225,32 @@ describe('restoreToPage', () => {
       total: 2,
     });
     expect(restoreToPage(page, matrix, 0)).toBe(page);
+  });
+});
+
+describe('mergePages', () => {
+  const first: CollectionPage = { items: [inception], total: 3, page: 1, pageSize: 1 };
+
+  it('joins loaded pages in order and shows an item that moved to a later page once', () => {
+    const second: CollectionPage = { items: [inception], total: 3, page: 2, pageSize: 1 };
+    const third: CollectionPage = { items: [matrix], total: 3, page: 3, pageSize: 1 };
+    expect(mergePages([first, second, third])).toEqual({
+      items: [inception, matrix],
+      hasMore: false,
+    });
+  });
+
+  it('stops at the first page not loaded yet', () => {
+    const third: CollectionPage = { items: [matrix], total: 3, page: 3, pageSize: 1 };
+    expect(mergePages([first, undefined, third])).toEqual({ items: [inception], hasMore: true });
+  });
+
+  it('has nothing more after an empty page past the end', () => {
+    const past: CollectionPage = { items: [], total: 1, page: 2, pageSize: 1 };
+    expect(mergePages([{ ...first, total: 1 }, past])).toEqual({
+      items: [inception],
+      hasMore: false,
+    });
+    expect(mergePages([undefined])).toEqual({ items: [], hasMore: false });
   });
 });

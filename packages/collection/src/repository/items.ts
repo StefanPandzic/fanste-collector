@@ -18,6 +18,7 @@ import type {
   CollectionQuery,
   CollectionSort,
   ItemRef,
+  Json,
   NormalizedItem,
   UpdateItemPatch,
 } from '@fanste/core';
@@ -39,44 +40,61 @@ const SORT_COLUMNS: Record<CollectionSort, { column: string; ascending: boolean 
   title_desc: { column: 'title', ascending: false },
   year_desc: { column: 'release_year', ascending: false },
   year_asc: { column: 'release_year', ascending: true },
+  acquired_desc: { column: 'acquired_at', ascending: false },
+  acquired_asc: { column: 'acquired_at', ascending: true },
+  value_desc: { column: 'estimated_value', ascending: false },
+  value_asc: { column: 'estimated_value', ascending: true },
 };
 
-/** Ids per delete request, so the `in.(...)` filter stays well within URL limits. */
-const DELETE_CHUNK = 100;
+/** Ids per write request, so the `in.(...)` filter stays well within URL limits. */
+const WRITE_CHUNK = 100;
 // PostgREST answers a range past the last row with this code.
 const RANGE_NOT_SATISFIABLE = 'PGRST103';
 
 /**
- * Escapes `%`, `_` and `\`, so user input matches literally in `ilike`. PostgREST turns every `*` into
- * `%` and has no escape for it, so `*` becomes `_` (any one character, the asterisk included).
+ * The filter part of a query as the `collection_items_filtered` / `collection_facets` RPCs read it:
+ * sort and paging removed, and filters that are off (unset or empty) left out.
  */
-export function escapeLike(value: string): string {
-  return value.replace(/[\\%_]/g, (char) => `\\${char}`).replaceAll('*', '_');
+export function toFilterJson(query: CollectionQuery): Json {
+  const {
+    sort: _sort,
+    page: _page,
+    pageSize: _pageSize,
+    details,
+    ...filters
+  } = collectionQuerySchema.parse(query);
+  const json: Record<string, Json> = {};
+  for (const [key, value] of Object.entries(filters)) {
+    if (isActive(value)) json[key] = value;
+  }
+  const detailFilters: Record<string, Json> = {};
+  for (const [key, value] of Object.entries(details ?? {})) {
+    if (isActive(value)) detailFilters[key] = value;
+  }
+  if (Object.keys(detailFilters).length > 0) json.details = detailFilters;
+  return json;
+}
+
+function isActive(value: unknown): value is Json {
+  if (value === undefined || value === '') return false;
+  return !Array.isArray(value) || value.length > 0;
 }
 
 /**
- * A page of the user's collection from `collection_items_view` (RLS limits it to their rows).
- * `search` matches the displayed title; `tagIds` matches items with any of the tags.
+ * A page of the user's collection, filtered in the database by `collection_items_filtered` (RLS
+ * limits it to their rows). See `CollectionFilter` for the filters.
  */
 export async function listItems(
   client: FansteSupabaseClient,
   query: CollectionQuery = {},
 ): Promise<CollectionPage> {
-  const { category, ownership, tagIds, search, sort, page, pageSize } =
-    collectionQuerySchema.parse(query);
-  const filterByTags = tagIds !== undefined && tagIds.length > 0;
+  const { sort, page, pageSize } = collectionQuerySchema.parse(query);
+  const filter = toFilterJson(query);
 
   function build(head: boolean) {
-    // A second, inner-joined embed filters by tag without trimming the item's own tag list.
-    const select = filterByTags
-      ? `${ITEM_VIEW_SELECT}, tag_filter:collection_item_tags!inner(tag_id)`
-      : ITEM_VIEW_SELECT;
-    let request = client.from('collection_items_view').select(select, { count: 'exact', head });
-    if (category) request = request.eq('category', category);
-    if (ownership && ownership.length > 0) request = request.in('ownership', ownership);
-    if (search) request = request.ilike('title', `%${escapeLike(search)}%`);
-    if (filterByTags) request = request.in('tag_filter.tag_id', tagIds);
-    return request;
+    return client
+      .rpc('collection_items_filtered', { p_filter: filter }, { count: 'exact', head })
+      .select(ITEM_VIEW_SELECT);
   }
 
   const { column, ascending } = SORT_COLUMNS[sort];
@@ -185,16 +203,54 @@ export async function bulkDelete(
   client: FansteSupabaseClient,
   ids: readonly string[],
 ): Promise<number> {
-  const valid = [...new Set(ids)].filter((id) => z.uuid().safeParse(id).success);
   let deleted = 0;
-  for (let start = 0; start < valid.length; start += DELETE_CHUNK) {
+  for (const chunk of idChunks(ids)) {
     const { data, error } = await client
       .from('collection_items')
       .delete()
-      .in('id', valid.slice(start, start + DELETE_CHUNK))
+      .in('id', chunk)
       .select('id');
     if (error) throw toCollectionError(error);
     deleted += data.length;
   }
   return deleted;
+}
+
+/** Unique, well-formed item ids, in chunks of `WRITE_CHUNK`. */
+function idChunks(ids: readonly string[]): string[][] {
+  const valid = [...new Set(ids)].filter((id) => z.uuid().safeParse(id).success);
+  const chunks: string[][] = [];
+  for (let start = 0; start < valid.length; start += WRITE_CHUNK) {
+    chunks.push(valid.slice(start, start + WRITE_CHUNK));
+  }
+  return chunks;
+}
+
+/**
+ * Applies the same copy-field patch to many items, e.g. a bulk ownership change; returns how many
+ * were updated. Unknown ids are skipped.
+ */
+export async function bulkUpdateItems(
+  client: FansteSupabaseClient,
+  ids: readonly string[],
+  patch: UpdateItemPatch,
+): Promise<number> {
+  let row;
+  try {
+    row = toUpdateRow(updateItemPatchSchema.parse(patch));
+  } catch (error) {
+    throw toCollectionError(error);
+  }
+  if (Object.keys(row).length === 0) return 0;
+  let updated = 0;
+  for (const chunk of idChunks(ids)) {
+    const { data, error } = await client
+      .from('collection_items')
+      .update(row)
+      .in('id', chunk)
+      .select('id');
+    if (error) throw toCollectionError(error);
+    updated += data.length;
+  }
+  return updated;
 }

@@ -1,5 +1,7 @@
 import { collectionQuerySchema } from '@fanste/core';
 
+import { toFilterJson } from '../repository/items';
+
 import type { CollectionQuery } from '@fanste/core';
 
 /**
@@ -16,6 +18,9 @@ export const collectionKeys = {
   detail: (userId: string, id: string) => [...collectionKeys.details(userId), id] as const,
   tags: (userId: string) => [...collectionKeys.all(userId), 'tags'] as const,
   stats: (userId: string) => [...collectionKeys.all(userId), 'stats'] as const,
+  /** Filter counts of the gallery; keyed by the filters only (sort and paging don't change them). */
+  facets: (userId: string, query: CollectionQuery) =>
+    [...collectionKeys.all(userId), 'facets', toFilterJson(query)] as const,
   copies: (userId: string) => [...collectionKeys.all(userId), 'copies'] as const,
   /** The user's copies of some provider items (`refKey`s, sorted), e.g. for search results. */
   copiesOf: (userId: string, refKeys: readonly string[]) =>

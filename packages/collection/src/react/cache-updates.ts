@@ -12,14 +12,54 @@ function displayTitle(item: CollectionItem): string {
   return item.metadataOverrides.title ?? item.metadata?.title ?? '';
 }
 
-/** Whether `item` belongs in the results of `query` (filters only, not the page). */
+/** The subtitle the user sees: their override, else the provider's. */
+function displaySubtitle(item: CollectionItem): string {
+  return item.metadataOverrides.subtitle ?? item.metadata?.subtitle ?? '';
+}
+
+/** Whether a filter is off, or `value` is one of its selected values. */
+function selects<T>(selected: readonly T[] | undefined, value: T): boolean {
+  return !selected || selected.length === 0 || selected.includes(value);
+}
+
+/** Whether a copy-details filter is off, or the item's show-level field has a selected value. */
+function selectsDetail(selected: readonly string[] | undefined, value: unknown): boolean {
+  if (!selected || selected.length === 0) return true;
+  const values = Array.isArray(value) ? value : [value];
+  return values.some((entry) => typeof entry === 'string' && selected.includes(entry));
+}
+
+/**
+ * Whether `item` belongs in the results of `query` (filters only, not the page). Close to
+ * `collection_item_matches` in the database, which decides after the refetch; TV seasons are left
+ * out here.
+ */
 export function matchesQuery(item: CollectionItem, query: CollectionQuery): boolean {
-  const { category, ownership, tagIds, search } = collectionQuerySchema.parse(query);
-  if (category && item.category !== category) return false;
-  if (ownership && ownership.length > 0 && !ownership.includes(item.ownership)) return false;
-  if (tagIds && tagIds.length > 0 && !tagIds.some((id) => item.tagIds.includes(id))) return false;
-  if (search && !displayTitle(item).toLowerCase().includes(search.toLowerCase())) return false;
-  return true;
+  const filter = collectionQuerySchema.parse(query);
+  if (filter.category && item.category !== filter.category) return false;
+  if (!selects(filter.ownership, item.ownership)) return false;
+  if (!selects(filter.sources, item.source)) return false;
+  if (filter.formats?.length && !(item.format && filter.formats.includes(item.format))) {
+    return false;
+  }
+  if (filter.tagIds?.length && !filter.tagIds.some((id) => item.tagIds.includes(id))) return false;
+  if (filter.acquiredFrom && !(item.acquiredAt && item.acquiredAt >= filter.acquiredFrom)) {
+    return false;
+  }
+  if (filter.acquiredTo && !(item.acquiredAt && item.acquiredAt <= filter.acquiredTo)) return false;
+  if (filter.search) {
+    const search = filter.search.toLowerCase();
+    const text = [displayTitle(item), displaySubtitle(item)];
+    if (!text.some((entry) => entry.toLowerCase().includes(search))) return false;
+  }
+  const details = filter.details ?? {};
+  return (
+    selectsDetail(details.resolution, item.details.resolution) &&
+    selectsDetail(details.hdr, item.details.hdr) &&
+    selectsDetail(details.edition, item.details.edition) &&
+    selectsDetail(details.audioLanguages, item.details.audioLanguages) &&
+    selectsDetail(details.subtitleLanguages, item.details.subtitleLanguages)
+  );
 }
 
 /**
@@ -130,4 +170,30 @@ export function restoreToPage(
   const items = [...page.items];
   items.splice(Math.min(index, items.length), 0, item);
   return { ...page, items, total: page.total + 1 };
+}
+
+/**
+ * Pages 1…N of a query as one list, for infinite scrolling. Pages are read in order up to the first
+ * one not loaded yet. An item that moved to a later page between loads (rows added or removed
+ * meanwhile) shows once, where it came first. `hasMore`: the first page's total is larger than what
+ * the loaded pages cover.
+ */
+export function mergePages(pages: readonly (CollectionPage | undefined)[]): {
+  items: CollectionItem[];
+  hasMore: boolean;
+} {
+  const seen = new Set<string>();
+  const items: CollectionItem[] = [];
+  let covered = 0;
+  for (const page of pages) {
+    if (!page) break;
+    covered = (page.page - 1) * page.pageSize + page.items.length;
+    for (const item of page.items) {
+      if (seen.has(item.id)) continue;
+      seen.add(item.id);
+      items.push(item);
+    }
+  }
+  const total = pages[0]?.total;
+  return { items, hasMore: total !== undefined && covered < total };
 }

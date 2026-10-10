@@ -1,6 +1,7 @@
 export * from './category-meta';
 export * from './collection-input';
 export * from './collection-item';
+export * from './copy-badges';
 export * from './copy-details';
 export * from './copy-options';
 export * from './enums';

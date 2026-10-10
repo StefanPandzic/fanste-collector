@@ -1,7 +1,7 @@
 'use client';
 
 import { Check, CopyPlus, Loader2, Plus, SearchX } from 'lucide-react';
-import { useEffect, useRef, useState } from 'react';
+import { useState } from 'react';
 
 import { refKey, useCollectionCopies } from '@fanste/collection';
 import { categoryLabel, providerLabel, providerOfCategory } from '@fanste/core';
@@ -9,6 +9,7 @@ import { categoryLabel, providerLabel, providerOfCategory } from '@fanste/core';
 import { ItemCard } from '@/components/items/item-card';
 import { ItemGridSkeleton } from '@/components/items/item-card-skeleton';
 import { ItemGrid } from '@/components/items/item-grid';
+import { LoadMore } from '@/components/load-more';
 import { EmptyState } from '@/components/states/empty-state';
 import { ErrorState } from '@/components/states/error-state';
 import { Badge } from '@/components/ui/badge';
@@ -204,52 +205,5 @@ function QuickAddButton({ title, pending, owned, onClick }: QuickAddButtonProps)
         <Plus aria-hidden />
       )}
     </Button>
-  );
-}
-
-interface LoadMoreProps {
-  hasMore: boolean;
-  loading: boolean;
-  failed: boolean;
-  onLoadMore: () => void;
-}
-
-/**
- * Loads the next page when the user scrolls near the end of the list. The button does the same,
- * for keyboard users and when the observer can't fire (e.g. after a failed page).
- */
-function LoadMore({ hasMore, loading, failed, onLoadMore }: LoadMoreProps) {
-  const sentinelRef = useRef<HTMLDivElement>(null);
-  const loadRef = useRef(onLoadMore);
-  useEffect(() => {
-    loadRef.current = onLoadMore;
-  });
-
-  useEffect(() => {
-    const sentinel = sentinelRef.current;
-    if (!sentinel || !hasMore || loading || failed) return;
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries.some((entry) => entry.isIntersecting)) loadRef.current();
-      },
-      { rootMargin: '600px 0px' },
-    );
-    observer.observe(sentinel);
-    return () => observer.disconnect();
-  }, [hasMore, loading, failed]);
-
-  if (!hasMore) return null;
-  return (
-    <div ref={sentinelRef} className="flex flex-col items-center gap-2 py-4">
-      {failed && (
-        <p className="text-sm text-destructive" role="alert">
-          More results could not be loaded.
-        </p>
-      )}
-      <Button variant="outline" onClick={onLoadMore} disabled={loading}>
-        {loading && <Loader2 aria-hidden className="animate-spin" />}
-        {loading ? 'Loading…' : failed ? 'Try again' : 'Load more'}
-      </Button>
-    </div>
   );
 }

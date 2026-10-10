@@ -1,7 +1,12 @@
 import { z } from 'zod';
 
 import { ITEM_SOURCES } from './collection-item';
-import { detailsSchemaFor, movieDetailsShape, tvDetailsShape } from './copy-details';
+import {
+  detailsSchemaFor,
+  languageCodeSchema,
+  movieDetailsShape,
+  tvDetailsShape,
+} from './copy-details';
 import { itemCategorySchema, metadataProviderSchema, ownershipStatusSchema } from './enums';
 import { metadataOverridesShape } from './metadata-overrides';
 import { checkProviderIdentity } from './normalized-item';
@@ -153,19 +158,61 @@ export const COLLECTION_SORTS = [
   'title_desc',
   'year_desc',
   'year_asc',
+  'acquired_desc',
+  'acquired_asc',
+  'value_desc',
+  'value_asc',
 ] as const;
 export type CollectionSort = (typeof COLLECTION_SORTS)[number];
 
 export const DEFAULT_COLLECTION_PAGE_SIZE = 60;
 export const MAX_COLLECTION_PAGE_SIZE = 200;
+/** Most values one filter can select. */
+export const MAX_FILTER_VALUES = 50;
 
-/** A page of the user's collection. Filters combine with AND; `tagIds` matches items with any of them. */
-export const collectionQuerySchema = z.object({
+/** Selected values of one filter: an item matches when it has any of them. */
+function anyOf<T extends z.ZodType>(value: T) {
+  return z.array(value).max(MAX_FILTER_VALUES).optional();
+}
+
+const optionValue = z.string().trim().min(1).max(MAX_FORMAT_LENGTH);
+
+/**
+ * Filters on copy details (FC-15). A TV copy matches when the show or any of its seasons has the
+ * value (resolution, languages). Movies & TV first; game and music filters come with FC-11 / FC-10.
+ */
+export const collectionDetailsFilterSchema = z.object({
+  resolution: anyOf(optionValue),
+  hdr: anyOf(optionValue),
+  edition: anyOf(optionValue),
+  audioLanguages: anyOf(languageCodeSchema),
+  subtitleLanguages: anyOf(languageCodeSchema),
+});
+
+/**
+ * Which items of the collection to show. Filters combine with AND; within a filter, any selected
+ * value matches. The database applies them (`collection_item_matches`, FC-18), so the keys are part
+ * of that function's contract.
+ */
+export const collectionFilterSchema = z.object({
   category: itemCategorySchema.optional(),
-  ownership: z.array(ownershipStatusSchema).optional(),
-  tagIds: z.array(z.uuid()).optional(),
-  /** Matched against the displayed title (overrides applied). */
+  ownership: anyOf(ownershipStatusSchema),
+  /** Media, matched exactly (a TV copy also matches a season's medium). */
+  formats: anyOf(optionValue),
+  tagIds: anyOf(z.uuid()),
+  sources: anyOf(z.enum(ITEM_SOURCES)),
+  /** Acquisition date range, inclusive (`YYYY-MM-DD`). */
+  acquiredFrom: z.iso.date().optional(),
+  acquiredTo: z.iso.date().optional(),
+  /** Matched against the displayed title and subtitle (overrides applied). */
   search: z.string().trim().max(200).optional(),
+  details: collectionDetailsFilterSchema.optional(),
+});
+
+export type CollectionFilter = z.output<typeof collectionFilterSchema>;
+
+/** A page of the user's collection: the filters plus sort and paging. */
+export const collectionQuerySchema = collectionFilterSchema.extend({
   sort: z.enum(COLLECTION_SORTS).default('added_desc'),
   /** Starts at 1. */
   page: z.int().min(1).default(1),
@@ -173,3 +220,25 @@ export const collectionQuerySchema = z.object({
 });
 
 export type CollectionQuery = z.input<typeof collectionQuerySchema>;
+
+/**
+ * Filters the gallery shows counts for. Each count applies every other filter but its own, so the
+ * other values of a filter keep their counts while one is selected ("Blu-ray (12)" next to a ticked
+ * "DVD").
+ */
+export const COLLECTION_FACETS = [
+  'category',
+  'ownership',
+  'format',
+  'tag',
+  'source',
+  'resolution',
+  'hdr',
+  'edition',
+  'audioLanguage',
+  'subtitleLanguage',
+] as const;
+export type CollectionFacet = (typeof COLLECTION_FACETS)[number];
+
+/** Items per value of each facet, e.g. `facets.format['Blu-ray'] === 12`. */
+export type CollectionFacets = Record<CollectionFacet, Record<string, number>>;

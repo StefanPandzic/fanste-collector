@@ -32,6 +32,12 @@ Adapter for IGDB (Twitch) to catalog video games with per-platform granularity.
         `apps/web/src/features/search/search-state.ts`)
   - [ ] Game copy-details fields in the "Add with details" dialog (platform, medium, storefront, discs, …),
         prefilled and marked "from IGDB"
+- [ ] Gallery filters and badges for video games (moved here from FC-18, which shipped Movies & TV only):
+  - [ ] Filters on platform and storefront (e.g. all Steam games): add the keys to
+        `collectionDetailsFilterSchema` (`@fanste/core`), to `collection_item_filter_flags` /
+        `collection_facets` (a migration) and to `COLLECTION_FACETS`, then to the gallery's `FilterPanel`
+        and URL state (`gallery-state.ts`)
+  - [ ] Game badges in `copyBadges` (e.g. "Steam", "PS5")
 
 ## Acceptance criteria
 - A user can find and add a game from search in the browser and the desktop app (from FC-17).

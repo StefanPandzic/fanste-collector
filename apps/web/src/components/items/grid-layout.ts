@@ -12,6 +12,8 @@ export const COVER_HEIGHT_RATIO = 3 / 2;
 export const CARD_INSET = 12;
 /** Height of a card without its cover (padding, title, meta row), in px. Matches `ItemCard`. */
 export const CARD_CAPTION_HEIGHT = 70;
+/** Height the badge line adds to a card (`h-4.5` plus the caption's `gap-1`), in px. */
+export const CARD_BADGES_HEIGHT = 22;
 /**
  * Space to keep above a card scrolled into view: the sticky top bar plus a gap. Keep in sync with
  * the app shell's `h-14` header (and `TITLE_BAR_HEIGHT` in the desktop app).
@@ -24,10 +26,15 @@ export function gridColumns(width: number): number {
   return Math.min(MAX_GRID_COLUMNS, Math.max(1, fit));
 }
 
-/** Estimated height of one grid row, in px, without the gap below it. */
-export function gridRowHeight(width: number, columns: number): number {
+/**
+ * Estimated height of one grid row, in px, without the gap below it. `extraHeight` is caption content
+ * beyond the title and meta row, e.g. `CARD_BADGES_HEIGHT`.
+ */
+export function gridRowHeight(width: number, columns: number, extraHeight = 0): number {
   const cardWidth = Math.max(0, (width - GRID_GAP * (columns - 1)) / columns);
-  return Math.round(Math.max(0, cardWidth - CARD_INSET) * COVER_HEIGHT_RATIO + CARD_CAPTION_HEIGHT);
+  return Math.round(
+    Math.max(0, cardWidth - CARD_INSET) * COVER_HEIGHT_RATIO + CARD_CAPTION_HEIGHT + extraHeight,
+  );
 }
 
 export function gridRowCount(itemCount: number, columns: number): number {

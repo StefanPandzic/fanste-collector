@@ -1,6 +1,7 @@
 import {
   keepPreviousData,
   queryOptions,
+  useQueries,
   useMutation,
   useQuery,
   useQueryClient,
@@ -19,6 +20,7 @@ import {
   addToPage,
   applyPatch,
   isOptimisticId,
+  mergePages,
   mergeRecord,
   OPTIMISTIC_ID_PREFIX,
   removeCopy,
@@ -28,7 +30,7 @@ import {
   updateInPage,
 } from './cache-updates';
 import { useCollectionContext } from './context';
-import { useMissingMetadata } from './missing-metadata';
+import { useMissingMetadata, useMissingMetadataPages } from './missing-metadata';
 import { collectionKeys, collectionMutationKey, copyDefaultsKey } from './query-keys';
 import { findCopies, refKey } from '../repository/copies';
 import {
@@ -39,9 +41,11 @@ import {
   updateItemDetails,
   updateOverrides,
 } from '../repository/details';
+import { getFacets } from '../repository/facets';
 import {
   addItem,
   bulkDelete,
+  bulkUpdateItems,
   deleteItem,
   getItem,
   listItems,
@@ -50,6 +54,7 @@ import {
 import { getStats } from '../repository/stats';
 import {
   assignTag,
+  bulkAssignTag,
   createTag,
   deleteTag,
   listTags,
@@ -132,6 +137,86 @@ export function useCollectionStats() {
   return useQuery({
     queryKey: collectionKeys.stats(userId),
     queryFn: () => getStats(client),
+    ...LIVE_QUERY,
+  });
+}
+
+/** The first `pageCount` pages of a query, as one list (see `useCollectionPages`). */
+export interface CollectionPages {
+  /** The loaded items in order. An item that moved to a later page while loading shows once. */
+  items: CollectionItem[];
+  /** All items matching the filters; `undefined` until the first page has loaded. */
+  total: number | undefined;
+  /** More items match than are loaded: load the next page. */
+  hasMore: boolean;
+  /** Nothing to show yet. */
+  isPending: boolean;
+  isFetching: boolean;
+  /** A page after the first is loading. */
+  isFetchingNextPage: boolean;
+  /** The items are from the previous query while the new first page loads. */
+  isPlaceholderData: boolean;
+  error: Error | null;
+  refetch: () => void;
+}
+
+/**
+ * Pages 1…`pageCount` of the collection for infinite scrolling, e.g. the gallery (FC-18). Each page
+ * is its own cached list, so optimistic updates reach it, and loads its missing metadata in one
+ * batch: keep `pageSize` at most `MAX_BATCH_ITEMS`. While the filters change, the previous results
+ * stay visible (`isPlaceholderData`); reset `pageCount` to 1 when they do.
+ */
+export function useCollectionPages(query: CollectionQuery, pageCount: number): CollectionPages {
+  const { client, userId } = useCollectionContext();
+  const pageQuery = (page: number) => ({ ...query, page });
+
+  const first = useQuery({
+    queryKey: collectionKeys.list(userId, pageQuery(1)),
+    queryFn: () => listItems(client, pageQuery(1)),
+    placeholderData: keepPreviousData,
+    ...LIVE_QUERY,
+  });
+  const rest = useQueries({
+    queries: Array.from({ length: Math.max(0, pageCount - 1) }, (_, index) => ({
+      queryKey: collectionKeys.list(userId, pageQuery(index + 2)),
+      queryFn: () => listItems(client, pageQuery(index + 2)),
+      // Pages after the first wait for it, so they never mix with placeholder data.
+      enabled: !first.isPlaceholderData,
+      ...LIVE_QUERY,
+    })),
+  });
+  const pages = first.isPlaceholderData ? [first.data] : [first.data, ...rest.map((r) => r.data)];
+  useMissingMetadataPages(pages.map((page) => page?.items));
+
+  const { items, hasMore } = mergePages(pages);
+  const total = first.data?.total;
+  const isFetchingNextPage = !first.isPlaceholderData && rest.some((r) => r.isFetching);
+  return {
+    items,
+    total,
+    hasMore,
+    isPending: first.isPending,
+    isFetching: first.isFetching || isFetchingNextPage,
+    isFetchingNextPage,
+    isPlaceholderData: first.isPlaceholderData,
+    error: first.error ?? rest.find((r) => r.error)?.error ?? null,
+    refetch: () => {
+      void first.refetch();
+      for (const page of rest) void page.refetch();
+    },
+  };
+}
+
+/**
+ * Items per value of each gallery filter for `query` ("Blu-ray (12)"). The previous counts stay
+ * visible while the filters change.
+ */
+export function useCollectionFacets(query: CollectionQuery = {}) {
+  const { client, userId } = useCollectionContext();
+  return useQuery({
+    queryKey: collectionKeys.facets(userId, query),
+    queryFn: () => getFacets(client, query),
+    placeholderData: keepPreviousData,
     ...LIVE_QUERY,
   });
 }
@@ -391,14 +476,58 @@ export function useUpdateItem() {
     mutationFn: ({ id, patch }: UpdateItemVariables) => updateItem(client, id, patch),
     onMutate: async ({ id, patch }): Promise<Undo> => {
       await cancelRefetches(queryClient, userId);
-      const before = cachedItem(queryClient, userId, id);
-      updateItemEverywhere(queryClient, userId, id, (item) => applyPatch(item, patch));
+      return patchOptimistically(queryClient, userId, id, patch);
+    },
+  });
+}
+
+/** Applies a copy-field patch to a cached item; the undo reverts only the patched fields. */
+function patchOptimistically(
+  queryClient: QueryClient,
+  userId: string,
+  id: string,
+  patch: UpdateItemPatch,
+): Undo {
+  const before = cachedItem(queryClient, userId, id);
+  updateItemEverywhere(queryClient, userId, id, (item) => applyPatch(item, patch));
+  return () => {
+    if (!before) return;
+    // Keep other changes to the item.
+    const fields = Object.keys(patch) as (keyof UpdateItemPatch)[];
+    const reverted = Object.fromEntries(fields.map((field) => [field, before[field]]));
+    updateItemEverywhere(queryClient, userId, id, (item) => ({ ...item, ...reverted }));
+  };
+}
+
+export interface BulkUpdateItemsVariables {
+  ids: readonly string[];
+  patch: UpdateItemPatch;
+}
+
+/**
+ * Applies the same copy-field patch to many items, optimistically, e.g. a bulk ownership change.
+ * Resolves to the number updated. Items still being added are skipped.
+ */
+export function useBulkUpdateItems() {
+  const context = useCollectionContext();
+  const { client, userId } = context;
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    ...mutationOptions(queryClient, context),
+    mutationFn: ({ ids, patch }: BulkUpdateItemsVariables) =>
+      bulkUpdateItems(
+        client,
+        ids.filter((id) => !isOptimisticId(id)),
+        patch,
+      ),
+    onMutate: async ({ ids, patch }): Promise<Undo> => {
+      await cancelRefetches(queryClient, userId);
+      const undos = ids
+        .filter((id) => !isOptimisticId(id))
+        .map((id) => patchOptimistically(queryClient, userId, id, patch));
       return () => {
-        if (!before) return;
-        // Revert only the patched fields, keeping other changes to the item.
-        const fields = Object.keys(patch) as (keyof UpdateItemPatch)[];
-        const reverted = Object.fromEntries(fields.map((field) => [field, before[field]]));
-        updateItemEverywhere(queryClient, userId, id, (item) => ({ ...item, ...reverted }));
+        for (const undo of undos) undo();
       };
     },
   });
@@ -694,5 +823,30 @@ export function useTagAssignment() {
     },
   });
 
-  return { assign, unassign };
+  const assignMany = useMutation({
+    ...options,
+    mutationFn: ({ itemIds, tagId }: BulkTagLinkVariables) =>
+      bulkAssignTag(
+        client,
+        itemIds.filter((id) => !isOptimisticId(id)),
+        tagId,
+      ),
+    onMutate: async ({ itemIds, tagId }): Promise<Undo> => {
+      await cancelRefetches(queryClient, userId);
+      const added = itemIds.filter(
+        (id) => !isOptimisticId(id) && !cachedItem(queryClient, userId, id)?.tagIds.includes(tagId),
+      );
+      for (const id of added) setTagIds(id, add(tagId));
+      return () => {
+        for (const id of added) setTagIds(id, drop(tagId));
+      };
+    },
+  });
+
+  return { assign, unassign, assignMany };
+}
+
+export interface BulkTagLinkVariables {
+  itemIds: readonly string[];
+  tagId: string;
 }
