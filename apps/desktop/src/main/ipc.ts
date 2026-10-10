@@ -4,10 +4,11 @@ import { parseDesktopTheme } from './title-bar';
 import { isAppUrl } from './url-policy';
 import { IpcChannel } from '../shared/ipc-channels';
 
+import type { ScannerService } from './scanner/scanner-service';
 import type { IpcMainInvokeEvent } from 'electron';
 
 /** Registers the main-process side of the preload bridge (`window.fanste`). */
-export function registerIpcHandlers(appOrigin: string): void {
+export function registerIpcHandlers(appOrigin: string, scanner: ScannerService): void {
   /** Like `ipcMain.handle`, but rejects calls from frames that aren't on the app origin. */
   function handle(
     channel: string,
@@ -21,16 +22,18 @@ export function registerIpcHandlers(appOrigin: string): void {
     });
   }
 
-  // The scanner is implemented in FC-21, which also validates the arguments.
-  handle(IpcChannel.scannerSelectDirectories, () => notImplemented('scanner.selectDirectories'));
-  handle(IpcChannel.scannerStartScan, () => notImplemented('scanner.startScan'));
+  // `ScannerService` validates the arguments.
+  handle(IpcChannel.scannerGetDeviceId, () => scanner.getDeviceId());
+  handle(IpcChannel.scannerGetLibraryFolders, () => scanner.getLibraryFolders());
+  handle(IpcChannel.scannerSelectDirectories, (event) => scanner.selectDirectories(event.sender));
+  handle(IpcChannel.scannerRemoveLibraryFolder, (_event, folderPath) =>
+    scanner.removeLibraryFolder(folderPath),
+  );
+  handle(IpcChannel.scannerStartScan, (event, options) => scanner.startScan(event.sender, options));
+  handle(IpcChannel.scannerCancelScan, () => scanner.cancelScan());
 
   // `window.ts` listens for the resulting `nativeTheme` update and recolors the window chrome.
   handle(IpcChannel.windowSetTheme, (_event, theme) => {
     nativeTheme.themeSource = parseDesktopTheme(theme);
   });
-}
-
-function notImplemented(name: string): never {
-  throw new Error(`${name}() is not implemented yet (FC-21)`);
 }

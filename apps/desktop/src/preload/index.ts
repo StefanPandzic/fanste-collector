@@ -8,8 +8,24 @@ import { contextBridge, ipcRenderer } from 'electron';
 import { IpcChannel } from '../shared/ipc-channels';
 import { toDesktopOs } from '../shared/platform';
 
-import type { FansteDesktopBridge, ScanProgress } from '@fanste/core';
+import type {
+  FansteDesktopBridge,
+  LibraryFolder,
+  ScanFileBatch,
+  ScanProgress,
+  ScanResult,
+} from '@fanste/core';
 import type { IpcRendererEvent } from 'electron';
+
+/** Listens to a main → renderer event. Returns a function that removes the listener. */
+function subscribe<T>(channel: string, listener: (payload: T) => void): () => void {
+  // Wrapped so the renderer never receives the `IpcRendererEvent` (it exposes `ipcRenderer`).
+  const handler = (_event: IpcRendererEvent, payload: T) => listener(payload);
+  ipcRenderer.on(channel, handler);
+  return () => {
+    ipcRenderer.removeListener(channel, handler);
+  };
+}
 
 const bridge: FansteDesktopBridge = {
   platform: {
@@ -17,18 +33,18 @@ const bridge: FansteDesktopBridge = {
     appVersion: __APP_VERSION__,
   },
   scanner: {
+    getDeviceId: () => ipcRenderer.invoke(IpcChannel.scannerGetDeviceId) as Promise<string>,
+    getLibraryFolders: () =>
+      ipcRenderer.invoke(IpcChannel.scannerGetLibraryFolders) as Promise<LibraryFolder[]>,
     selectDirectories: () =>
-      ipcRenderer.invoke(IpcChannel.scannerSelectDirectories) as Promise<string[]>,
-    startScan: (directories) =>
-      ipcRenderer.invoke(IpcChannel.scannerStartScan, directories) as Promise<void>,
-    onScanProgress: (listener) => {
-      // Wrapped so the renderer never receives the `IpcRendererEvent` (it exposes `ipcRenderer`).
-      const handler = (_event: IpcRendererEvent, progress: ScanProgress) => listener(progress);
-      ipcRenderer.on(IpcChannel.scannerProgress, handler);
-      return () => {
-        ipcRenderer.removeListener(IpcChannel.scannerProgress, handler);
-      };
-    },
+      ipcRenderer.invoke(IpcChannel.scannerSelectDirectories) as Promise<LibraryFolder[]>,
+    removeLibraryFolder: (path) =>
+      ipcRenderer.invoke(IpcChannel.scannerRemoveLibraryFolder, path) as Promise<void>,
+    startScan: (options) =>
+      ipcRenderer.invoke(IpcChannel.scannerStartScan, options) as Promise<ScanResult>,
+    cancelScan: () => ipcRenderer.invoke(IpcChannel.scannerCancelScan) as Promise<void>,
+    onScanProgress: (listener) => subscribe<ScanProgress>(IpcChannel.scannerProgress, listener),
+    onFilesFound: (listener) => subscribe<ScanFileBatch>(IpcChannel.scannerFilesFound, listener),
   },
   window: {
     setTheme: (theme) => ipcRenderer.invoke(IpcChannel.windowSetTheme, theme) as Promise<void>,

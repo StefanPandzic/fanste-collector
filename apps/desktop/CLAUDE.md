@@ -32,6 +32,7 @@ retry until the dev server is up (`main/window.ts`).
     which sets `nativeTheme.themeSource`, and `window.ts` recolors the chrome on `nativeTheme` updates.
   - `security.ts`: navigation and permission lockdown
   - `ipc.ts`: bridge handlers
+  - `scanner/`: the local media scanner (FC-21), see below
 - `src/preload/index.ts` exposes `window.fanste`.
 - `src/shared/` holds code used by both main and preload (IPC channel names, the OS mapping).
 
@@ -48,6 +49,27 @@ Change all four places:
 4. **Handler:** register it in `src/main/ipc.ts` with the local `handle()` wrapper, not `ipcMain.handle`
    directly. The wrapper rejects calls from frames outside the app origin. Validate the arguments in the handler,
    because they come from the renderer.
+
+## Scanner (FC-21)
+
+`main/scanner/` reads the disk; it never writes to Supabase. The web app does that (see `../web/CLAUDE.md`).
+
+- `scanner-service.ts` (Electron wiring) keeps `<userData>/scanner.json` (the `device_id` and the library
+  folders, through the pure `library-store.ts`), opens the folder picker and runs one scan at a time.
+- Scans run on a worker thread (`scan-worker.ts`, imported with electron-vite's `?nodeWorker`), so the main
+  process never blocks. Cancelling terminates the worker.
+- `walk.ts` is the walk itself (`opendir`, no symbolic links, sidecar subtitles); `scan-rules.ts` decides
+  which files and folders count; `scan-reporter.ts` batches files and throttles progress into worker
+  messages.
+- `ipc-validation.ts` checks every renderer argument: paths are absolute, resolved and canonicalized
+  (`realpath.native`), and must be a library folder or inside one. Library folders only come from the native
+  dialog. Keep it that way: the renderer is treated as a remote page.
+- A folder counts as completed only if it was read completely. Only completed folders may mark files as
+  removed, so an unplugged drive never empties the library. A worker that dies reports its unfinished
+  folders as failed, and a scan stops when its page reloads, navigates or crashes.
+- Videos below the minimum size are reported as `tooSmallKeys`: they are on disk, so never removed.
+- Folders with the Windows hidden or system attribute are still walked (Node can't read the attribute);
+  only names (`.`, `$`, the system list) are skipped.
 
 ## Security model
 
@@ -78,8 +100,8 @@ The renderer is treated as a remote web page: `contextIsolation`, `sandbox`, `no
 ## Testing
 
 Importing `electron` outside Electron fails, so Vitest covers only Electron-free modules: `url-policy`, `web-url`,
-`deep-link`, `window-state`, `title-bar` and `shared/platform`. When adding logic, put the decisions in a pure
-module with a co-located `*.test.ts`, and keep the Electron wiring thin.
+`deep-link`, `window-state`, `title-bar`, `shared/platform` and the scanner modules except `scanner-service`.
+When adding logic, put the decisions in a pure module with a co-located `*.test.ts`, and keep the Electron wiring thin.
 
 ## Bundling and env
 

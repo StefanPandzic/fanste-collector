@@ -176,6 +176,7 @@ describe('Row Level Security (dev Supabase project)', () => {
       .insert({
         device_id: 'test-device',
         file_path: '/movies/test.mkv',
+        path_key: '/movies/test.mkv',
         collection_item_id: itemId,
       })
       .select('id')
@@ -334,6 +335,7 @@ describe('Row Level Security (dev Supabase project)', () => {
       const fileOfForeignItem = await userB.client.from('scanned_files').insert({
         device_id: 'test-device',
         file_path: '/movies/foreign.mkv',
+        path_key: '/movies/foreign.mkv',
         collection_item_id: itemId,
       });
 
@@ -406,6 +408,7 @@ describe('Row Level Security (dev Supabase project)', () => {
         .insert({
           device_id: 'test-device',
           file_path: '/movies/unlinked.mkv',
+          path_key: '/movies/unlinked.mkv',
           collection_item_id: item.data.id,
           match_status: 'matched',
         })

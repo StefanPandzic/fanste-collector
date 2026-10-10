@@ -193,8 +193,10 @@ export type Database = {
           parsed_format: string | null;
           parsed_title: string | null;
           parsed_year: number | null;
+          path_key: string;
           removed_at: string | null;
           scanned_at: string;
+          subtitle_languages: string[];
           user_id: string;
         };
         Insert: {
@@ -209,8 +211,10 @@ export type Database = {
           parsed_format?: string | null;
           parsed_title?: string | null;
           parsed_year?: number | null;
+          path_key: string;
           removed_at?: string | null;
           scanned_at?: string;
+          subtitle_languages?: string[];
           user_id?: string;
         };
         Update: {
@@ -225,8 +229,10 @@ export type Database = {
           parsed_format?: string | null;
           parsed_title?: string | null;
           parsed_year?: number | null;
+          path_key?: string;
           removed_at?: string | null;
           scanned_at?: string;
+          subtitle_languages?: string[];
           user_id?: string;
         };
         Relationships: [

@@ -208,6 +208,20 @@ reads the user's default currency and renders `DashboardPageClient`.
 - "Recently added" is a 12-item `useCollection` page sorted by `added_desc`. An empty collection
   shows `DashboardOnboarding` (search, and in the desktop app the scanner).
 
+## Scanner (FC-21)
+
+`/scanner` is `features/scanner/`, rendered only in the desktop app (`<DesktopOnly>`; the browser gets a
+"desktop app only" state). A desktop build without the FC-21 bridge gets an "Update the desktop app" state.
+
+- `use-scanner.ts` holds the page state. It reads the device ID and library folders from
+  `window.fanste.scanner`, and `useScannedFiles` loads the device's rows.
+- Batches from `onFilesFound` are written in order with `useScannedFileSync().syncBatch` (only new or
+  changed files). When `startScan` resolves, `markMissing` marks files gone from the _completed_ folders, and
+  only when every found file was written.
+- Leaving the page cancels a running scan. The minimum video size is in `localStorage` (per device).
+- The pure `scanner-view.ts` shapes the table: status counts and filter, search, 100-row pages, and file
+  sizes. Parsed title/year come from FC-22, match status from FC-23.
+
 ## Design system
 
 Tokens are in `packages/config/tailwind/theme.css`. On top of shadcn's colors it has status colors

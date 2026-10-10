@@ -4,9 +4,11 @@ import { app, session } from 'electron';
 
 import { authCallbackUrl, DEEP_LINK_PROTOCOL, findDeepLink, parseDeepLink } from './deep-link';
 import { registerIpcHandlers } from './ipc';
+import { ScannerService } from './scanner/scanner-service';
 import { restrictPermissions } from './security';
 import { resolveWebUrl } from './web-url';
 import { createMainWindow, loadWebApp } from './window';
+import { toDesktopOs } from '../shared/platform';
 
 import type { BrowserWindow } from 'electron';
 
@@ -46,7 +48,13 @@ if (!app.requestSingleInstanceLock()) {
     if (process.platform === 'win32') app.setAppUserModelId(APP_ID);
 
     restrictPermissions(session.defaultSession, webUrl.origin);
-    registerIpcHandlers(webUrl.origin);
+    registerIpcHandlers(
+      webUrl.origin,
+      new ScannerService(
+        path.join(app.getPath('userData'), 'scanner.json'),
+        toDesktopOs(process.platform),
+      ),
+    );
 
     // Windows/Linux: the app was launched by opening a deep link. Handled before the window is
     // created, so the window opens the link's page instead of loading the start page first.
