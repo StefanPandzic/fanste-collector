@@ -190,6 +190,7 @@ export type Database = {
           id: string;
           match_confidence: number | null;
           match_status: string;
+          media_info: Json | null;
           parsed_format: string | null;
           parsed_title: string | null;
           parsed_year: number | null;
@@ -208,6 +209,7 @@ export type Database = {
           id?: string;
           match_confidence?: number | null;
           match_status?: string;
+          media_info?: Json | null;
           parsed_format?: string | null;
           parsed_title?: string | null;
           parsed_year?: number | null;
@@ -226,6 +228,7 @@ export type Database = {
           id?: string;
           match_confidence?: number | null;
           match_status?: string;
+          media_info?: Json | null;
           parsed_format?: string | null;
           parsed_title?: string | null;
           parsed_year?: number | null;

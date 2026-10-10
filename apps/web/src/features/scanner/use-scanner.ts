@@ -6,7 +6,15 @@ import { toast } from 'sonner';
 
 import { collectionErrorMessage, useScannedFiles, useScannedFileSync } from '@fanste/collection';
 
-import { keysKeptByFolders, loadMinSize, MIN_SIZE_STORAGE_KEY, scanSummary } from './scanner-view';
+import {
+  filesToProbe,
+  keysKeptByFolders,
+  loadMinSize,
+  MIN_SIZE_STORAGE_KEY,
+  PROBE_BATCH_SIZE,
+  probeEntries,
+  scanSummary,
+} from './scanner-view';
 
 import type { DesktopScannerApi, LibraryFolder, ScanProgress } from '@fanste/core';
 
@@ -33,13 +41,16 @@ export type ScanPhase =
   /** The desktop app is walking the folders. */
   | { kind: 'scanning'; progress: ScanProgress | undefined; cancelling: boolean }
   /** The walk is done; the last batches are being written. */
-  | { kind: 'saving'; filesFound: number };
+  | { kind: 'saving'; filesFound: number }
+  /** The new and changed files' headers are being read (FC-22). */
+  | { kind: 'probing'; done: number; total: number; cancelling: boolean };
 
 /**
  * The scanner page's state and actions (FC-21): the library folders and device ID from the desktop
  * app, the device's scanned files, and scans. Found files are written in batches as they arrive,
  * only new or changed ones (`useScannedFileSync`); when the scan is done, files that are gone from
- * the completed folders are marked as removed.
+ * the completed folders are marked as removed. Then the desktop app reads the headers of the files
+ * without media info yet (FC-22); files it couldn't open are tried again after the next scan.
  */
 export function useScanner() {
   const [scanner] = useState(scannerBridge);
@@ -62,6 +73,8 @@ export function useScanner() {
 
   const [phase, setPhase] = useState<ScanPhase>({ kind: 'idle' });
   const running = useRef(false);
+  /** Stops the running probe at once, even while the desktop app is still reading a file. */
+  const stopProbing = useRef<(() => void) | undefined>(undefined);
   const [minSizeMb, setMinSizeState] = useState(() => loadMinSize(browserStorage()));
 
   const setMinSizeMb = useCallback((value: number) => {
@@ -76,10 +89,46 @@ export function useScanner() {
   // A scan doesn't outlive the page: leaving it stops the walk (what was written stays).
   useEffect(
     () => () => {
+      stopProbing.current?.();
       if (running.current) void scanner?.cancelScan();
     },
     [scanner],
   );
+
+  /** Reads the headers of the files without media info, in small batches, until done or stopped. */
+  const probeMediaInfo = useCallback(async () => {
+    // Desktop builds before FC-22 can't read headers; the name still gives the quality.
+    if (typeof scanner?.probeFiles !== 'function') return;
+    const pending = filesToProbe(sync.cachedFiles());
+    if (pending.length === 0) return;
+    let stopped = false;
+    const stopSignal = new Promise<undefined>((resolve) => {
+      stopProbing.current = () => {
+        stopped = true;
+        resolve(undefined);
+      };
+    });
+    setPhase({ kind: 'probing', done: 0, total: pending.length, cancelling: false });
+    try {
+      for (let start = 0; start < pending.length && !stopped;) {
+        const batch = pending.slice(start, start + PROBE_BATCH_SIZE);
+        // A read can hang on a drive that dropped: Stop doesn't wait for it (its answer is dropped).
+        const results = await Promise.race([
+          scanner.probeFiles(batch.map((file) => file.filePath)),
+          stopSignal,
+        ]);
+        if (!results) break;
+        await sync.saveMediaInfo(probeEntries(batch, results));
+        start += batch.length;
+        setPhase((current) => (current.kind === 'probing' ? { ...current, done: start } : current));
+      }
+      if (stopped) toast.info('Stopped reading media info. The rest is read after the next scan.');
+    } catch (error) {
+      toast.error(`Couldn't read the media info of all files. ${collectionErrorMessage(error)}`);
+    } finally {
+      stopProbing.current = undefined;
+    }
+  }, [scanner, sync]);
 
   /** Scans the given library folders (or folders inside them), or the whole library. */
   const scan = useCallback(
@@ -144,6 +193,8 @@ export function useScanner() {
               'Check that the drive is connected.',
           );
         }
+        // Also picks up files a stopped run didn't get to.
+        if (!result.cancelled && writeError === undefined) await probeMediaInfo();
       } catch (error) {
         toast.error(`The scan failed. ${collectionErrorMessage(error)}`);
       } finally {
@@ -153,14 +204,17 @@ export function useScanner() {
         setPhase({ kind: 'idle' });
       }
     },
-    [files.data, minSizeMb, scanner, sync],
+    [files.data, minSizeMb, probeMediaInfo, scanner, sync],
   );
 
   const cancel = useCallback(() => {
     setPhase((current) =>
-      current.kind === 'scanning' ? { ...current, cancelling: true } : current,
+      current.kind === 'scanning' || current.kind === 'probing'
+        ? { ...current, cancelling: true }
+        : current,
     );
-    void scanner?.cancelScan();
+    if (stopProbing.current) stopProbing.current();
+    else void scanner?.cancelScan();
   }, [scanner]);
 
   /** Opens the folder picker, then scans the added folders. */

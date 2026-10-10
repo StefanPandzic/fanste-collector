@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'vitest';
 
-import { parseFolderPath, parseScanOptions, resolveScanFolders } from './ipc-validation';
+import {
+  isProbeAllowed,
+  parseFolderPath,
+  parseProbePaths,
+  parseScanOptions,
+  resolveScanFolders,
+} from './ipc-validation';
 
 const library = [
   { path: 'E:\\Movies', pathKey: 'e:/movies', addedAt: '2026-10-01T09:00:00.000Z' },
@@ -70,5 +76,39 @@ describe('resolveScanFolders', () => {
         'windows',
       ),
     ).toEqual([{ path: 'E:\\Movies', pathKey: 'e:/movies' }]);
+  });
+});
+
+describe('parseProbePaths', () => {
+  it('resolves a list of absolute paths', () => {
+    expect(
+      parseProbePaths(['E:\\Movies\\Dune (2021)\\..\\Inception (2010)\\Inception.mkv'], 'windows'),
+    ).toEqual(['E:\\Movies\\Inception (2010)\\Inception.mkv']);
+  });
+
+  it('rejects an invalid file list', () => {
+    expect(() => parseProbePaths('E:\\Movies\\Dune.mkv', 'windows')).toThrow(/Invalid file list/);
+    expect(() => parseProbePaths([], 'windows')).toThrow(/Invalid file list/);
+    expect(() => parseProbePaths(Array(51).fill('E:\\Movies\\Dune.mkv'), 'windows')).toThrow(
+      /Invalid file list/,
+    );
+    expect(() => parseProbePaths(['Movies\\Dune.mkv'], 'windows')).toThrow(/Invalid folder path/);
+  });
+});
+
+describe('isProbeAllowed', () => {
+  it('allows videos inside a library folder', () => {
+    expect(isProbeAllowed('E:\\Movies\\Inception (2010)\\Inception.mkv', library, 'windows')).toBe(
+      true,
+    );
+    expect(isProbeAllowed('F:\\Series\\Severance\\S01E01.mp4', library, 'windows')).toBe(true);
+  });
+
+  it('refuses files outside the library, non-videos and library folders', () => {
+    expect(isProbeAllowed('D:\\Private\\Dune.mkv', library, 'windows')).toBe(false);
+    expect(isProbeAllowed('E:\\Movies\\Inception (2010)\\passwords.txt', library, 'windows')).toBe(
+      false,
+    );
+    expect(isProbeAllowed('E:\\Movies', library, 'windows')).toBe(false);
   });
 });

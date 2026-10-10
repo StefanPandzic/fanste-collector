@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import {
   fileName,
   filesPerFolder,
+  filesToProbe,
   filterFiles,
   formatFileSize,
   keysKeptByFolders,
@@ -11,6 +12,8 @@ import {
   pageOf,
   parentFolder,
   parsedLabel,
+  probeEntries,
+  qualityLabel,
   scanSummary,
   statusCounts,
 } from './scanner-view';
@@ -27,6 +30,7 @@ const inception: ScannedFile = {
   modifiedAt: '2026-09-01T18:30:00+00:00',
   parsedTitle: 'Inception',
   parsedYear: 2010,
+  mediaInfo: null,
   matchStatus: 'matched',
   matchConfidence: 0.97,
   collectionItemId: '9a8b7c6d-5e4f-4a3b-8c2d-1e0f9a8b7c6d',
@@ -89,6 +93,49 @@ describe('parsedLabel', () => {
     expect(parsedLabel(inception)).toBe('Inception (2010)');
     expect(parsedLabel({ parsedTitle: 'Inception', parsedYear: null })).toBe('Inception');
     expect(parsedLabel({ parsedTitle: null, parsedYear: null })).toBe('—');
+  });
+});
+
+describe('qualityLabel', () => {
+  it('merges the media info with the file name', () => {
+    expect(
+      qualityLabel({
+        filePath: 'E:\\Movies\\Dune.2021.2160p.UHD.BluRay.DV.mkv',
+        mediaInfo: { audioChannels: '7.1' },
+      }),
+    ).toBe('2160p · Dolby Vision · 7.1 · MKV');
+    expect(
+      qualityLabel({
+        filePath: inception.filePath,
+        mediaInfo: { resolution: '1080p', hdr: 'none', audioChannels: '5.1' },
+      }),
+    ).toBe('1080p · 5.1 · MKV');
+  });
+
+  it('shows a dash when nothing is known', () => {
+    expect(qualityLabel({ filePath: 'E:\\Movies\\Inception', mediaInfo: null })).toBe('—');
+  });
+});
+
+describe('filesToProbe', () => {
+  it('returns current files that have not been read', () => {
+    const read = { ...inception, mediaInfo: { resolution: '1080p' } };
+    const removed = { ...severance, removedAt: '2026-10-10T12:30:00.000Z' };
+    expect(filesToProbe([read, dune, removed])).toEqual([dune]);
+  });
+});
+
+describe('probeEntries', () => {
+  it('maps probe results to row ids in order and skips unread files', () => {
+    expect(
+      probeEntries(
+        [dune, severance],
+        [
+          { path: dune.filePath, mediaInfo: { resolution: '2160p', hdr: 'HDR10' } },
+          { path: severance.filePath, mediaInfo: null },
+        ],
+      ),
+    ).toEqual([{ id: dune.id, mediaInfo: { resolution: '2160p', hdr: 'HDR10' } }]);
   });
 });
 

@@ -11,6 +11,7 @@ import { toDesktopOs } from '../shared/platform';
 import type {
   FansteDesktopBridge,
   LibraryFolder,
+  MediaProbeResult,
   ScanFileBatch,
   ScanProgress,
   ScanResult,
@@ -45,6 +46,8 @@ const bridge: FansteDesktopBridge = {
     cancelScan: () => ipcRenderer.invoke(IpcChannel.scannerCancelScan) as Promise<void>,
     onScanProgress: (listener) => subscribe<ScanProgress>(IpcChannel.scannerProgress, listener),
     onFilesFound: (listener) => subscribe<ScanFileBatch>(IpcChannel.scannerFilesFound, listener),
+    probeFiles: (paths) =>
+      ipcRenderer.invoke(IpcChannel.scannerProbeFiles, paths) as Promise<MediaProbeResult[]>,
   },
   window: {
     setTheme: (theme) => ipcRenderer.invoke(IpcChannel.windowSetTheme, theme) as Promise<void>,

@@ -80,9 +80,12 @@ function nameToCode(): ReadonlyMap<string, string> {
   return languageNames;
 }
 
-/** The ISO 639-1 code for a file name token (`en`, `eng`, `English`), or `undefined`. */
-function languageFromToken(token: string): string | undefined {
-  const lower = token.toLowerCase();
+/**
+ * The app's ISO 639-1 code (`LANGUAGE_CODES`) for a language token: `en`, `eng`, `English`, or a
+ * tag like `en-US`. `undefined` for other languages and for `und`.
+ */
+export function toLanguageCode(token: string): string | undefined {
+  const lower = token.trim().toLowerCase().split('-')[0] ?? '';
   if (lower.length === 2) return TWO_LETTER.has(lower) ? lower : undefined;
   if (lower.length === 3) return ISO_639_2[lower];
   return nameToCode().get(lower);
@@ -120,7 +123,7 @@ export function subtitleLanguage(
 
   const tokens = base.slice(video.length).split(/[._\- ]+/);
   for (const token of tokens) {
-    const code = token && languageFromToken(token);
+    const code = token && toLanguageCode(token);
     if (code) return code;
   }
   return null;

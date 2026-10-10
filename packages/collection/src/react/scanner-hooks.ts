@@ -10,11 +10,12 @@ import {
   markRemovedInList,
   markScannedFilesRemoved,
   mergeScannedFiles,
+  saveScannedFileMediaInfo,
   upsertScannedFiles,
 } from '../repository/scanned-files';
 
 import type { ScannedFile } from '../repository/scanned-files';
-import type { ScannedFileInfo } from '@fanste/core';
+import type { MediaInfo, ScannedFileInfo } from '@fanste/core';
 
 /**
  * Every scanned file of this device (FC-21), removed ones included; filter on `removedAt` to show
@@ -34,6 +35,8 @@ export function useScannedFiles(deviceId: string | undefined) {
 }
 
 export interface ScannedFileSync {
+  /** The cached list (`useScannedFiles`), with every write so far. */
+  cachedFiles(): readonly ScannedFile[];
   /**
    * Writes the new and changed files of a scan batch and adds them to the cached list. Call it for
    * one batch at a time, in order, after `useScannedFiles` has loaded. Resolves to the rows written.
@@ -45,12 +48,19 @@ export interface ScannedFileSync {
    * Resolves to the number of files marked.
    */
   markMissing(seenKeys: ReadonlySet<string>, rootKeys: readonly string[]): Promise<number>;
+  /**
+   * Stores what the desktop app read from files' headers (FC-22) and updates the cached list.
+   * Resolves to the rows written.
+   */
+  saveMediaInfo(
+    entries: readonly { readonly id: string; readonly mediaInfo: MediaInfo }[],
+  ): Promise<number>;
 }
 
 /**
- * Writes scan results to `scanned_files` (FC-21). Only new and changed files are written
- * (`planScannedFileUpserts`), which is what keeps a re-scan of a large library quick. Errors are
- * thrown as `CollectionError`s.
+ * Writes scan results to `scanned_files` (FC-21) and the media info read from the files (FC-22).
+ * Only new and changed files are written (`planScannedFileUpserts`), which is what keeps a re-scan
+ * of a large library quick. Errors are thrown as `CollectionError`s.
  */
 export function useScannedFileSync(deviceId: string | undefined): ScannedFileSync {
   const { client, userId } = useCollectionContext();
@@ -65,6 +75,7 @@ export function useScannedFileSync(deviceId: string | undefined): ScannedFileSyn
     };
 
     return {
+      cachedFiles: () => cached() ?? [],
       async syncBatch(found) {
         const device = requireDevice();
         const known = new Map((cached() ?? []).map((file) => [file.pathKey, file]));
@@ -85,6 +96,15 @@ export function useScannedFileSync(deviceId: string | undefined): ScannedFileSyn
           markRemovedInList(files ?? [], ids, removedAt),
         );
         return ids.length;
+      },
+      async saveMediaInfo(entries) {
+        requireDevice();
+        if (entries.length === 0) return 0;
+        const stored = await saveScannedFileMediaInfo(client, entries);
+        queryClient.setQueryData<ScannedFile[]>(key, (files) =>
+          mergeScannedFiles(files ?? [], stored),
+        );
+        return stored.length;
       },
     };
   }, [client, deviceId, queryClient, userId]);

@@ -19,7 +19,22 @@ export default defineConfig(({ mode }) => {
   return {
     // Only `dependencies` are externalized; everything in `devDependencies` (including the
     // @fanste/* TypeScript sources) is bundled, so the packaged app needs no node_modules.
-    main: { envDir, envPrefix },
+    main: {
+      envDir,
+      envPrefix,
+      resolve: {
+        alias: [
+          // mediainfo.js (FC-22) exports its browser build under the `module` condition, which
+          // can't read the WebAssembly file from disk; the probe worker needs the Node build.
+          {
+            find: /^mediainfo\.js$/,
+            replacement: fileURLToPath(
+              new URL('node_modules/mediainfo.js/dist/esm/index.js', import.meta.url),
+            ),
+          },
+        ],
+      },
+    },
     preload: {
       define: {
         __APP_VERSION__: JSON.stringify(packageJson.version),

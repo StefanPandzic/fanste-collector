@@ -1,3 +1,4 @@
+import type { MediaInfo } from './scanner/media-info';
 import type { ScannedFileInfo } from './scanner/types';
 
 /**
@@ -56,6 +57,24 @@ export interface DesktopScannerApi {
   onScanProgress(listener: (progress: ScanProgress) => void): () => void;
   /** Subscribes to found files, sent in batches. Returns a function that removes the listener. */
   onFilesFound(listener: (batch: ScanFileBatch) => void): () => void;
+  /**
+   * Reads video files' headers (FC-22): container, resolution, HDR, audio channels and the audio and
+   * subtitle languages. Takes 1 to `MAX_PROBE_FILES` absolute paths (rejects otherwise); a path that
+   * isn't a video inside the library isn't read. Resolves in the order of `paths`, and rejects when
+   * reading fails as a whole (MediaInfo can't load, or a read hangs past its timeout). Added in
+   * FC-22: check it exists before calling.
+   */
+  probeFiles(paths: readonly string[]): Promise<MediaProbeResult[]>;
+}
+
+export interface MediaProbeResult {
+  /** The path as it was passed. */
+  readonly path: string;
+  /**
+   * What the headers told (`{}` when nothing), or `null` when the file couldn't be read (gone,
+   * locked, the drive is offline, or it isn't a video in the library), so it can be tried later.
+   */
+  readonly mediaInfo: MediaInfo | null;
 }
 
 export interface LibraryFolder {

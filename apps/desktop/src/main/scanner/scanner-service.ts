@@ -6,13 +6,20 @@ import { BrowserWindow, dialog } from 'electron';
 
 import { toPathKey } from '@fanste/core';
 
-import { parseFolderPath, parseScanOptions, resolveScanFolders } from './ipc-validation';
+import {
+  isProbeAllowed,
+  parseFolderPath,
+  parseProbePaths,
+  parseScanOptions,
+  resolveScanFolders,
+} from './ipc-validation';
 import {
   addLibraryFolders,
   readScannerStore,
   removeLibraryFolder,
   writeScannerStore,
 } from './library-store';
+import { MediaProber } from './media-prober';
 import { megabytesToBytes } from './scan-rules';
 import createScanWorker from './scan-worker?nodeWorker';
 import { IpcChannel } from '../../shared/ipc-channels';
@@ -20,7 +27,13 @@ import { IpcChannel } from '../../shared/ipc-channels';
 import type { ScannerStore } from './library-store';
 import type { ScanWorkerMessage } from './scan-reporter';
 import type { ScanWorkerData } from './scan-worker';
-import type { DesktopOs, LibraryFolder, ScanFileBatch, ScanResult } from '@fanste/core';
+import type {
+  DesktopOs,
+  LibraryFolder,
+  MediaProbeResult,
+  ScanFileBatch,
+  ScanResult,
+} from '@fanste/core';
 import type { WebContents } from 'electron';
 
 // `realpath.native` returns the real case on Windows and macOS; `fs/promises` has no native variant.
@@ -37,12 +50,14 @@ async function canonicalPath(folderPath: string): Promise<string> {
 
 /**
  * The main-process side of `window.fanste.scanner` (FC-21): the library folders and device ID
- * (`<userData>/scanner.json`), the folder picker, and scans, which run on a worker thread.
- * Arguments from the renderer are validated here (`ipc-validation.ts`).
+ * (`<userData>/scanner.json`), the folder picker, scans, and reading files' media info (FC-22).
+ * Scans and probes run on worker threads. Arguments from the renderer are validated here
+ * (`ipc-validation.ts`).
  */
 export class ScannerService {
   private store: ScannerStore | undefined;
   private running: { scanId: string; cancel: () => void } | undefined;
+  private readonly prober = new MediaProber();
 
   constructor(
     private readonly storePath: string,
@@ -183,6 +198,26 @@ export class ScannerService {
 
   cancelScan(): void {
     this.running?.cancel();
+  }
+
+  /**
+   * Reads the media info of video files inside the library (FC-22). A file that isn't a video in
+   * the library isn't read and gets `null`, so one stale path doesn't fail the whole batch.
+   */
+  async probeFiles(value: unknown): Promise<MediaProbeResult[]> {
+    const paths = parseProbePaths(value, this.os);
+    // `parseProbePaths` checked these are strings; they are answered as they were passed.
+    const requested = value as string[];
+    // Canonical paths, so a link inside a library folder can't point the read outside it.
+    const canonical = await Promise.all(paths.map(canonicalPath));
+    const library = this.load().folders;
+    const allowed = canonical.filter((filePath) => isProbeAllowed(filePath, library, this.os));
+    const read = allowed.length > 0 ? await this.prober.probe(allowed) : [];
+    const results = new Map(allowed.map((filePath, index) => [filePath, read[index] ?? null]));
+    return canonical.map((filePath, index) => ({
+      path: requested[index] ?? filePath,
+      mediaInfo: results.get(filePath) ?? null,
+    }));
   }
 
   private load(): ScannerStore {
