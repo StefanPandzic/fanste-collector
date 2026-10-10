@@ -186,63 +186,137 @@ export interface ValueTotal {
  */
 export const VALUED_STATUSES: readonly OwnershipStatus[] = COPY_DETAIL_STATUSES;
 
+/** Copies added in one calendar month. */
+export interface MonthCount {
+  /** `YYYY-MM`, in the time zone the stats were asked for. */
+  month: string;
+  items: number;
+}
+
+/** How many months `addedByMonth` covers, this month included. Matches `collection_stats()`. */
+export const ADDED_BY_MONTH_SPAN = 12;
+
 export interface CollectionStats {
+  /** Every copy, whatever its status. */
   totals: ItemCounts;
   byCategory: Record<ItemCategory, ItemCounts>;
   byOwnership: Record<OwnershipStatus, ItemCounts>;
+  /** The copies the user has (`VALUED_STATUSES`); wishlist and sold items are left out. */
+  inCollection: ItemCounts;
+  inCollectionByCategory: Record<ItemCategory, ItemCounts>;
   /** Per currency, largest first. Only `VALUED_STATUSES` count. */
   estimatedValue: ValueTotal[];
+  /** `estimatedValue` split by category. */
+  valueByCategory: Record<ItemCategory, ValueTotal[]>;
+  /**
+   * Copies the user has, by the month they were added: the last `ADDED_BY_MONTH_SPAN` months,
+   * oldest first, months without additions included.
+   */
+  addedByMonth: MonthCount[];
 }
 
 /**
- * A row of `collection_stats()`. The generated types call `currency` non-null, but it is null for
- * items without a currency.
+ * A row of `collection_stats()`. The generated types call `currency` and `added_month` non-null,
+ * but they are null for items without a currency and for items added before the charted months.
  */
 export interface StatsRow {
   category: ItemCategory;
   ownership: OwnershipStatus;
   currency: string | null;
+  /** First day of the month the item was added (`YYYY-MM-DD`). */
+  added_month: string | null;
   item_count: number;
   quantity_total: number;
   estimated_value_total: number;
 }
 
-/** Folds the rows of `collection_stats()` into totals per category, status and currency. */
-export function toCollectionStats(rows: readonly StatsRow[]): CollectionStats {
+/** Where `addedByMonth` ends, and the time zone (an IANA name) its months are in. */
+export interface StatsClock {
+  now: Date;
+  timeZone: string;
+}
+
+/** The `YYYY-MM` keys of the `count` months up to the one `now` is in, oldest first. */
+export function recentMonths({ now, timeZone }: StatsClock, count: number): string[] {
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone,
+    year: 'numeric',
+    month: 'numeric',
+  }).formatToParts(now);
+  const year = Number(parts.find((part) => part.type === 'year')?.value);
+  const month = Number(parts.find((part) => part.type === 'month')?.value);
+  return Array.from({ length: count }, (_, index) =>
+    new Date(Date.UTC(year, month - count + index, 1)).toISOString().slice(0, 7),
+  );
+}
+
+function perCategory<T>(make: () => T): Record<ItemCategory, T> {
+  return Object.fromEntries(ITEM_CATEGORIES.map((key) => [key, make()])) as Record<ItemCategory, T>;
+}
+
+function addValue(values: Map<string | null, number>, currency: string | null, value: number) {
+  values.set(currency, (values.get(currency) ?? 0) + value);
+}
+
+/** Largest first, rounded to cents. */
+function toValueTotals(values: Map<string | null, number>): ValueTotal[] {
+  return [...values]
+    .map(([currency, total]) => ({ currency, total: Math.round(total * 100) / 100 }))
+    .sort((a, b) => b.total - a.total);
+}
+
+/** Folds the rows of `collection_stats()` into totals per category, status, currency and month. */
+export function toCollectionStats(rows: readonly StatsRow[], clock: StatsClock): CollectionStats {
   const empty = (): ItemCounts => ({ items: 0, quantity: 0 });
   const stats: CollectionStats = {
     totals: empty(),
-    byCategory: Object.fromEntries(ITEM_CATEGORIES.map((key) => [key, empty()])) as Record<
-      ItemCategory,
-      ItemCounts
-    >,
+    byCategory: perCategory(empty),
     byOwnership: Object.fromEntries(OWNERSHIP_STATUSES.map((key) => [key, empty()])) as Record<
       OwnershipStatus,
       ItemCounts
     >,
+    inCollection: empty(),
+    inCollectionByCategory: perCategory(empty),
     estimatedValue: [],
+    valueByCategory: perCategory(() => []),
+    addedByMonth: [],
   };
   const values = new Map<string | null, number>();
+  const categoryValues = perCategory(() => new Map<string | null, number>());
+  const months = new Map(recentMonths(clock, ADDED_BY_MONTH_SPAN).map((month) => [month, 0]));
 
   for (const row of rows) {
     const items = Number(row.item_count);
     const quantity = Number(row.quantity_total);
-    for (const counts of [
+    const held = VALUED_STATUSES.includes(row.ownership);
+    const counted = [
       stats.totals,
       stats.byCategory[row.category],
       stats.byOwnership[row.ownership],
-    ]) {
+    ];
+    if (held) counted.push(stats.inCollection, stats.inCollectionByCategory[row.category]);
+    for (const counts of counted) {
       counts.items += items;
       counts.quantity += quantity;
     }
+    if (!held) continue;
+
     const value = Number(row.estimated_value_total);
-    if (VALUED_STATUSES.includes(row.ownership) && value > 0) {
-      values.set(row.currency, (values.get(row.currency) ?? 0) + value);
+    if (value > 0) {
+      addValue(values, row.currency, value);
+      addValue(categoryValues[row.category], row.currency, value);
+    }
+    // Rows of a month outside the window (the database's clock is a little ahead) are skipped.
+    const month = row.added_month?.slice(0, 7);
+    if (month !== undefined && months.has(month)) {
+      months.set(month, (months.get(month) ?? 0) + items);
     }
   }
 
-  stats.estimatedValue = [...values]
-    .map(([currency, total]) => ({ currency, total: Math.round(total * 100) / 100 }))
-    .sort((a, b) => b.total - a.total);
+  stats.estimatedValue = toValueTotals(values);
+  for (const category of ITEM_CATEGORIES) {
+    stats.valueByCategory[category] = toValueTotals(categoryValues[category]);
+  }
+  stats.addedByMonth = [...months].map(([month, items]) => ({ month, items }));
   return stats;
 }

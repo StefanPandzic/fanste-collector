@@ -4,6 +4,7 @@ import { addItemInputSchema } from '@fanste/core';
 
 import {
   fromInsertedRow,
+  recentMonths,
   toCollectionItem,
   toCollectionStats,
   toInsertRow,
@@ -185,42 +186,51 @@ describe('fromInsertedRow', () => {
   });
 });
 
+const CLOCK = { now: new Date('2026-10-10T12:00:00Z'), timeZone: 'UTC' };
+
 describe('toCollectionStats', () => {
   it('totals copies per category and status, and values only the copies the user has', () => {
-    const stats = toCollectionStats([
-      {
-        category: 'movie',
-        ownership: 'owned',
-        currency: 'EUR',
-        item_count: 2,
-        quantity_total: 3,
-        estimated_value_total: 45.5,
-      },
-      {
-        category: 'tv',
-        ownership: 'loaned_out',
-        currency: 'USD',
-        item_count: 1,
-        quantity_total: 1,
-        estimated_value_total: 60,
-      },
-      {
-        category: 'music',
-        ownership: 'wishlist',
-        currency: 'EUR',
-        item_count: 1,
-        quantity_total: 1,
-        estimated_value_total: 20,
-      },
-      {
-        category: 'movie',
-        ownership: 'sold',
-        currency: 'EUR',
-        item_count: 1,
-        quantity_total: 1,
-        estimated_value_total: 15,
-      },
-    ]);
+    const stats = toCollectionStats(
+      [
+        {
+          category: 'movie',
+          ownership: 'owned',
+          currency: 'EUR',
+          added_month: null,
+          item_count: 2,
+          quantity_total: 3,
+          estimated_value_total: 45.5,
+        },
+        {
+          category: 'tv',
+          ownership: 'loaned_out',
+          currency: 'USD',
+          added_month: null,
+          item_count: 1,
+          quantity_total: 1,
+          estimated_value_total: 60,
+        },
+        {
+          category: 'music',
+          ownership: 'wishlist',
+          currency: 'EUR',
+          added_month: null,
+          item_count: 1,
+          quantity_total: 1,
+          estimated_value_total: 20,
+        },
+        {
+          category: 'movie',
+          ownership: 'sold',
+          currency: 'EUR',
+          added_month: null,
+          item_count: 1,
+          quantity_total: 1,
+          estimated_value_total: 15,
+        },
+      ],
+      CLOCK,
+    );
     expect(stats.totals).toEqual({ items: 5, quantity: 6 });
     expect(stats.byCategory.movie).toEqual({ items: 3, quantity: 4 });
     expect(stats.byCategory.funko).toEqual({ items: 0, quantity: 0 });
@@ -229,5 +239,75 @@ describe('toCollectionStats', () => {
       { currency: 'USD', total: 60 },
       { currency: 'EUR', total: 45.5 },
     ]);
+    expect(stats.inCollection).toEqual({ items: 3, quantity: 4 });
+    expect(stats.inCollectionByCategory.movie).toEqual({ items: 2, quantity: 3 });
+    expect(stats.inCollectionByCategory.music).toEqual({ items: 0, quantity: 0 });
+    expect(stats.valueByCategory.movie).toEqual([{ currency: 'EUR', total: 45.5 }]);
+    expect(stats.valueByCategory.music).toEqual([]);
+  });
+
+  it('counts the copies the user has per month over the last 12 months', () => {
+    const stats = toCollectionStats(
+      [
+        {
+          category: 'movie',
+          ownership: 'owned',
+          currency: 'EUR',
+          added_month: '2026-10-01',
+          item_count: 2,
+          quantity_total: 2,
+          estimated_value_total: 0,
+        },
+        {
+          category: 'tv',
+          ownership: 'preordered',
+          currency: 'EUR',
+          added_month: '2025-11-01',
+          item_count: 1,
+          quantity_total: 1,
+          estimated_value_total: 0,
+        },
+        {
+          category: 'movie',
+          ownership: 'wishlist',
+          currency: 'EUR',
+          added_month: '2026-10-01',
+          item_count: 4,
+          quantity_total: 4,
+          estimated_value_total: 0,
+        },
+        {
+          category: 'movie',
+          ownership: 'owned',
+          currency: 'EUR',
+          added_month: '2026-11-01',
+          item_count: 5,
+          quantity_total: 5,
+          estimated_value_total: 0,
+        },
+      ],
+      CLOCK,
+    );
+    expect(stats.addedByMonth).toHaveLength(12);
+    expect(stats.addedByMonth[0]).toEqual({ month: '2025-11', items: 1 });
+    expect(stats.addedByMonth[11]).toEqual({ month: '2026-10', items: 2 });
+    expect(stats.addedByMonth[5]).toEqual({ month: '2026-04', items: 0 });
+  });
+});
+
+describe('recentMonths', () => {
+  it('lists the months up to the current one, across a year boundary', () => {
+    expect(recentMonths({ now: new Date('2026-02-15T12:00:00Z'), timeZone: 'UTC' }, 4)).toEqual([
+      '2025-11',
+      '2025-12',
+      '2026-01',
+      '2026-02',
+    ]);
+  });
+
+  it('takes the current month in the given time zone', () => {
+    const now = new Date('2026-10-31T23:30:00Z');
+    expect(recentMonths({ now, timeZone: 'UTC' }, 2)).toEqual(['2026-09', '2026-10']);
+    expect(recentMonths({ now, timeZone: 'Europe/Belgrade' }, 2)).toEqual(['2026-10', '2026-11']);
   });
 });

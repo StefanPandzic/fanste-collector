@@ -226,11 +226,16 @@ describe('collection repository (dev Supabase project)', () => {
   });
 
   it('counts the collection and its value', async () => {
-    const stats = await getStats(deviceA);
+    const stats = await getStats(deviceA, { now: new Date(), timeZone: 'Europe/Berlin' });
     expect(stats.totals).toEqual({ items: 3, quantity: 3 });
     expect(stats.byCategory.movie.items).toBe(3);
     expect(stats.byOwnership.owned.items).toBe(3);
+    expect(stats.inCollection).toEqual({ items: 3, quantity: 3 });
     expect(stats.estimatedValue).toEqual([{ currency: 'EUR', total: 12.5 }]);
+    expect(stats.valueByCategory.movie).toEqual([{ currency: 'EUR', total: 12.5 }]);
+    // The items were just added, so they all count for the current month (FC-20).
+    expect(stats.addedByMonth).toHaveLength(12);
+    expect(stats.addedByMonth.at(-1)?.items).toBe(3);
   });
 
   it('sends a change on one device to the other within 2 seconds', async () => {
