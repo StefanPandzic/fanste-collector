@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { isSubtitleFile, subtitleLanguage } from './subtitles';
+import { isSubtitleFile, subtitleLanguage, toLanguageCode } from './subtitles';
 
 describe('isSubtitleFile', () => {
   it('recognizes sidecar subtitle formats', () => {
@@ -26,5 +26,19 @@ describe('subtitleLanguage', () => {
   it('returns undefined for a subtitle of another video', () => {
     expect(subtitleLanguage('Other.en.srt', 'Movie')).toBeUndefined();
     expect(subtitleLanguage('Movie2.en.srt', 'Movie')).toBeUndefined();
+  });
+});
+
+describe('toLanguageCode', () => {
+  it('maps codes, names and tags to the app code', () => {
+    expect(toLanguageCode('sr')).toBe('sr');
+    expect(toLanguageCode('ger')).toBe('de');
+    expect(toLanguageCode('English')).toBe('en');
+    expect(toLanguageCode('en-US')).toBe('en');
+  });
+
+  it('returns undefined for other languages', () => {
+    expect(toLanguageCode('und')).toBeUndefined();
+    expect(toLanguageCode('Klingon')).toBeUndefined();
   });
 });

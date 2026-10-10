@@ -31,6 +31,7 @@ export function registerIpcHandlers(appOrigin: string, scanner: ScannerService):
   );
   handle(IpcChannel.scannerStartScan, (event, options) => scanner.startScan(event.sender, options));
   handle(IpcChannel.scannerCancelScan, () => scanner.cancelScan());
+  handle(IpcChannel.scannerProbeFiles, (_event, paths) => scanner.probeFiles(paths));
 
   // `window.ts` listens for the resulting `nativeTheme` update and recolors the window chrome.
   handle(IpcChannel.windowSetTheme, (_event, theme) => {

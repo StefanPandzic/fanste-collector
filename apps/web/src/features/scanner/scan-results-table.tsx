@@ -23,6 +23,7 @@ import {
   pageOf,
   parentFolder,
   parsedLabel,
+  qualityLabel,
   STATUS_LABELS,
   statusCounts,
 } from './scanner-view';
@@ -54,9 +55,9 @@ interface ScanResultsTableProps {
 }
 
 /**
- * The scanned files with their parsed title and match status (FC-21). The title is filled in by
- * the filename parser (FC-22) and the status by matching (FC-23); one page of rows renders at a
- * time, so large libraries stay fast.
+ * The scanned files with their parsed title, detected quality and match status (FC-21). The title
+ * comes from the filename parser and the quality from the files' headers (FC-22), the status from
+ * matching (FC-23); one page of rows renders at a time, so large libraries stay fast.
  */
 export function ScanResultsTable({ files }: ScanResultsTableProps) {
   const [status, setStatus] = useState<StatusFilter>('all');
@@ -113,6 +114,7 @@ export function ScanResultsTable({ files }: ScanResultsTableProps) {
           <TableRow>
             <TableHead>File</TableHead>
             <TableHead>Parsed title</TableHead>
+            <TableHead>Quality</TableHead>
             <TableHead className="text-right">Size</TableHead>
             <TableHead>Subtitles</TableHead>
             <TableHead>Status</TableHead>
@@ -121,7 +123,7 @@ export function ScanResultsTable({ files }: ScanResultsTableProps) {
         <TableBody>
           {current.rows.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={5} className="py-8 text-center text-muted-foreground">
+              <TableCell colSpan={6} className="py-8 text-center text-muted-foreground">
                 No files match.
               </TableCell>
             </TableRow>
@@ -137,6 +139,7 @@ export function ScanResultsTable({ files }: ScanResultsTableProps) {
                   </p>
                 </TableCell>
                 <TableCell>{parsedLabel(file)}</TableCell>
+                <TableCell className="whitespace-nowrap">{qualityLabel(file)}</TableCell>
                 <TableCell className="text-right tabular-nums">
                   {formatFileSize(file.size)}
                 </TableCell>

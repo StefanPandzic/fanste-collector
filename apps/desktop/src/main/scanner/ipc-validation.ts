@@ -4,8 +4,11 @@ import {
   DEFAULT_MIN_VIDEO_SIZE_MB,
   isPathInside,
   MAX_MIN_VIDEO_SIZE_MB,
+  MAX_PROBE_FILES,
   toPathKey,
 } from '@fanste/core';
+
+import { fileExtension, VIDEO_EXTENSIONS } from './scan-rules';
 
 import type { DesktopOs, LibraryFolder, ScannedFolder } from '@fanste/core';
 
@@ -112,5 +115,35 @@ export function resolveScanFolders(
           // Of two equal folders, keep the first.
           (folder.pathKey !== other.pathKey || otherIndex < index),
       ),
+  );
+}
+
+/**
+ * The `probeFiles` paths from the renderer (FC-22): 1 to `MAX_PROBE_FILES` absolute paths, resolved.
+ *
+ * @throws If they aren't a valid list of absolute paths.
+ */
+export function parseProbePaths(value: unknown, os: DesktopOs): string[] {
+  if (!Array.isArray(value) || value.length === 0 || value.length > MAX_PROBE_FILES) {
+    throw new Error('Invalid file list');
+  }
+  return value.map((filePath) => parseFolderPath(filePath, os));
+}
+
+/**
+ * `true` if a file may be probed: a video (by its extension) inside a library folder, so the
+ * renderer can't make the app read other files. Other files aren't read; they get no media info.
+ *
+ * @param filePath A canonical path (links resolved), so a link can't point outside the library.
+ */
+export function isProbeAllowed(
+  filePath: string,
+  library: readonly LibraryFolder[],
+  os: DesktopOs,
+): boolean {
+  const pathKey = toPathKey(filePath, os);
+  return (
+    VIDEO_EXTENSIONS.has(fileExtension(filePath)) &&
+    library.some((root) => pathKey !== root.pathKey && isPathInside(pathKey, root.pathKey))
   );
 }

@@ -70,6 +70,17 @@ Change all four places:
 - Videos below the minimum size are reported as `tooSmallKeys`: they are on disk, so never removed.
 - Folders with the Windows hidden or system attribute are still walked (Node can't read the attribute);
   only names (`.`, `$`, the system list) are skipped.
+- **Media info (FC-22):** `probeFiles` reads video files' headers with mediainfo.js (MediaInfoLib as
+  WebAssembly) on a worker thread (`probe-worker.ts`, started and idle-stopped by `media-prober.ts`).
+  MediaInfo reads only the parts of a file it needs (a few MB). `media-probe.ts` is the pure mapping to
+  the copy-detail fields. Each path is canonicalized and checked by `ipc-validation.ts`
+  (`isProbeAllowed`: a video extension, inside a library folder); others aren't read and get `null`.
+  Only files MediaInfo read but couldn't parse get `{}`; open/read failures give `null` (retried), a
+  WebAssembly load failure rejects the request, and a request that runs past 30 s per file stops the
+  worker.
+- mediainfo.js is bundled (devDependency), but its `module` export is the browser build, so
+  `electron.vite.config.ts` aliases it to the Node build. The `.wasm` file is imported with
+  `?asset&asarUnpack`, and `electron-builder.yml` unpacks `out/main/chunks/*.wasm` from the asar.
 
 ## Security model
 
@@ -100,7 +111,8 @@ The renderer is treated as a remote web page: `contextIsolation`, `sandbox`, `no
 ## Testing
 
 Importing `electron` outside Electron fails, so Vitest covers only Electron-free modules: `url-policy`, `web-url`,
-`deep-link`, `window-state`, `title-bar`, `shared/platform` and the scanner modules except `scanner-service`.
+`deep-link`, `window-state`, `title-bar`, `shared/platform` and the scanner modules except `scanner-service`,
+`media-prober` and the two workers.
 When adding logic, put the decisions in a pure module with a co-located `*.test.ts`, and keep the Electron wiring thin.
 
 ## Bundling and env

@@ -17,6 +17,11 @@ files:
   - out/**
   - package.json
 
+# MediaInfo's WebAssembly (FC-22) is read from disk by the probe worker; `media-prober.ts` imports
+# it with `?asset&asarUnpack`, which points the path at app.asar.unpacked.
+asarUnpack:
+  - out/main/chunks/*.wasm
+
 protocols:
   - name: Fanste Collector
     schemes: [fanste]

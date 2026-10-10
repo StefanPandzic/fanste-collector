@@ -1,7 +1,13 @@
-import { DEFAULT_MIN_VIDEO_SIZE_MB, isPathInside } from '@fanste/core';
+import {
+  DEFAULT_MIN_VIDEO_SIZE_MB,
+  isPathInside,
+  parseMediaFilename,
+  parseMediaInfo,
+  toCopyDetails,
+} from '@fanste/core';
 
 import type { ScannedFile } from '@fanste/collection';
-import type { LibraryFolder, ScanMatchStatus } from '@fanste/core';
+import type { LibraryFolder, MediaInfo, MediaProbeResult, ScanMatchStatus } from '@fanste/core';
 
 /** What the scanner page shows (FC-21). Pure, so it is unit-tested. */
 
@@ -52,6 +58,45 @@ export function formatFileSize(bytes: number | null): string {
 export function parsedLabel(file: Pick<ScannedFile, 'parsedTitle' | 'parsedYear'>): string {
   if (!file.parsedTitle) return '—';
   return file.parsedYear ? `${file.parsedTitle} (${file.parsedYear})` : file.parsedTitle;
+}
+
+/**
+ * The detected quality, e.g. `2160p · Dolby Vision · 7.1 · MKV`: what the file's headers told
+ * (FC-22), with the file name filling the gaps (before the file is read, only the name). `—` when
+ * neither tells anything.
+ */
+export function qualityLabel(file: Pick<ScannedFile, 'filePath' | 'mediaInfo'>): string {
+  const { details } = toCopyDetails(parseMediaFilename(file.filePath), file.mediaInfo);
+  const parts = [
+    details.resolution,
+    details.hdr === 'none' ? undefined : details.hdr,
+    details.audioChannels,
+    details.fileFormat,
+  ].filter((part) => part !== undefined);
+  return parts.length > 0 ? parts.join(' · ') : '—';
+}
+
+/** Files read per `probeFiles` call: small, so progress moves and cancelling is quick. */
+export const PROBE_BATCH_SIZE = 20;
+
+/** The current files whose headers haven't been read yet (new or changed files, FC-22). */
+export function filesToProbe(files: readonly ScannedFile[]): ScannedFile[] {
+  return files.filter((file) => file.removedAt === null && file.mediaInfo === null);
+}
+
+/**
+ * The media info to save from a `probeFiles` answer (in the order of `batch`), by row ID. Files
+ * that couldn't be read (`null`) are left out, so the next scan tries them again; the rest is
+ * validated, because it crosses the desktop bridge.
+ */
+export function probeEntries(
+  batch: readonly Pick<ScannedFile, 'id'>[],
+  results: readonly MediaProbeResult[],
+): { id: string; mediaInfo: MediaInfo }[] {
+  return batch.flatMap((file, index) => {
+    const mediaInfo = parseMediaInfo(results[index]?.mediaInfo);
+    return mediaInfo ? [{ id: file.id, mediaInfo }] : [];
+  });
 }
 
 /** The files still on disk (not marked as removed). */

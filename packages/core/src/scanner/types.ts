@@ -26,3 +26,6 @@ export interface ScannedFileInfo {
 export const DEFAULT_MIN_VIDEO_SIZE_MB = 50;
 /** The largest `minFileSizeMb` a scan accepts. */
 export const MAX_MIN_VIDEO_SIZE_MB = 10_000;
+
+/** The most files one `probeFiles` call reads (FC-22). */
+export const MAX_PROBE_FILES = 50;

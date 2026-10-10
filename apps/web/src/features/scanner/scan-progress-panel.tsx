@@ -12,8 +12,28 @@ interface ScanProgressPanelProps {
   onCancel: () => void;
 }
 
-/** Live progress of the running scan, with a cancel button (FC-21). */
+/**
+ * Live progress of the running scan (FC-21) and of reading the files' media info (FC-22), with a
+ * cancel button.
+ */
 export function ScanProgressPanel({ phase, onCancel }: ScanProgressPanelProps) {
+  if (phase.kind === 'probing') {
+    return (
+      <Card className="flex-row items-center gap-4 p-card" role="status" aria-live="polite">
+        <LoaderCircle aria-hidden className="size-5 shrink-0 animate-spin text-muted-foreground" />
+        <p className="min-w-0 flex-1 text-sm font-medium">
+          Reading media info…{' '}
+          <span className="text-muted-foreground tabular-nums">
+            {phase.done.toLocaleString()} of {phase.total.toLocaleString()}
+          </span>
+        </p>
+        <Button variant="outline" disabled={phase.cancelling} onClick={onCancel}>
+          {phase.cancelling ? 'Stopping…' : 'Stop'}
+        </Button>
+      </Card>
+    );
+  }
+
   const scanning = phase.kind === 'scanning';
   const filesFound = scanning ? (phase.progress?.filesFound ?? 0) : phase.filesFound;
 

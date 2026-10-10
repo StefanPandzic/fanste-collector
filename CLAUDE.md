@@ -86,8 +86,10 @@ inside packages (the `@/*` alias is for apps only). `export` is still an empty s
 category/ownership display metadata, `CATEGORY_META`, and provider names, `providerLabel`), the copy details and
 metadata overrides (`copy-details.ts`, `metadata-overrides.ts`, `prefill.ts`), the gallery badges
 (`copy-badges.ts`), the recent-searches list logic (`search-history.ts`), the API gateway contracts (`gateway/`)
-and the scanner logic (`scanner/`: path keys, sidecar subtitle languages, the incremental re-scan plan),
-where the filename parser (FC-22) will go too. `api-client` is the typed client for the gateway.
+and the scanner logic (`scanner/`: path keys, sidecar subtitle languages, the incremental re-scan plan,
+the filename parser `parseMediaFilename`, and `media-info.ts`: the shape of `scanned_files.media_info` and
+`toCopyDetails`, which merges a file's headers and name into FC-15 copy details). `api-client` is the typed
+client for the gateway.
 `config` holds the tsconfig, ESLint and Tailwind presets (the design tokens).
 
 **`@fanste/supabase`** holds the generated `Database` types (`database.types.ts`, written by `pnpm db:types`;
@@ -109,8 +111,10 @@ TanStack Query (peer dependencies), so a future mobile app can reuse it:
   (`bulkAssignTag`), `getStats` (the `collection_stats(time_zone)` RPC: every dashboard number,
   including the copies added per month, in one call), `getFacets` and `findCopies` (the user's
   copies of given provider items, e.g. "In collection" on search results). `listScannedFiles`,
-  `upsertScannedFiles` and `markScannedFilesRemoved` hold the desktop scanner's `scanned_files` rows
-  (FC-21). `addItem` loads the metadata through the gateway first, so `metadata_cache` is filled.
+  `upsertScannedFiles` (which also writes the parsed title/year) and `markScannedFilesRemoved` hold the
+  desktop scanner's `scanned_files` rows (FC-21); `saveScannedFileMediaInfo` stores what the desktop app
+  read from the files' headers (FC-22). `addItem` loads the metadata through the gateway first, so
+  `metadata_cache` is filled.
 - Filtering runs in Postgres (FC-18). `listItems` calls `collection_items_filtered(filter)`, and
   PostgREST sorts, pages and counts its rows. `getFacets` calls `collection_facets(filter)`, which gives
   per-value counts. Both read the `CollectionFilter` of `@fanste/core` as JSON (`toFilterJson`).

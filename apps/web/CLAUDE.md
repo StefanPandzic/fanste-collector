@@ -208,7 +208,7 @@ reads the user's default currency and renders `DashboardPageClient`.
 - "Recently added" is a 12-item `useCollection` page sorted by `added_desc`. An empty collection
   shows `DashboardOnboarding` (search, and in the desktop app the scanner).
 
-## Scanner (FC-21)
+## Scanner (FC-21, FC-22)
 
 `/scanner` is `features/scanner/`, rendered only in the desktop app (`<DesktopOnly>`; the browser gets a
 "desktop app only" state). A desktop build without the FC-21 bridge gets an "Update the desktop app" state.
@@ -218,9 +218,14 @@ reads the user's default currency and renders `DashboardPageClient`.
 - Batches from `onFilesFound` are written in order with `useScannedFileSync().syncBatch` (only new or
   changed files). When `startScan` resolves, `markMissing` marks files gone from the _completed_ folders, and
   only when every found file was written.
-- Leaving the page cancels a running scan. The minimum video size is in `localStorage` (per device).
-- The pure `scanner-view.ts` shapes the table: status counts and filter, search, 100-row pages, and file
-  sizes. Parsed title/year come from FC-22, match status from FC-23.
+- After a scan that wasn't cancelled, the files without `media_info` (new or changed) are read in batches of
+  20 through `probeFiles` (FC-22) and saved with `saveMediaInfo`. Files the desktop app couldn't open stay
+  `null` and are tried again after the next scan. Desktop builds without `probeFiles` skip this step.
+- Leaving the page cancels a running scan and stops the probing. The minimum video size is in `localStorage`
+  (per device).
+- The pure `scanner-view.ts` shapes the table: status counts and filter, search, 100-row pages, file sizes,
+  and the Quality column (`qualityLabel`: the file's headers, with the file name filling the gaps). Parsed
+  title/year are written with each row by the filename parser (FC-22); match status comes from FC-23.
 
 ## Design system
 

@@ -12,6 +12,8 @@ export const IpcChannel = {
   scannerStartScan: 'scanner:start-scan',
   /** invoke → `void` */
   scannerCancelScan: 'scanner:cancel-scan',
+  /** invoke(paths: string[]) → `MediaProbeResult[]` */
+  scannerProbeFiles: 'scanner:probe-files',
   /** main → renderer event carrying a `ScanProgress` */
   scannerProgress: 'scanner:progress',
   /** main → renderer event carrying a `ScanFileBatch` */

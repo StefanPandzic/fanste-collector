@@ -1,8 +1,8 @@
-import { SCAN_MATCH_STATUSES } from '@fanste/core';
+import { parseMediaInfo, SCAN_MATCH_STATUSES } from '@fanste/core';
 
 import { toCollectionError } from '../errors';
 
-import type { KnownScannedFile, ScanMatchStatus, ScannedFileUpsert } from '@fanste/core';
+import type { KnownScannedFile, MediaInfo, ScanMatchStatus, ScannedFileUpsert } from '@fanste/core';
 import type { FansteSupabaseClient, Tables, TablesInsert } from '@fanste/supabase';
 
 /** A `scanned_files` row (FC-21): a video file the desktop scanner found on one device. */
@@ -10,8 +10,11 @@ export interface ScannedFile extends KnownScannedFile {
   readonly deviceId: string;
   /** Absolute path with its real case, for display and the filename parser (FC-22). */
   readonly filePath: string;
-  readonly parsedTitle: string | null;
-  readonly parsedYear: number | null;
+  /**
+   * What the desktop app read from the file's headers (FC-22). `null` until it has been read (new
+   * or changed files); `{}` when nothing could be read.
+   */
+  readonly mediaInfo: MediaInfo | null;
   readonly matchConfidence: number | null;
   readonly collectionItemId: string | null;
   /** When the file was last written by a scan, ISO 8601. */
@@ -22,7 +25,7 @@ export interface ScannedFile extends KnownScannedFile {
 type ScannedFileRow = Omit<Tables<'scanned_files'>, 'user_id' | 'parsed_format'>;
 
 const SCANNED_FILE_SELECT =
-  'id, device_id, path_key, file_path, file_size, file_modified_at, parsed_title, parsed_year, match_status, match_confidence, collection_item_id, scanned_at, removed_at, subtitle_languages';
+  'id, device_id, path_key, file_path, file_size, file_modified_at, parsed_title, parsed_year, match_status, match_confidence, collection_item_id, scanned_at, removed_at, subtitle_languages, media_info';
 
 /** PostgREST returns at most this many rows per request. */
 const PAGE_SIZE = 1000;
@@ -30,6 +33,8 @@ const PAGE_SIZE = 1000;
 const WRITE_CHUNK = 500;
 /** IDs per `in.(...)` filter, so the URL stays within limits. */
 const ID_CHUNK = 100;
+/** Media info updates sent at once (one request per row: each row gets its own value). */
+const MEDIA_INFO_CONCURRENCY = 10;
 
 const STATUSES: ReadonlySet<string> = new Set(SCAN_MATCH_STATUSES);
 
@@ -43,6 +48,7 @@ export function toScannedFile(row: ScannedFileRow): ScannedFile {
     modifiedAt: row.file_modified_at,
     parsedTitle: row.parsed_title,
     parsedYear: row.parsed_year,
+    mediaInfo: parseMediaInfo(row.media_info),
     matchStatus: STATUSES.has(row.match_status) ? (row.match_status as ScanMatchStatus) : 'pending',
     matchConfidence: row.match_confidence,
     collectionItemId: row.collection_item_id,
@@ -52,7 +58,10 @@ export function toScannedFile(row: ScannedFileRow): ScannedFile {
   };
 }
 
-/** The insert/update row of a planned upsert. A reset sends the match columns back to `pending`. */
+/**
+ * The insert/update row of a planned upsert. A match reset sends the match columns back to
+ * `pending`; a media info reset clears `media_info`, so the file is read again.
+ */
 export function toScannedFileRow(
   deviceId: string,
   upsert: ScannedFileUpsert,
@@ -65,8 +74,12 @@ export function toScannedFileRow(
     file_size: upsert.size,
     file_modified_at: upsert.modifiedAt,
     subtitle_languages: [...upsert.subtitleLanguages],
+    parsed_title: upsert.parsedTitle,
+    parsed_year: upsert.parsedYear,
+    parsed_format: upsert.parsedFormat,
     scanned_at: scannedAt,
     removed_at: null,
+    ...(upsert.resetMediaInfo ? { media_info: null } : {}),
     ...(upsert.resetMatch ? { match_status: 'pending', match_confidence: null } : {}),
   };
 }
@@ -95,8 +108,8 @@ export async function listScannedFiles(
 }
 
 /**
- * Writes the planned rows (`planScannedFileUpserts`) and returns them as stored. Rows that keep
- * their match status and rows that reset it go in separate requests, because a bulk upsert writes
+ * Writes the planned rows (`planScannedFileUpserts`) and returns them as stored. Rows that reset
+ * different columns (match status, media info) go in separate requests, because a bulk upsert writes
  * the same columns for every row.
  */
 export async function upsertScannedFiles(
@@ -107,10 +120,12 @@ export async function upsertScannedFiles(
 ): Promise<ScannedFile[]> {
   const scannedAt = now.toISOString();
   const stored: ScannedFile[] = [];
-  for (const group of [
-    upserts.filter((upsert) => upsert.resetMatch),
-    upserts.filter((upsert) => !upsert.resetMatch),
-  ]) {
+  const groups = new Map<string, ScannedFileUpsert[]>();
+  for (const upsert of upserts) {
+    const key = `${upsert.resetMatch}:${upsert.resetMediaInfo}`;
+    groups.set(key, [...(groups.get(key) ?? []), upsert]);
+  }
+  for (const group of groups.values()) {
     for (let start = 0; start < group.length; start += WRITE_CHUNK) {
       const rows = group
         .slice(start, start + WRITE_CHUNK)
@@ -119,6 +134,34 @@ export async function upsertScannedFiles(
         .from('scanned_files')
         .upsert(rows, { onConflict: 'user_id,device_id,path_key' })
         .select(SCANNED_FILE_SELECT);
+      if (error) throw toCollectionError(error);
+      stored.push(...data.map(toScannedFile));
+    }
+  }
+  return stored;
+}
+
+/**
+ * Stores what the desktop app read from files' headers (FC-22). Only rows whose media info is still
+ * empty are written, so a file read twice keeps its first values. Resolves to the rows written.
+ */
+export async function saveScannedFileMediaInfo(
+  client: FansteSupabaseClient,
+  entries: readonly { readonly id: string; readonly mediaInfo: MediaInfo }[],
+): Promise<ScannedFile[]> {
+  const stored: ScannedFile[] = [];
+  for (let start = 0; start < entries.length; start += MEDIA_INFO_CONCURRENCY) {
+    const results = await Promise.all(
+      entries.slice(start, start + MEDIA_INFO_CONCURRENCY).map(({ id, mediaInfo }) =>
+        client
+          .from('scanned_files')
+          .update({ media_info: { ...mediaInfo } })
+          .eq('id', id)
+          .is('media_info', null)
+          .select(SCANNED_FILE_SELECT),
+      ),
+    );
+    for (const { data, error } of results) {
       if (error) throw toCollectionError(error);
       stored.push(...data.map(toScannedFile));
     }

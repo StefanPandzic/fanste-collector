@@ -1,3 +1,4 @@
+import { parseMediaFilename } from './filename-parser';
 import { isPathInside } from './paths';
 
 import type { ScanMatchStatus, ScannedFileInfo } from './types';
@@ -12,6 +13,9 @@ export interface KnownScannedFile {
   readonly removedAt: string | null;
   readonly matchStatus: ScanMatchStatus;
   readonly subtitleLanguages: readonly string[];
+  /** The filename parser's title and year as stored (FC-22). */
+  readonly parsedTitle: string | null;
+  readonly parsedYear: number | null;
 }
 
 /** A row to write for a found file. */
@@ -21,6 +25,16 @@ export interface ScannedFileUpsert {
   readonly size: number;
   readonly modifiedAt: string;
   readonly subtitleLanguages: readonly string[];
+  /** From `parseMediaFilename` (FC-22). */
+  readonly parsedTitle: string | null;
+  readonly parsedYear: number | null;
+  /** The container from the file name, e.g. `MKV` (`scanned_files.parsed_format`). */
+  readonly parsedFormat: string | null;
+  /**
+   * `true` for a new file and a file whose content changed: its media info (FC-22) is cleared, so
+   * the desktop app reads the file again.
+   */
+  readonly resetMediaInfo: boolean;
   /**
    * `true` only for a new file, which starts as `pending`. A known file keeps its match status and
    * item link even when its content changed: `unmatched` must stay so (the FC-05 unlink trigger sets
@@ -41,8 +55,9 @@ function sameLanguages(a: readonly string[], b: readonly string[]): boolean {
 
 /**
  * The rows to write for a batch of found files: new files, changed files, files that are back after
- * being removed, and files whose subtitles changed. Unchanged files are skipped, which is what makes
- * a re-scan incremental.
+ * being removed, files whose subtitles changed and files the filename parser now reads differently
+ * (FC-22: rows written before it, or by an older parser). Unchanged files are skipped, which is what
+ * makes a re-scan incremental.
  *
  * @param known The device's files in `scanned_files`, by `pathKey`.
  */
@@ -57,13 +72,17 @@ export function planScannedFileUpserts(
     if (planned.has(file.pathKey)) continue;
     planned.add(file.pathKey);
     const row = known.get(file.pathKey);
+    const parsed = parseMediaFilename(file.path);
+    const parsedYear = parsed.year ?? null;
     const contentChanged =
       !row || row.size !== file.size || !sameTime(row.modifiedAt, file.modifiedAt);
     if (
       row &&
       !contentChanged &&
       row.removedAt === null &&
-      sameLanguages(row.subtitleLanguages, file.subtitleLanguages)
+      sameLanguages(row.subtitleLanguages, file.subtitleLanguages) &&
+      row.parsedTitle === parsed.title &&
+      row.parsedYear === parsedYear
     ) {
       continue;
     }
@@ -73,6 +92,10 @@ export function planScannedFileUpserts(
       size: file.size,
       modifiedAt: file.modifiedAt,
       subtitleLanguages: file.subtitleLanguages,
+      parsedTitle: parsed.title,
+      parsedYear,
+      parsedFormat: parsed.fileFormat ?? null,
+      resetMediaInfo: contentChanged,
       resetMatch: !row,
     });
   }

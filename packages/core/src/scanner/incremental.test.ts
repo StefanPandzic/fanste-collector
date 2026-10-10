@@ -21,6 +21,8 @@ const known: KnownScannedFile = {
   removedAt: null,
   matchStatus: 'matched',
   subtitleLanguages: ['en'],
+  parsedTitle: 'Inception',
+  parsedYear: 2010,
 };
 
 function plan(row: KnownScannedFile | undefined, file: ScannedFileInfo = found) {
@@ -36,6 +38,10 @@ describe('planScannedFileUpserts', () => {
         size: found.size,
         modifiedAt: found.modifiedAt,
         subtitleLanguages: ['en'],
+        parsedTitle: 'Inception',
+        parsedYear: 2010,
+        parsedFormat: 'MKV',
+        resetMediaInfo: true,
         resetMatch: true,
       },
     ]);
@@ -44,13 +50,24 @@ describe('planScannedFileUpserts', () => {
 
   it('writes a changed, returning or re-subtitled file but keeps its match', () => {
     expect(plan(known, { ...found, size: 5_000_000_000 })).toEqual([
-      expect.objectContaining({ size: 5_000_000_000, resetMatch: false }),
+      expect.objectContaining({ size: 5_000_000_000, resetMatch: false, resetMediaInfo: true }),
     ]);
     expect(plan({ ...known, removedAt: '2026-09-20T10:00:00Z' })).toEqual([
-      expect.objectContaining({ resetMatch: false }),
+      expect.objectContaining({ resetMatch: false, resetMediaInfo: false }),
     ]);
     expect(plan(known, { ...found, subtitleLanguages: ['en', 'sr'] })).toEqual([
       expect.objectContaining({ subtitleLanguages: ['en', 'sr'], resetMatch: false }),
+    ]);
+  });
+
+  it('rewrites an unchanged file the parser now reads differently', () => {
+    expect(plan({ ...known, parsedTitle: null, parsedYear: null })).toEqual([
+      expect.objectContaining({
+        parsedTitle: 'Inception',
+        parsedYear: 2010,
+        resetMatch: false,
+        resetMediaInfo: false,
+      }),
     ]);
   });
 
