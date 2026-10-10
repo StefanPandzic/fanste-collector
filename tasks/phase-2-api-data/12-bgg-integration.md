@@ -27,6 +27,8 @@ Adapter for the BoardGameGeek XML API2. BGG returns **XML**, so the gateway conv
   - [ ] Enable Board Games in the search category selector (`SEARCHABLE_CATEGORIES` in
         `apps/web/src/features/search/search-state.ts`)
   - [ ] Board-game copy-details fields in the "Add with details" dialog, prefilled and marked "from BoardGameGeek"
+- [ ] Item page for board games (moved here from FC-19, which shipped Movies & TV only): board-game
+      section in `mediaFacts` (players, playtime, age, weight) and the board-game copy-details fields
 
 ## Acceptance criteria
 - A user can find and add a board game from search in the browser and the desktop app (from FC-17).

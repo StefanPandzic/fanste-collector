@@ -7,6 +7,7 @@ import {
   toCollectionItem,
   toCollectionStats,
   toInsertRow,
+  toRestoreRow,
   toUpdateRow,
 } from './mappers';
 
@@ -114,6 +115,30 @@ describe('toInsertRow', () => {
       source: 'manual',
       format: '4K UHD Blu-ray',
       ownership: 'owned',
+    });
+  });
+});
+
+describe('toRestoreRow', () => {
+  it('puts the copy back with its ID, details, overrides and creation time', () => {
+    const item = toCollectionItem({ ...viewRow, metadata_overrides: { title: 'Inception (4K)' } });
+    expect(toRestoreRow(item)).toEqual({
+      id: itemId,
+      category: 'movie',
+      provider: 'tmdb',
+      external_id: 'movie:27205',
+      format: '4K UHD Blu-ray',
+      details: { edition: 'Steelbook' },
+      metadata_overrides: { title: 'Inception (4K)' },
+      ownership: 'owned',
+      quantity: 1,
+      acquired_at: '2026-01-31',
+      purchase_price: 24.99,
+      estimated_value: 30,
+      currency: 'EUR',
+      notes: null,
+      source: 'search',
+      created_at: '2026-09-25T14:02:32.123456+00:00',
     });
   });
 });

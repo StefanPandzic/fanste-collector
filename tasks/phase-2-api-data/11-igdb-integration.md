@@ -38,6 +38,11 @@ Adapter for IGDB (Twitch) to catalog video games with per-platform granularity.
         `collection_facets` (a migration) and to `COLLECTION_FACETS`, then to the gallery's `FilterPanel`
         and URL state (`gallery-state.ts`)
   - [ ] Game badges in `copyBadges` (e.g. "Steam", "PS5")
+- [ ] Item page for video games (moved here from FC-19, which shipped Movies & TV only):
+  - [ ] Video-game section in `mediaFacts` (`apps/web/src/features/item-detail/item-detail-view.ts`):
+        platforms, developer
+  - [ ] Game copy-details fields on the item page (platform, storefront, discs, edition, completeness),
+        saved per field; acceptance: marking a game "Digital, Steam" shows at once in the gallery
 
 ## Acceptance criteria
 - A user can find and add a game from search in the browser and the desktop app (from FC-17).

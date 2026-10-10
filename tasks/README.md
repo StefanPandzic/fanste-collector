@@ -117,7 +117,7 @@ Status legend: `TODO` · `IN PROGRESS` · `DONE` · `BLOCKED`
 | FC-16 | [Design system & shared UI](phase-3-ui-scanning/16-design-system.md) | FC-02 | DONE |
 | FC-17 | [Unified search & add item](phase-3-ui-scanning/17-search-add-item.md) | FC-09–FC-16 | DONE |
 | FC-18 | [Collection gallery & filters](phase-3-ui-scanning/18-collection-gallery-filters.md) | FC-14, FC-15, FC-16 | DONE |
-| FC-19 | [Item detail & edit](phase-3-ui-scanning/19-item-detail-edit.md) | FC-14, FC-15, FC-16 | TODO |
+| FC-19 | [Item detail & edit](phase-3-ui-scanning/19-item-detail-edit.md) | FC-14, FC-15, FC-16 | DONE |
 | FC-20 | [Dashboard](phase-3-ui-scanning/20-dashboard.md) | FC-14, FC-16 | TODO |
 | FC-21 | [Scanner: directory ingestion](phase-3-ui-scanning/21-scanner-directory-ingestion.md) | FC-03, FC-05 | TODO |
 | FC-22 | [Scanner: filename parser](phase-3-ui-scanning/22-scanner-filename-parser.md) | FC-07 | TODO |

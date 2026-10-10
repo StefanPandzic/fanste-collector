@@ -22,6 +22,9 @@ Funko Pops are part of the product scope but there is no official public API. In
 - [ ] "Can't find it? Add manually" entry point in search (FC-17) for all categories
   (moved here from FC-17). The search page shows Funko Pops as "Coming soon" until then; enable the tab and
   point it at the manual form.
+- [ ] Item page for Funko Pops (moved here from FC-19, which shipped Movies & TV only): Funko section
+      (series, number, variant, exclusive) and the Funko copy-details fields; `restoreItem` (undo of a
+      delete) must also restore `custom_data`, which it refuses for custom items until then
 
 ## Acceptance criteria
 - A user can add a Funko Pop with a name, number, series and photo, and it shows up in the gallery like any other item.

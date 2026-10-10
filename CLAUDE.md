@@ -104,10 +104,10 @@ The web app's wrappers live in `apps/web/src/lib/supabase/` (see `apps/web/CLAUD
 TanStack Query (peer dependencies), so a future mobile app can reuse it:
 
 - `repository/`: functions that take a Supabase client, e.g. `listItems`, `addItem`, `updateItem`,
-  `bulkDelete`, `bulkUpdateItems`, the tag functions (`bulkAssignTag`), `getStats` (the
-  `collection_stats()` RPC), `getFacets` and `findCopies` (the user's copies of given provider items,
-  e.g. "In collection" on search results). `addItem` loads the metadata through the gateway first, so
-  `metadata_cache` is filled.
+  `bulkDelete`, `bulkUpdateItems`, `restoreItem` (the undo of a delete), the tag functions
+  (`bulkAssignTag`), `getStats` (the `collection_stats()` RPC), `getFacets` and `findCopies` (the
+  user's copies of given provider items, e.g. "In collection" on search results). `addItem` loads
+  the metadata through the gateway first, so `metadata_cache` is filled.
 - Filtering runs in Postgres (FC-18). `listItems` calls `collection_items_filtered(filter)`, and
   PostgREST sorts, pages and counts its rows. `getFacets` calls `collection_facets(filter)`, which gives
   per-value counts. Both read the `CollectionFilter` of `@fanste/core` as JSON (`toFilterJson`).

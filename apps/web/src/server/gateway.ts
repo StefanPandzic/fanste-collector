@@ -11,7 +11,7 @@ import { createSupabaseMetadataCache } from './cache/metadata-cache';
 import { authenticateRequest } from './http/authenticate';
 import { createGatewayRoute } from './http/handler';
 import { createItemService } from './items';
-import { SEARCH_CACHE, USER_RATE_LIMIT } from './limits';
+import { REFRESH_LIMITS, SEARCH_CACHE, USER_RATE_LIMIT } from './limits';
 import { createRegistry } from './providers/registry';
 import { createTmdbAdapter } from './providers/tmdb/adapter';
 import { createUserLimiter } from './rate-limit/user-limiter';
@@ -43,6 +43,9 @@ export const gatewayRoute = createGatewayRoute({
   authenticate: authenticateRequest,
   userLimiter: createUserLimiter(USER_RATE_LIMIT),
 });
+
+/** The extra per-user limit of "Refresh metadata" (`REFRESH_LIMITS`). */
+export const refreshLimiter = createUserLimiter(REFRESH_LIMITS.perUser);
 
 export const searchService = createSearchService({
   registry,

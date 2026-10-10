@@ -6,15 +6,26 @@ import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 
+import type { ChangeOptions } from './copy-form';
 import type { TvSeason, TvSeasonDetails } from '@fanste/core';
+import type { ReactNode } from 'react';
 
 interface SeasonPickerProps {
   /** The show's seasons from TMDB. */
   seasons: readonly TvSeason[];
   /** The owned seasons; a season missing here isn't owned. */
   value: readonly TvSeasonDetails[];
-  onChange: (value: TvSeasonDetails[]) => void;
+  /** `immediate` for picks (checkboxes, buttons); a season's typed details pass their own. */
+  onChange: (value: TvSeasonDetails[], options: ChangeOptions) => void;
   invalid?: boolean;
+  disabled?: boolean;
+  /** Prefix of the checkbox ids, unique on the page. */
+  idPrefix?: string;
+  /** More controls under an owned season, e.g. its languages and quality on the item page. */
+  renderSeasonExtra?: (
+    entry: TvSeasonDetails,
+    update: (entry: TvSeasonDetails, options: ChangeOptions) => void,
+  ) => ReactNode;
 }
 
 function seasonName(season: TvSeason): string {
@@ -22,15 +33,30 @@ function seasonName(season: TvSeason): string {
 }
 
 /**
- * The owned seasons of a TV copy: tick a season, then keep "All episodes" or pick some. Per-season
- * languages and quality are edited on the item page (FC-19).
+ * The owned seasons of a TV copy: tick a season, then keep "All episodes" or pick some. The item page
+ * (FC-19) adds each season's languages and quality through `renderSeasonExtra`.
  */
-export function SeasonPicker({ seasons, value, onChange, invalid }: SeasonPickerProps) {
+export function SeasonPicker({
+  seasons,
+  value,
+  onChange,
+  invalid,
+  disabled,
+  idPrefix = 'season',
+  renderSeasonExtra,
+}: SeasonPickerProps) {
   const owned = new Map(value.map((season) => [season.seasonNumber, season]));
 
-  function update(seasonNumber: number, entry: TvSeasonDetails | undefined) {
+  function update(
+    seasonNumber: number,
+    entry: TvSeasonDetails | undefined,
+    options: ChangeOptions = { immediate: true },
+  ) {
     const rest = value.filter((season) => season.seasonNumber !== seasonNumber);
-    onChange((entry ? [...rest, entry] : rest).toSorted((a, b) => a.seasonNumber - b.seasonNumber));
+    onChange(
+      (entry ? [...rest, entry] : rest).toSorted((a, b) => a.seasonNumber - b.seasonNumber),
+      options,
+    );
   }
 
   function toggleEpisode(season: TvSeasonDetails, episode: number) {
@@ -50,6 +76,7 @@ export function SeasonPicker({ seasons, value, onChange, invalid }: SeasonPicker
           type="button"
           variant="outline"
           size="xs"
+          disabled={disabled}
           onClick={() =>
             onChange(
               regular.map((season) => ({
@@ -57,12 +84,19 @@ export function SeasonPicker({ seasons, value, onChange, invalid }: SeasonPicker
                 seasonNumber: season.seasonNumber,
                 episodesOwned: 'all',
               })),
+              { immediate: true },
             )
           }
         >
           All seasons
         </Button>
-        <Button type="button" variant="outline" size="xs" onClick={() => onChange([])}>
+        <Button
+          type="button"
+          variant="outline"
+          size="xs"
+          disabled={disabled}
+          onClick={() => onChange([], { immediate: true })}
+        >
           None
         </Button>
       </div>
@@ -70,7 +104,7 @@ export function SeasonPicker({ seasons, value, onChange, invalid }: SeasonPicker
       <ul className="flex flex-col divide-y rounded-lg border">
         {seasons.map((season) => {
           const entry = owned.get(season.seasonNumber);
-          const checkboxId = `season-${season.seasonNumber}`;
+          const checkboxId = `${idPrefix}-${season.seasonNumber}`;
           const episodeCount = season.episodeCount ?? 0;
           const picked = entry && entry.episodesOwned !== 'all' ? entry.episodesOwned : [];
           return (
@@ -78,6 +112,7 @@ export function SeasonPicker({ seasons, value, onChange, invalid }: SeasonPicker
               <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
                 <Checkbox
                   id={checkboxId}
+                  disabled={disabled}
                   checked={entry !== undefined}
                   onCheckedChange={(checked) =>
                     update(
@@ -112,6 +147,7 @@ export function SeasonPicker({ seasons, value, onChange, invalid }: SeasonPicker
                           aria-checked={active}
                           variant={active ? 'secondary' : 'ghost'}
                           size="xs"
+                          disabled={disabled}
                           onClick={() =>
                             update(season.seasonNumber, {
                               ...entry,
@@ -141,6 +177,7 @@ export function SeasonPicker({ seasons, value, onChange, invalid }: SeasonPicker
                         type="button"
                         variant={on ? 'default' : 'outline'}
                         size="icon-sm"
+                        disabled={disabled}
                         aria-pressed={on}
                         aria-label={`Episode ${episode}`}
                         onClick={() => toggleEpisode(entry, episode)}
@@ -155,6 +192,11 @@ export function SeasonPicker({ seasons, value, onChange, invalid }: SeasonPicker
                   })}
                 </div>
               )}
+
+              {entry &&
+                renderSeasonExtra?.(entry, (next, options) =>
+                  update(season.seasonNumber, next, options),
+                )}
             </li>
           );
         })}

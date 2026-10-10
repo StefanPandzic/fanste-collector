@@ -1,4 +1,14 @@
-import { addItemInputSchema, COPY_DETAIL_STATUSES, providerLabel } from '@fanste/core';
+import { addItemInputSchema, providerLabel } from '@fanste/core';
+
+import {
+  cleanDetails,
+  copyFieldErrors,
+  parseAmount,
+  parseCount,
+  showsCopyDetails,
+  showsDigitalStore,
+  showsFileFormat,
+} from '@/features/copy-form/copy-form';
 
 import type {
   AddItemInput,
@@ -62,63 +72,13 @@ export function initialFormValues(prefill: PrefillResult): AddItemFormValues {
   };
 }
 
-/** Whether the status is of a copy the user has, whose medium and details the form shows. */
-export function showsCopyDetails(ownership: OwnershipStatus): boolean {
-  return COPY_DETAIL_STATUSES.includes(ownership);
-}
-
-/** The container (`fileFormat`) only applies to a `Digital file` copy. */
-export function showsFileFormat(format: string): boolean {
-  return format === 'Digital file';
-}
-
-/** The store (`digitalStore`) only applies to a `Digital store` copy. */
-export function showsDigitalStore(format: string): boolean {
-  return format === 'Digital store';
-}
-
-/** Drops empty values: blank text, empty lists, `undefined`. */
-export function cleanDetails(details: Record<string, unknown>): Record<string, unknown> {
-  return Object.fromEntries(
-    Object.entries(details).filter(
-      ([, value]) =>
-        value !== undefined &&
-        !(typeof value === 'string' && value.trim() === '') &&
-        !(Array.isArray(value) && value.length === 0),
-    ),
-  );
-}
-
-/** An amount as typed (`12,50` or `12.50`); `NaN` when it isn't a number, so validation reports it. */
-function parseAmount(value: string): number | null {
-  const trimmed = value.trim();
-  if (trimmed === '') return null;
-  return /^\d+([.,]\d{1,2})?$/.test(trimmed) ? Number(trimmed.replace(',', '.')) : Number.NaN;
-}
-
-function parseCount(value: string): number {
-  return /^\d+$/.test(value.trim()) ? Number(value.trim()) : Number.NaN;
-}
-
-/** Messages per form field (top-level fields, and `details.<field>`). */
-const FIELD_MESSAGES: Record<string, string> = {
-  quantity: 'Enter a whole number from 1 to 9999.',
-  acquiredAt: 'Enter a valid date.',
-  purchasePrice: 'Enter an amount of 0 or more, with at most two decimals.',
-  estimatedValue: 'Enter an amount of 0 or more, with at most two decimals.',
-  notes: 'Notes can be at most 5000 characters.',
-  format: 'The medium can be at most 100 characters.',
-  'details.discCount': 'Enter a number of discs from 1 to 99.',
-  'details.seasons': 'Pick at least one episode for each ticked season.',
-};
-
 export type AddItemFormResult =
   { ok: true; input: AddItemInput } | { ok: false; errors: Record<string, string> };
 
 /**
- * Converts the form into the input of `useAddItem`, or field errors (keyed like `FIELD_MESSAGES`).
- * Statuses without copy details (`wishlist`, `sold`) save no medium and no details. Amounts are in
- * `currency`, the user's default currency.
+ * Converts the form into the input of `useAddItem`, or field errors (keyed like
+ * `COPY_FIELD_MESSAGES`). Statuses without copy details (`wishlist`, `sold`) save no medium and no
+ * details. Amounts are in `currency`, the user's default currency.
  */
 export function toAddItemInput(
   values: AddItemFormValues,
@@ -153,12 +113,5 @@ export function toAddItemInput(
   // `useAddItem` parses the input again (and the input type is what it takes), so the raw values go
   // through; this parse only checks them.
   if (parsed.success) return { ok: true, input: raw };
-
-  const errors: Record<string, string> = {};
-  for (const issue of parsed.error.issues) {
-    const [head, field] = issue.path.map(String);
-    const key = head === 'details' && field ? `details.${field}` : (head ?? 'form');
-    errors[key] ??= FIELD_MESSAGES[key] ?? 'Check this value.';
-  }
-  return { ok: false, errors };
+  return { ok: false, errors: copyFieldErrors(parsed.error.issues) };
 }

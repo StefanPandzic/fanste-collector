@@ -37,6 +37,19 @@ describe('createApiClient', () => {
     expect(item).toEqual(matrix);
   });
 
+  it('refreshes an item with a POST to its refresh URL', async () => {
+    const fetchFn = fakeFetch(matrix);
+    const item = await createApiClient({ baseUrl, fetch: fetchFn }).refreshItem({
+      provider: 'tmdb',
+      externalId: 'movie:603',
+    });
+    expect(fetchFn.mock.calls[0]?.[0]).toBe(
+      'https://collector.example.com/api/items/tmdb/movie%3A603/refresh',
+    );
+    expect(fetchFn.mock.calls[0]?.[1]?.method).toBe('POST');
+    expect(item).toEqual(matrix);
+  });
+
   it('sends the release year as a search param', async () => {
     const fetchFn = fakeFetch({ results: [], page: 1, totalPages: 0, totalResults: 0 });
     await createApiClient({ baseUrl, fetch: fetchFn }).search({

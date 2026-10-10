@@ -2,7 +2,7 @@ import { categoryOfExternalId } from '@fanste/core';
 
 import { isStale, refKey } from './cache/metadata-cache';
 import { GatewayError } from './errors';
-import { PROVIDER_LIMITS } from './limits';
+import { PROVIDER_LIMITS, REFRESH_LIMITS } from './limits';
 import { gatewayLog } from './log';
 
 import type { CachedItem, MetadataCacheStore } from './cache/metadata-cache';
@@ -32,6 +32,12 @@ export interface ItemService {
    * `missing`: `not_found` when the provider has no such item, otherwise `retry_later`.
    */
   getItemsBatch(refs: readonly ItemRef[]): Promise<BatchResponse>;
+  /**
+   * "Refresh metadata": fetches the item from its provider whatever its TTL and stores it. Within
+   * `REFRESH_LIMITS.cooldownMs` of the last fetch the cached row is returned instead. Only
+   * `metadata_cache` is written; the user's details and overrides live elsewhere.
+   */
+  refreshItem(ref: ItemRef): Promise<NormalizedItem>;
 }
 
 // Refreshes already running on this instance, so a popular stale item is refreshed once.
@@ -145,6 +151,16 @@ export function createItemService({
       const [cached] = await readCache([ref]);
       if (cached) {
         if (isStale(cached.fetchedAt, ref.provider, now())) refreshInBackground([ref]);
+        return cached.item;
+      }
+      const item = await fetchFromProvider(ref);
+      await store([item]);
+      return item;
+    },
+
+    async refreshItem(ref) {
+      const [cached] = await readCache([ref]);
+      if (cached && now().getTime() - cached.fetchedAt.getTime() < REFRESH_LIMITS.cooldownMs) {
         return cached.item;
       }
       const item = await fetchFromProvider(ref);
