@@ -19,6 +19,8 @@ interface ItemGridProps<T> {
   getKey: (item: T) => string;
   /** Usually an `ItemCard`. Give it an `href` or `onSelect` so the arrow keys can move between cards. */
   renderItem: (item: T, index: number) => ReactNode;
+  /** Card height beyond the title and meta row, e.g. `CARD_BADGES_HEIGHT` for cards with badges. */
+  cardExtraHeight?: number;
   /** Accessible name of the list, e.g. `Your collection`. */
   label: string;
   className?: string;
@@ -31,7 +33,14 @@ const FOCUSABLE = 'a[href], button:not([disabled]), [tabindex]:not([tabindex="-1
  * thousands of items scroll smoothly. It scrolls with the page. Arrow keys, Home and End move focus
  * between the cards' links or buttons.
  */
-export function ItemGrid<T>({ items, getKey, renderItem, label, className }: ItemGridProps<T>) {
+export function ItemGrid<T>({
+  items,
+  getKey,
+  renderItem,
+  cardExtraHeight = 0,
+  label,
+  className,
+}: ItemGridProps<T>) {
   const listRef = useRef<HTMLDivElement>(null);
   const [width, setWidth] = useState(0);
   const [scrollMargin, setScrollMargin] = useState(0);
@@ -55,7 +64,7 @@ export function ItemGrid<T>({ items, getKey, renderItem, label, className }: Ite
   const columns = gridColumns(width);
   const virtualizer = useWindowVirtualizer({
     count: width > 0 ? gridRowCount(items.length, columns) : 0,
-    estimateSize: () => gridRowHeight(width, columns),
+    estimateSize: () => gridRowHeight(width, columns, cardExtraHeight),
     gap: GRID_GAP,
     overscan: 3,
     scrollMargin,

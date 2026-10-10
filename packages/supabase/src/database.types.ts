@@ -305,6 +305,94 @@ export type Database = {
       };
     };
     Functions: {
+      assign_tag_to_items: {
+        Args: { p_item_ids: string[]; p_tag_id: string };
+        Returns: number;
+      };
+      collection_details_match: {
+        Args: { p_details: Json; p_path: string; p_values: Json };
+        Returns: boolean;
+      };
+      collection_escape_like: { Args: { p_text: string }; Returns: string };
+      collection_facets: {
+        Args: { p_filter?: Json };
+        Returns: {
+          facet: string;
+          item_count: number;
+          value: string;
+        }[];
+      };
+      collection_filter_off: { Args: { p_values: Json }; Returns: boolean };
+      collection_item_filter_flags: {
+        Args: {
+          p_acquired_at: string;
+          p_category: Database['public']['Enums']['item_category'];
+          p_details: Json;
+          p_filter: Json;
+          p_format: string;
+          p_ownership: Database['public']['Enums']['ownership_status'];
+          p_source: string;
+          p_subtitle: string;
+          p_tag_ids: string[];
+          p_title: string;
+        };
+        Returns: boolean[];
+      };
+      collection_item_matches: {
+        Args: {
+          p_acquired_at: string;
+          p_category: Database['public']['Enums']['item_category'];
+          p_details: Json;
+          p_filter: Json;
+          p_format: string;
+          p_ownership: Database['public']['Enums']['ownership_status'];
+          p_source: string;
+          p_subtitle: string;
+          p_tag_ids: string[];
+          p_title: string;
+        };
+        Returns: boolean;
+      };
+      collection_items_filtered: {
+        Args: { p_filter?: Json };
+        Returns: {
+          acquired_at: string | null;
+          category: Database['public']['Enums']['item_category'] | null;
+          created_at: string | null;
+          currency: string | null;
+          custom_data: Json | null;
+          details: Json | null;
+          estimated_value: number | null;
+          external_id: string | null;
+          format: string | null;
+          id: string | null;
+          image_url: string | null;
+          metadata_fetched_at: string | null;
+          metadata_overrides: Json | null;
+          metadata_payload: Json | null;
+          notes: string | null;
+          ownership: Database['public']['Enums']['ownership_status'] | null;
+          provider: Database['public']['Enums']['metadata_provider'] | null;
+          provider_image_url: string | null;
+          provider_release_year: number | null;
+          provider_subtitle: string | null;
+          provider_title: string | null;
+          purchase_price: number | null;
+          quantity: number | null;
+          release_year: number | null;
+          source: string | null;
+          subtitle: string | null;
+          title: string | null;
+          updated_at: string | null;
+          user_id: string | null;
+        }[];
+        SetofOptions: {
+          from: '*';
+          to: 'collection_items_view';
+          isOneToOne: false;
+          isSetofReturn: true;
+        };
+      };
       collection_stats: {
         Args: never;
         Returns: {

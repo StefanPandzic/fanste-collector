@@ -89,6 +89,16 @@ export function DesignShowcase() {
           ))}
           <ItemCard item={{ title: 'Not clickable', category: 'funko' }} />
           <ItemCard
+            item={{
+              title: 'With copy badges',
+              category: 'movie',
+              releaseYear: 2010,
+              ownership: 'owned',
+              badges: ['4K UHD', 'Dolby Vision', 'Steelbook', '2 discs'],
+            }}
+            onSelect={() => toast('Selected the card')}
+          />
+          <ItemCard
             item={{ title: 'With badge and action', category: 'movie', releaseYear: 2010 }}
             onSelect={() => toast('Selected the card')}
             badge={

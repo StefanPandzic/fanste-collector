@@ -13,7 +13,10 @@ import { coverBlurDataUrl } from './cover-placeholder';
 import type { ItemCategory } from '@fanste/core';
 
 interface CoverImageProps {
-  /** Cover URL; its host must be in `images.remotePatterns`. Missing → category artwork. */
+  /**
+   * Cover URL; its host must be in `images.remotePatterns` unless `unoptimized`. Missing → category
+   * artwork.
+   */
   src?: string | null;
   /** The item's title, read out for the image and the fallback artwork alike. */
   alt: string;
@@ -21,6 +24,12 @@ interface CoverImageProps {
   /** `next/image` `sizes`: the rendered width at each breakpoint. */
   sizes: string;
   priority?: boolean;
+  /**
+   * Loads `src` directly instead of through the image optimizer. Use it for user-entered covers
+   * (overrides): their hosts aren't in `remotePatterns`, which must never be widened to `**` (an
+   * open fetch proxy).
+   */
+  unoptimized?: boolean;
   className?: string;
 }
 
@@ -29,7 +38,15 @@ interface CoverImageProps {
  * is no cover or it fails to load. Square art (albums, board games, Funko boxes) is fitted, not
  * cropped.
  */
-export function CoverImage({ src, alt, category, sizes, priority, className }: CoverImageProps) {
+export function CoverImage({
+  src,
+  alt,
+  category,
+  sizes,
+  priority,
+  unoptimized,
+  className,
+}: CoverImageProps) {
   // Remembers which URL failed, so a new `src` gets a fresh attempt without an effect.
   const [failedSrc, setFailedSrc] = useState<string | null>(null);
   const showImage = src && src !== failedSrc;
@@ -46,6 +63,7 @@ export function CoverImage({ src, alt, category, sizes, priority, className }: C
           fill
           sizes={sizes}
           priority={priority}
+          unoptimized={unoptimized}
           placeholder="blur"
           blurDataURL={coverBlurDataUrl(category)}
           onError={() => setFailedSrc(src)}

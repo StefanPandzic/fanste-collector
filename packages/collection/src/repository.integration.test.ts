@@ -22,16 +22,25 @@ import {
   updateItemDetails,
   updateOverrides,
 } from './repository/details';
+import { getFacets } from './repository/facets';
 import {
   addItem,
   bulkDelete,
+  bulkUpdateItems,
   deleteItem,
   getItem,
   listItems,
   updateItem,
 } from './repository/items';
 import { getStats } from './repository/stats';
-import { assignTag, createTag, deleteTag, listTags, unassignTag } from './repository/tags';
+import {
+  assignTag,
+  bulkAssignTag,
+  createTag,
+  deleteTag,
+  listTags,
+  unassignTag,
+} from './repository/tags';
 
 import type { CollectionChange } from './realtime/events';
 import type { AddItemDeps } from './repository/items';
@@ -319,6 +328,38 @@ describe('collection repository (dev Supabase project)', () => {
       movie: { format: '4K UHD Blu-ray', details: { resolution: '2160p' } },
       tv: { format: 'Digital file', details: {} },
     });
+  });
+
+  it('filters, sorts, counts and bulk-edits the gallery (FC-18)', async () => {
+    const { items } = await listItems(deviceA);
+    const matrixCopy = items.find((item) => item.externalId === matrix.externalId);
+    if (!matrixCopy || items.length !== 3) throw new Error('Expected the three test copies.');
+    const ids = items.map((item) => item.id);
+
+    expect(await bulkUpdateItems(deviceA, [matrixCopy.id], { acquiredAt: '2024-05-01' })).toBe(1);
+    const tag = await createTag(deviceA, { name: 'FC18 Shelf' });
+    // An id that is no item (e.g. deleted elsewhere) is skipped, not a failure of the whole batch.
+    expect(await bulkAssignTag(deviceA, [...ids, randomUUID()], tag.id)).toBe(3);
+    expect(await bulkAssignTag(deviceA, ids, tag.id)).toBe(0); // already assigned
+
+    expect((await listItems(deviceA, { details: { resolution: ['2160p'] } })).total).toBe(1);
+    expect((await listItems(deviceA, { formats: ['DVD', 'Blu-ray'] })).total).toBe(2);
+    expect((await listItems(deviceA, { acquiredFrom: '2024-01-01' })).items).toEqual([
+      expect.objectContaining({ id: matrixCopy.id }),
+    ]);
+    expect((await listItems(deviceA, { sort: 'value_desc' })).items[0]?.id).toBe(matrixCopy.id);
+    expect((await listItems(deviceA, { search: '100%' })).total).toBe(0);
+
+    // Each facet ignores its own filter: the other media keep their counts while DVD is selected.
+    const facets = await getFacets(deviceA, { formats: ['DVD'] });
+    expect(facets.format).toEqual({ '4K UHD Blu-ray': 1, DVD: 1, 'Blu-ray': 1 });
+    expect(facets.category).toEqual({ movie: 1 });
+    expect(facets.tag).toEqual({ [tag.id]: 1 });
+    expect((await getFacets(deviceA)).resolution).toEqual({ '2160p': 1 });
+
+    expect(await bulkUpdateItems(deviceA, ids, { ownership: 'wishlist' })).toBe(3);
+    expect((await getFacets(deviceA)).ownership).toEqual({ wishlist: 3 });
+    await deleteTag(deviceA, tag.id);
   });
 
   it('deletes items one by one and in bulk', async () => {

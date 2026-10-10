@@ -29,6 +29,11 @@ Adapter for the Discogs API to catalog vinyl, CD and cassette releases with pres
   - [ ] Music filters (Vinyl / CD / Cassette) on the search page
   - [ ] Music copy-details fields in the "Add with details" dialog (medium, discs, vinyl size/speed/variant,
         catalog number), prefilled and marked "from Discogs"
+- [ ] Gallery filters and badges for music (moved here from FC-18, which shipped Movies & TV only):
+  - [ ] Filters on vinyl size and media/sleeve condition: add the keys to `collectionDetailsFilterSchema`
+        (`@fanste/core`), to `collection_item_filter_flags` / `collection_facets` (a migration) and to
+        `COLLECTION_FACETS`, then to the gallery's `FilterPanel` and URL state (`gallery-state.ts`)
+  - [ ] Music badges in `copyBadges` (e.g. "2×LP", "12″", "NM")
 
 ## Acceptance criteria
 - A user can find and add a music release from search in the browser and the desktop app (from FC-17).

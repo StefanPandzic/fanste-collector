@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
   addItemInputSchema,
+  collectionFilterSchema,
   collectionQuerySchema,
   detailsPatchSchemaFor,
   overridesPatchSchema,
@@ -95,5 +96,35 @@ describe('collectionQuerySchema', () => {
       page: 1,
       pageSize: 60,
     });
+  });
+
+  it('accepts the acquired and value sorts', () => {
+    expect(collectionQuerySchema.parse({ sort: 'acquired_desc' }).sort).toBe('acquired_desc');
+    expect(collectionQuerySchema.parse({ sort: 'value_asc' }).sort).toBe('value_asc');
+  });
+});
+
+describe('collectionFilterSchema', () => {
+  it('accepts media, sources, an acquisition range and copy-details filters', () => {
+    expect(
+      collectionFilterSchema.parse({
+        formats: ['4K UHD Blu-ray', 'DVD'],
+        sources: ['scanner'],
+        acquiredFrom: '2024-01-01',
+        acquiredTo: '2024-12-31',
+        details: { resolution: ['2160p'], hdr: ['Dolby Vision'], audioLanguages: ['en'] },
+      }),
+    ).toEqual({
+      formats: ['4K UHD Blu-ray', 'DVD'],
+      sources: ['scanner'],
+      acquiredFrom: '2024-01-01',
+      acquiredTo: '2024-12-31',
+      details: { resolution: ['2160p'], hdr: ['Dolby Vision'], audioLanguages: ['en'] },
+    });
+  });
+
+  it('rejects unknown sources and malformed dates', () => {
+    expect(collectionFilterSchema.safeParse({ sources: ['import'] }).success).toBe(false);
+    expect(collectionFilterSchema.safeParse({ acquiredFrom: '01.05.2024' }).success).toBe(false);
   });
 });

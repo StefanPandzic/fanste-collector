@@ -84,10 +84,10 @@ Keep packages free of Next.js/Electron imports so a future mobile app can reuse 
 inside packages (the `@/*` alias is for apps only). `export` is still an empty stub.
 `core` holds constants, the bridge types, the auth/profile zod schemas, the normalized item model (with the
 category/ownership display metadata, `CATEGORY_META`, and provider names, `providerLabel`), the copy details and
-metadata overrides (`copy-details.ts`, `metadata-overrides.ts`, `prefill.ts`), the recent-searches list logic
-(`search-history.ts`) and the API gateway contracts (`gateway/`), and will hold the filename
-parser. `api-client` is the typed client for the gateway. `config` holds the tsconfig, ESLint and
-Tailwind presets (the design tokens).
+metadata overrides (`copy-details.ts`, `metadata-overrides.ts`, `prefill.ts`), the gallery badges
+(`copy-badges.ts`), the recent-searches list logic (`search-history.ts`) and the API gateway contracts
+(`gateway/`), and will hold the filename parser. `api-client` is the typed client for the gateway.
+`config` holds the tsconfig, ESLint and Tailwind presets (the design tokens).
 
 **`@fanste/supabase`** holds the generated `Database` types (`database.types.ts`, written by `pnpm db:types`;
 never edit it by hand) and three framework-free client factories. They take the URL and keys as arguments, and
@@ -103,10 +103,18 @@ The web app's wrappers live in `apps/web/src/lib/supabase/` (see `apps/web/CLAUD
 **`@fanste/collection`** is the collection data layer (FC-14). It is framework-free apart from React and
 TanStack Query (peer dependencies), so a future mobile app can reuse it:
 
-- `repository/`: functions that take a Supabase client, e.g. `listItems` (reads `collection_items_view`),
-  `addItem`, `updateItem`, `bulkDelete`, the tag functions, `getStats` (the `collection_stats()` RPC) and
-  `findCopies` (the user's copies of given provider items, e.g. "In collection" on search results).
-  `addItem` loads the metadata through the gateway first, so `metadata_cache` is filled.
+- `repository/`: functions that take a Supabase client, e.g. `listItems`, `addItem`, `updateItem`,
+  `bulkDelete`, `bulkUpdateItems`, the tag functions (`bulkAssignTag`), `getStats` (the
+  `collection_stats()` RPC), `getFacets` and `findCopies` (the user's copies of given provider items,
+  e.g. "In collection" on search results). `addItem` loads the metadata through the gateway first, so
+  `metadata_cache` is filled.
+- Filtering runs in Postgres (FC-18). `listItems` calls `collection_items_filtered(filter)`, and
+  PostgREST sorts, pages and counts its rows. `getFacets` calls `collection_facets(filter)`, which gives
+  per-value counts. Both read the `CollectionFilter` of `@fanste/core` as JSON (`toFilterJson`).
+  `collection_item_filter_flags` is the only implementation of the filters; a new filter goes there, in
+  `collectionFilterSchema` and, if it gets counts, in `COLLECTION_FACETS`. These SQL helpers are written
+  to be inlined (no `set search_path`, no subqueries, scalar arguments): keep them that way, or the
+  facets get many times slower.
 - Errors come out as a `CollectionError` with a `code`. Show `collectionErrorMessage()` to users, never the raw
   database text.
 - `realtime/`: `subscribeToCollectionChanges()` joins the private `user:<id>` Broadcast topic, and joins it

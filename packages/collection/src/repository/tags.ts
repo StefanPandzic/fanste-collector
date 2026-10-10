@@ -1,3 +1,5 @@
+import { z } from 'zod';
+
 import { tagInputSchema } from '@fanste/core';
 
 import { CollectionError, toCollectionError } from '../errors';
@@ -85,4 +87,29 @@ export async function unassignTag(
     .eq('item_id', itemId)
     .eq('tag_id', tagId);
   if (error) throw toCollectionError(error);
+}
+
+/** Item ids per request, to keep each request small. */
+const ASSIGN_CHUNK = 500;
+
+/**
+ * Puts a tag on many items; returns how many links were added. Items that already have the tag, and
+ * ids that aren't the user's items (e.g. deleted on another device meanwhile), are skipped.
+ */
+export async function bulkAssignTag(
+  client: FansteSupabaseClient,
+  itemIds: readonly string[],
+  tagId: string,
+): Promise<number> {
+  const unique = [...new Set(itemIds)].filter((id) => z.uuid().safeParse(id).success);
+  let added = 0;
+  for (let start = 0; start < unique.length; start += ASSIGN_CHUNK) {
+    const { data, error } = await client.rpc('assign_tag_to_items', {
+      p_tag_id: tagId,
+      p_item_ids: unique.slice(start, start + ASSIGN_CHUNK),
+    });
+    if (error) throw toCollectionError(error);
+    added += data;
+  }
+  return added;
 }

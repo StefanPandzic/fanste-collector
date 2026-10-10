@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  CARD_BADGES_HEIGHT,
   MAX_GRID_COLUMNS,
   gridColumns,
   gridRowCount,
@@ -27,6 +28,10 @@ describe('gridColumns', () => {
 describe('gridRowHeight', () => {
   it('adds the caption to the cover height of one card', () => {
     expect(gridRowHeight(343, 2)).toBe(297);
+  });
+
+  it('adds the extra caption height, e.g. the badge line', () => {
+    expect(gridRowHeight(343, 2, CARD_BADGES_HEIGHT)).toBe(319);
   });
 });
 

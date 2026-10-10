@@ -1,4 +1,4 @@
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { queryOptions, useQueries, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { EXTERNAL_PROVIDERS } from '@fanste/core';
 
@@ -7,7 +7,9 @@ import { metadataRetryDelay } from '../timing';
 import { useCollectionContext } from './context';
 import { collectionKeys, missingMetadataKey } from './query-keys';
 
+import type { CollectionContextValue } from './context';
 import type { CollectionItem, ExternalProvider, ItemRef } from '@fanste/core';
+import type { QueryClient } from '@tanstack/react-query';
 
 /**
  * Refs of provider items whose metadata isn't cached yet, deduplicated and sorted (a stable query
@@ -29,16 +31,18 @@ export function missingMetadataRefs(
 }
 
 /**
- * Loads metadata that isn't in `metadata_cache` yet through `/api/items/batch`, which caches it,
- * then refetches the collection queries so the items show it. Refs the gateway deferred
- * (`retry_later`) are asked for again with backoff; `not_found` refs are never asked for again.
+ * Query options that load the metadata of `items` that isn't in `metadata_cache` yet through
+ * `/api/items/batch` (one request), which caches it, then refetch the collection queries so the
+ * items show it. Refs the gateway deferred (`retry_later`) are asked for again with backoff;
+ * `not_found` refs are never asked for again.
  */
-export function useMissingMetadata(items: readonly CollectionItem[] | undefined): void {
-  const { api, userId, notFoundRefs } = useCollectionContext();
-  const queryClient = useQueryClient();
+function missingMetadataQuery(
+  { api, userId, notFoundRefs }: CollectionContextValue,
+  queryClient: QueryClient,
+  items: readonly CollectionItem[] | undefined,
+) {
   const refs = missingMetadataRefs(items ?? [], notFoundRefs);
-
-  useQuery({
+  return queryOptions({
     queryKey: missingMetadataKey(userId, refs.map(refKey)),
     enabled: refs.length > 0,
     queryFn: async ({ signal }) => {
@@ -60,4 +64,23 @@ export function useMissingMetadata(items: readonly CollectionItem[] | undefined)
       (query.state.data ?? 0) > 0 ? metadataRetryDelay(query.state.dataUpdateCount - 1) : false,
     refetchOnWindowFocus: false,
   });
+}
+
+/** Loads the metadata of `items` that isn't cached yet, in one batch request. */
+export function useMissingMetadata(items: readonly CollectionItem[] | undefined): void {
+  const context = useCollectionContext();
+  const queryClient = useQueryClient();
+  useQuery(missingMetadataQuery(context, queryClient, items));
+}
+
+/**
+ * Like `useMissingMetadata` for several pages of items: one batch request per page, never one per
+ * item. Keep pages at most `MAX_BATCH_ITEMS` long.
+ */
+export function useMissingMetadataPages(
+  pages: readonly (readonly CollectionItem[] | undefined)[],
+): void {
+  const context = useCollectionContext();
+  const queryClient = useQueryClient();
+  useQueries({ queries: pages.map((items) => missingMetadataQuery(context, queryClient, items)) });
 }

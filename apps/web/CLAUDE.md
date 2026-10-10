@@ -154,6 +154,25 @@ renders `SearchPageClient`.
 - Recent searches are in `localStorage`, per user (`recent-searches.ts`); the list logic is in `@fanste/core`.
 - `SearchShortcut` (in the `(app)` layout) binds Ctrl+K / Cmd+K in the desktop app only.
 
+## Collection gallery (FC-18)
+
+`/collection` is `features/collection/`. Its page (Server Component) reads the URL and renders
+`CollectionPageClient`.
+
+- The filters and sort live in the URL (`gallery-state.ts`; list filters repeat a parameter per value,
+  e.g. `format=DVD&format=VHS`), written with `window.history.replaceState` like the search page. The
+  grid/list choice is in `localStorage`, per user (`view-mode.ts`).
+- The database filters, searches, sorts and counts (see `CLAUDE.md` → `@fanste/collection`); the page
+  never filters items itself. `useCollectionPages` loads pages of `MAX_BATCH_ITEMS` for infinite scroll,
+  so each page's missing metadata is one batch request. `useCollectionFacets` gives the per-value counts.
+- `gallery-items.ts` turns a `CollectionItem` into what the cards and rows show (overrides applied,
+  `copyBadges`). A custom cover (an `imageUrl` override) renders `unoptimized`; never widen
+  `images.remotePatterns` for it.
+- `FilterPanel` is the sidebar from `lg` up and a `Sheet` below. `filterOptions` hides values no item has,
+  unless selected. Add new detail filters there, in `gallery-state.ts` and in the database function.
+- Bulk actions (`SelectionBar`) use `useBulkDeleteItems`, `useBulkUpdateItems` and
+  `useTagAssignment().assignMany`. Cards link to `/collection/[id]`, a placeholder until FC-19.
+
 ## Design system
 
 Tokens are in `packages/config/tailwind/theme.css`. On top of shadcn's colors it has status colors

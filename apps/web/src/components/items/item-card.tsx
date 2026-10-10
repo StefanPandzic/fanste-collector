@@ -20,6 +20,13 @@ export interface ItemCardData {
   imageUrl?: string;
   thumbnailUrl?: string;
   ownership?: OwnershipStatus;
+  /** The cover is a user-entered URL: load it without the image optimizer (see `CoverImage`). */
+  coverUnoptimized?: boolean;
+  /**
+   * Key copy details as small badges, e.g. `["4K UHD", "Dolby Vision"]` (`copyBadges`). When set,
+   * the card always has a badge line, so cards in a grid keep the same height (`CARD_BADGES_HEIGHT`).
+   */
+  badges?: readonly string[];
 }
 
 interface ItemCardProps {
@@ -74,6 +81,7 @@ export function ItemCard({
           category={item.category}
           sizes={sizes ?? DEFAULT_SIZES}
           priority={priority}
+          unoptimized={item.coverUnoptimized}
         />
         {item.ownership && (
           <OwnershipBadge
@@ -82,7 +90,7 @@ export function ItemCard({
             className="absolute top-2 left-2"
           />
         )}
-        {badge && <div className="absolute top-2 right-2">{badge}</div>}
+        {badge && <div className="absolute top-2 right-2 z-10">{badge}</div>}
         {action && <div className="absolute right-2 bottom-2 z-10">{action}</div>}
       </div>
 
@@ -104,6 +112,21 @@ export function ItemCard({
           {item.releaseYear !== undefined && <span>{item.releaseYear}</span>}
           <CategoryBadge category={item.category} iconOnly className="ml-auto" />
         </div>
+        {item.badges && (
+          <ul
+            aria-label="Copy details"
+            className="flex h-4.5 min-w-0 gap-1 overflow-hidden text-[0.6875rem] leading-4.5 text-muted-foreground"
+          >
+            {item.badges.map((label, index) => (
+              <li
+                key={`${index}-${label}`}
+                className="shrink-0 rounded-sm bg-muted px-1 whitespace-nowrap"
+              >
+                {label}
+              </li>
+            ))}
+          </ul>
+        )}
       </div>
     </article>
   );
