@@ -117,6 +117,7 @@ the error shape are in `@fanste/core` (`gateway/`), and clients call the gateway
 | ------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------- |
 | `GET /api/search?category=&q=&page=&year=` | One page from the category's provider (in-memory LRU in front)                                                                                 |
 | `GET /api/items/:provider/:externalId`     | Full `NormalizedItem`, cache-first                                                                                                             |
+| `POST /api/items/:provider/:id/refresh`    | Reloads one item from its provider, skipping the TTL (FC-19); rate limited by `REFRESH_LIMITS`                                                 |
 | `POST /api/items/batch`                    | Many items: one cache read, only misses go to providers. Refs it can't load come back in `missing` with a reason: `not_found` or `retry_later` |
 | `POST /api/match/tmdb`                     | Scanner matching; returns 501 until FC-23                                                                                                      |
 
@@ -171,7 +172,26 @@ renders `SearchPageClient`.
 - `FilterPanel` is the sidebar from `lg` up and a `Sheet` below. `filterOptions` hides values no item has,
   unless selected. Add new detail filters there, in `gallery-state.ts` and in the database function.
 - Bulk actions (`SelectionBar`) use `useBulkDeleteItems`, `useBulkUpdateItems` and
-  `useTagAssignment().assignMany`. Cards link to `/collection/[id]`, a placeholder until FC-19.
+  `useTagAssignment().assignMany`. Cards link to the item page, `/collection/[id]` (FC-19).
+
+## Item detail (FC-19)
+
+`/collection/[id]` is `features/item-detail/`. Its page (Server Component) reads the user's default
+currency and renders `ItemDetailPageClient`.
+
+- `useCollectionItem` shows the row from a cached gallery page at once, then the database row. The full
+  provider item loads in the background through `providerItemQuery` (`features/search/item-query.ts`).
+- Every field saves on its own with `useAutosave`: pickers at once, text after a pause or on blur. The
+  pure converters in `item-detail-view.ts` (`toCopyPatch`, `toDetailsPatch`, `toOverridesPatch`) turn
+  the changed fields into patches of the valid ones plus errors. Copy details and overrides go through the
+  FC-15 merge functions.
+- The copy-details form pieces (`CopyDetailsFields`, `SeasonPicker`, `OptionField`, `LanguagePicker`,
+  `FormField`) and their helpers (`copy-form.ts`) live in `features/copy-form/`, shared with the add
+  dialog. The seasons editor adds per-season overrides through `SeasonPicker`'s `renderSeasonExtra`.
+- "Edit metadata" writes overrides; an empty value or the provider's own value resets a field. A custom
+  cover renders `unoptimized`.
+- Delete goes back to the gallery with an "Undo" toast (`useRestoreItem`). "Refresh metadata" calls the
+  refresh route (`useRefreshMetadata`) and never touches details or overrides.
 
 ## Design system
 

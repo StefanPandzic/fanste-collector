@@ -149,6 +149,32 @@ describe('createItemService', () => {
     );
   });
 
+  it('refreshes a cached item past the cooldown even within its TTL', async () => {
+    const cached = { ...movie('movie:603'), title: 'Old title' };
+    const tenMinutesAgo = new Date('2026-10-09T11:50:00Z');
+    const { service, getById, cache } = setup([{ item: cached, fetchedAt: tenMinutesAgo }]);
+    expect(await service.refreshItem(matrixRef)).toEqual(movie('movie:603'));
+    expect(getById).toHaveBeenCalledWith('movie:603', 'movie');
+    expect(cache.upsert).toHaveBeenCalledWith([movie('movie:603')]);
+  });
+
+  it('returns an item refreshed within the cooldown from the cache', async () => {
+    const twoMinutesAgo = new Date('2026-10-09T11:58:00Z');
+    const { service, getById, cache } = setup([
+      { item: movie('movie:603'), fetchedAt: twoMinutesAgo },
+    ]);
+    expect(await service.refreshItem(matrixRef)).toEqual(movie('movie:603'));
+    expect(getById).not.toHaveBeenCalled();
+    expect(cache.upsert).not.toHaveBeenCalled();
+  });
+
+  it('fetches and stores an item to refresh that is not cached', async () => {
+    const { service, getById, cache } = setup([]);
+    expect(await service.refreshItem(matrixRef)).toEqual(movie('movie:603'));
+    expect(getById).toHaveBeenCalledTimes(1);
+    expect(cache.upsert).toHaveBeenCalledWith([movie('movie:603')]);
+  });
+
   it('fetches from the providers when the cache read fails', async () => {
     const { service, getById } = setup('cache down');
     expect(await service.getItem(matrixRef)).toEqual(movie('movie:603'));

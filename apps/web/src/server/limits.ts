@@ -80,6 +80,16 @@ export const PROVIDER_RETRY = {
 /** Requests per user to the gateway, to protect our provider quota. */
 export const USER_RATE_LIMIT = { limit: 60, windowMs: 60_000 };
 
+/**
+ * "Refresh metadata" (FC-19) skips the cache TTL, so it has its own limits: per user (on top of
+ * `USER_RATE_LIMIT`, per instance), and per item through `metadata_cache.fetched_at`, which every
+ * instance shares: an item fetched less than `cooldownMs` ago is answered from the cache.
+ */
+export const REFRESH_LIMITS = {
+  perUser: { limit: 10, windowMs: 10 * 60_000 },
+  cooldownMs: 5 * 60_000,
+};
+
 /** Per-instance search result cache. */
 export const SEARCH_CACHE = { maxEntries: 500, ttlMs: 10 * 60_000 };
 

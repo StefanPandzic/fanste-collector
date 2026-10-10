@@ -43,6 +43,11 @@ export interface RequestOptions {
 export interface ApiClient {
   search(query: SearchQuery, options?: RequestOptions): Promise<SearchResponse>;
   getItem(ref: ItemRef, options?: RequestOptions): Promise<NormalizedItem>;
+  /**
+   * Loads an item from its provider again, skipping the cache TTL, and stores it in the shared cache.
+   * Rate limited per user (`rate_limited`); an item refreshed moments ago comes from the cache.
+   */
+  refreshItem(ref: ItemRef, options?: RequestOptions): Promise<NormalizedItem>;
   /** Cached metadata of many items, in one request per `MAX_BATCH_ITEMS` refs. */
   getItemsBatch(refs: readonly ItemRef[], options?: RequestOptions): Promise<BatchResponse>;
   /** TMDB candidates per query, in query order; sent in chunks of `MAX_MATCH_QUERIES`. */
@@ -117,9 +122,15 @@ export function createApiClient({
       });
     },
 
-    getItem({ provider, externalId }, options) {
-      const path = `/api/items/${encodeURIComponent(provider)}/${encodeURIComponent(externalId)}`;
-      return request(path, itemResponseSchema, { method: 'GET', signal: options?.signal });
+    getItem(ref, options) {
+      return request(itemPath(ref), itemResponseSchema, { method: 'GET', signal: options?.signal });
+    },
+
+    refreshItem(ref, options) {
+      return request(`${itemPath(ref)}/refresh`, itemResponseSchema, {
+        method: 'POST',
+        signal: options?.signal,
+      });
     },
 
     async getItemsBatch(refs, options) {
@@ -152,6 +163,11 @@ export function createApiClient({
       return { results };
     },
   };
+}
+
+/** `/api/items/:provider/:externalId`. */
+function itemPath({ provider, externalId }: ItemRef): string {
+  return `/api/items/${encodeURIComponent(provider)}/${encodeURIComponent(externalId)}`;
 }
 
 function chunk<T>(values: readonly T[], size: number): T[][] {

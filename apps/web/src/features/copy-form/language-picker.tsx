@@ -17,29 +17,42 @@ import {
 } from '@/components/ui/command';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 
+import type { ChangeOptions } from './copy-form';
+
 interface LanguagePickerProps {
   id: string;
   /** Field name, e.g. `Audio languages`, for the accessible names. */
   label: string;
   /** ISO 639 codes, in order. */
   value: readonly string[];
-  onChange: (value: string[]) => void;
+  /** Every change is a pick (`immediate`). */
+  onChange: (value: string[], options: ChangeOptions) => void;
   /** Marks the first language as the main one and lets the user pick another (audio). */
   withMain?: boolean;
+  disabled?: boolean;
 }
 
 /** Searchable multi-select of languages, shown by name (`Intl.DisplayNames`), stored as codes. */
-export function LanguagePicker({ id, label, value, onChange, withMain }: LanguagePickerProps) {
+export function LanguagePicker({
+  id,
+  label,
+  value,
+  onChange,
+  withMain,
+  disabled,
+}: LanguagePickerProps) {
   const [open, setOpen] = useState(false);
   // Codes stored earlier that the list doesn't offer stay selectable.
   const codes = [...new Set<string>([...LANGUAGE_CODES, ...value])];
 
   function toggle(code: string) {
-    onChange(value.includes(code) ? value.filter((entry) => entry !== code) : [...value, code]);
+    onChange(value.includes(code) ? value.filter((entry) => entry !== code) : [...value, code], {
+      immediate: true,
+    });
   }
 
   function makeMain(code: string) {
-    onChange([code, ...value.filter((entry) => entry !== code)]);
+    onChange([code, ...value.filter((entry) => entry !== code)], { immediate: true });
   }
 
   return (
@@ -52,6 +65,7 @@ export function LanguagePicker({ id, label, value, onChange, withMain }: Languag
             variant="outline"
             role="combobox"
             aria-expanded={open}
+            disabled={disabled}
             className="w-full justify-between font-normal"
           >
             {value.length === 0 ? 'Choose languages' : `${value.length} selected`}
@@ -95,6 +109,7 @@ export function LanguagePicker({ id, label, value, onChange, withMain }: Languag
                       type="button"
                       variant="ghost"
                       size="icon-xs"
+                      disabled={disabled}
                       onClick={() => makeMain(code)}
                       aria-label={`Make ${name} the main language`}
                       title="Make main"
@@ -106,6 +121,7 @@ export function LanguagePicker({ id, label, value, onChange, withMain }: Languag
                     type="button"
                     variant="ghost"
                     size="icon-xs"
+                    disabled={disabled}
                     onClick={() => toggle(code)}
                     aria-label={`Remove ${name}`}
                   >

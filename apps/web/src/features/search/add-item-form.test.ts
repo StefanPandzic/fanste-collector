@@ -1,15 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import {
-  cleanDetails,
-  initialFormValues,
-  prefillLabel,
-  showsCopyDetails,
-  showsDigitalStore,
-  showsFileFormat,
-  targetOf,
-  toAddItemInput,
-} from './add-item-form';
+import { initialFormValues, prefillLabel, targetOf, toAddItemInput } from './add-item-form';
 
 import type { AddItemFormValues, AddTarget } from './add-item-form';
 
@@ -56,42 +47,6 @@ describe('initialFormValues', () => {
         sources: {},
       }),
     ).toEqual({ ...formValues, format: '4K UHD Blu-ray', details: { resolution: '2160p' } });
-  });
-});
-
-describe('showsCopyDetails', () => {
-  it('shows details for copies the user has', () => {
-    expect(showsCopyDetails('owned')).toBe(true);
-    expect(showsCopyDetails('loaned_out')).toBe(true);
-    expect(showsCopyDetails('wishlist')).toBe(false);
-  });
-});
-
-describe('showsFileFormat', () => {
-  it('shows the container only for a digital file', () => {
-    expect(showsFileFormat('Digital file')).toBe(true);
-    expect(showsFileFormat('Blu-ray')).toBe(false);
-  });
-});
-
-describe('showsDigitalStore', () => {
-  it('shows the store only for a digital store copy', () => {
-    expect(showsDigitalStore('Digital store')).toBe(true);
-    expect(showsDigitalStore('Digital file')).toBe(false);
-  });
-});
-
-describe('cleanDetails', () => {
-  it('drops blank text, empty lists and undefined values', () => {
-    expect(
-      cleanDetails({
-        resolution: '2160p',
-        edition: '  ',
-        subtitleLanguages: [],
-        region: undefined,
-        discCount: 2,
-      }),
-    ).toEqual({ resolution: '2160p', discCount: 2 });
   });
 });
 

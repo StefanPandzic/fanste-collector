@@ -97,6 +97,32 @@ export function toInsertRow(input: ParsedAddItem): TablesInsert<'collection_item
   };
 }
 
+/**
+ * The `collection_items` insert that puts a deleted copy back as it was (undo of a delete): the same
+ * ID, copy fields, details, overrides and `created_at`. Custom items also need their `custom_data`,
+ * which `CollectionItem` doesn't carry yet (FC-13).
+ */
+export function toRestoreRow(item: CollectionItem): TablesInsert<'collection_items'> {
+  return {
+    id: item.id,
+    category: item.category,
+    provider: item.provider,
+    external_id: item.externalId,
+    format: item.format,
+    details: item.details as Json,
+    metadata_overrides: item.metadataOverrides,
+    ownership: item.ownership,
+    quantity: item.quantity,
+    acquired_at: item.acquiredAt,
+    purchase_price: item.purchasePrice,
+    estimated_value: item.estimatedValue,
+    currency: item.currency,
+    notes: item.notes,
+    source: item.source,
+    created_at: item.createdAt,
+  };
+}
+
 /** The `collection_items` update for a parsed patch. Only the fields present are sent. */
 export function toUpdateRow(patch: ParsedPatch): TablesUpdate<'collection_items'> {
   const row: TablesUpdate<'collection_items'> = {};

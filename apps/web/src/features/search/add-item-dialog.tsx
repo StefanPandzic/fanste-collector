@@ -36,10 +36,11 @@ import {
 } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Textarea } from '@/components/ui/textarea';
+import { CopyDetailsFields } from '@/features/copy-form/copy-details-fields';
+import { showsCopyDetails } from '@/features/copy-form/copy-form';
+import { FormField } from '@/features/copy-form/form-field';
 
-import { initialFormValues, prefillLabel, showsCopyDetails, toAddItemInput } from './add-item-form';
-import { CopyDetailsFields } from './copy-details-fields';
-import { FormField } from './form-field';
+import { initialFormValues, prefillLabel, toAddItemInput } from './add-item-form';
 import { providerItemQuery } from './item-query';
 import { searchErrorText } from './search-errors';
 

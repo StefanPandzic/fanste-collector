@@ -49,6 +49,7 @@ import {
   deleteItem,
   getItem,
   listItems,
+  restoreItem,
   updateItem,
 } from '../repository/items';
 import { getStats } from '../repository/stats';
@@ -110,13 +111,18 @@ export function useCollection(query: CollectionQuery = {}) {
   return result;
 }
 
-/** One item, or `null` if it doesn't exist. */
+/**
+ * One item, or `null` if it doesn't exist. While it loads, the row from a cached list (e.g. the
+ * gallery the user came from) shows at once (`isPlaceholderData`).
+ */
 export function useCollectionItem(id: string | undefined) {
   const { client, userId } = useCollectionContext();
+  const queryClient = useQueryClient();
   const result = useQuery({
     queryKey: collectionKeys.detail(userId, id ?? ''),
     queryFn: () => getItem(client, id ?? ''),
     enabled: id !== undefined,
+    placeholderData: () => (id ? listedItem(queryClient, userId, id) : undefined),
     ...LIVE_QUERY,
   });
   useMissingMetadata(result.data ? [result.data] : undefined);
@@ -321,6 +327,19 @@ function toCopy({ id, format, ownership }: CollectionItem) {
   return { id, format, ownership };
 }
 
+/** An item as a cached list page has it. */
+function listedItem(
+  queryClient: QueryClient,
+  userId: string,
+  id: string,
+): CollectionItem | undefined {
+  for (const [, page] of cachedLists(queryClient, userId)) {
+    const item = page.items.find((entry) => entry.id === id);
+    if (item) return item;
+  }
+  return undefined;
+}
+
 /** The cached version of an item (detail first, then any list), for undoing changes to it. */
 function cachedItem(
   queryClient: QueryClient,
@@ -328,12 +347,7 @@ function cachedItem(
   id: string,
 ): CollectionItem | undefined {
   const detail = queryClient.getQueryData<CollectionItem | null>(collectionKeys.detail(userId, id));
-  if (detail) return detail;
-  for (const [, page] of cachedLists(queryClient, userId)) {
-    const item = page.items.find((entry) => entry.id === id);
-    if (item) return item;
-  }
-  return undefined;
+  return detail ?? listedItem(queryClient, userId, id);
 }
 
 /**
@@ -692,6 +706,24 @@ export function useDeleteItem() {
   });
 }
 
+/**
+ * Puts a deleted item back as it was (the undo of `useDeleteItem`): same ID, details, overrides and
+ * the tags that still exist. The lists show it again after the refetch.
+ */
+export function useRestoreItem() {
+  const context = useCollectionContext();
+  const { client, userId } = context;
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    ...mutationOptions(queryClient, context),
+    mutationFn: (item: CollectionItem) => restoreItem(client, item),
+    onSuccess: (item) => {
+      queryClient.setQueryData(collectionKeys.detail(userId, item.id), item);
+    },
+  });
+}
+
 /** Deletes many items, optimistically. Resolves to the number deleted. */
 export function useBulkDeleteItems() {
   const context = useCollectionContext();
@@ -709,6 +741,22 @@ export function useBulkDeleteItems() {
       await cancelRefetches(queryClient, userId);
       return removeOptimistically(queryClient, userId, ids);
     },
+  });
+}
+
+/**
+ * Loads an item's metadata from its provider again, skipping the cache TTL (rate limited by the
+ * gateway). Only the shared `metadata_cache` changes: the user's details and overrides never do.
+ * Resolves to the fresh provider item.
+ */
+export function useRefreshMetadata() {
+  const context = useCollectionContext();
+  const { api } = context;
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    ...mutationOptions(queryClient, context),
+    mutationFn: (ref: ItemRef) => api.refreshItem(ref),
   });
 }
 

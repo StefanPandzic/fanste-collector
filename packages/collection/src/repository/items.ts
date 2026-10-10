@@ -8,6 +8,7 @@ import {
   ITEM_VIEW_SELECT,
   toCollectionItem,
   toInsertRow,
+  toRestoreRow,
   toUpdateRow,
 } from './mappers';
 
@@ -196,6 +197,48 @@ export async function updateItem(
 export async function deleteItem(client: FansteSupabaseClient, id: string): Promise<void> {
   const deleted = await bulkDelete(client, [id]);
   if (deleted === 0) throw new CollectionError('not_found', `No item ${id}.`);
+}
+
+/**
+ * Puts a deleted copy back as it was, with the same ID and the tags that still exist (undo of a
+ * delete; the tags are best effort). Fails with `duplicate` when the user added the same item in
+ * the same medium meanwhile.
+ */
+export async function restoreItem(
+  client: FansteSupabaseClient,
+  item: CollectionItem,
+): Promise<CollectionItem> {
+  if (item.provider === 'custom') {
+    // Restoring needs the item's `custom_data`, which comes with custom items (FC-13).
+    throw new CollectionError('invalid', 'Custom items cannot be restored yet.');
+  }
+  const { error } = await client.from('collection_items').insert(toRestoreRow(item));
+  if (error) throw toCollectionError(error);
+
+  // The copy is back at this point, so its tags are put back best effort: failing to re-link them
+  // must not report the undo as failed.
+  await relinkTags(client, item.id, item.tagIds).catch(() => undefined);
+
+  const restored = await getItem(client, item.id);
+  if (!restored) throw new CollectionError('not_found', `No item ${item.id}.`);
+  return restored;
+}
+
+/** Links the tags among `tagIds` that still exist (RLS limits `tags` to the user's own) to an item. */
+async function relinkTags(
+  client: FansteSupabaseClient,
+  itemId: string,
+  tagIds: readonly string[],
+): Promise<void> {
+  if (tagIds.length === 0) return;
+  const { data: tags, error } = await client.from('tags').select('id').in('id', tagIds);
+  if (error) throw toCollectionError(error);
+  if (tags.length === 0) return;
+  const { error: linkError } = await client.from('collection_item_tags').upsert(
+    tags.map((tag) => ({ item_id: itemId, tag_id: tag.id })),
+    { ignoreDuplicates: true },
+  );
+  if (linkError) throw toCollectionError(linkError);
 }
 
 /** Deletes many items; returns how many were deleted. Unknown ids are skipped. */

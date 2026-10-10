@@ -14,6 +14,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 
+import type { ChangeOptions } from './copy-form';
 import type { CopyOption } from '@fanste/core';
 
 // Radix Select items can't have an empty value.
@@ -27,27 +28,36 @@ interface OptionFieldProps {
   /** Empty for "Not set". */
   value: string;
   options: readonly CopyOption[];
-  onChange: (value: string) => void;
+  onChange: (value: string, options: ChangeOptions) => void;
   invalid?: boolean;
+  disabled?: boolean;
 }
 
 /**
  * A copy-details field: picks from the suggested options, or "Other…" for free text (every option
  * field accepts any value, FC-15).
  */
-export function OptionField({ id, label, value, options, onChange, invalid }: OptionFieldProps) {
+export function OptionField({
+  id,
+  label,
+  value,
+  options,
+  onChange,
+  invalid,
+  disabled,
+}: OptionFieldProps) {
   const known = options.some((option) => option.value === value);
   const [other, setOther] = useState(value !== '' && !known);
   const selected = other ? OTHER : value === '' ? NONE : value;
 
   function select(next: string) {
     setOther(next === OTHER);
-    onChange(next === OTHER || next === NONE ? '' : next);
+    onChange(next === OTHER || next === NONE ? '' : next, { immediate: next !== OTHER });
   }
 
   return (
     <div className="flex flex-col gap-2">
-      <Select value={selected} onValueChange={select}>
+      <Select value={selected} onValueChange={select} disabled={disabled}>
         <SelectTrigger id={id} className="w-full" aria-invalid={invalid || undefined}>
           <SelectValue />
         </SelectTrigger>
@@ -69,8 +79,9 @@ export function OptionField({ id, label, value, options, onChange, invalid }: Op
           placeholder="Type a value"
           value={value}
           maxLength={MAX_OPTION_LENGTH}
-          onChange={(event) => onChange(event.target.value)}
+          onChange={(event) => onChange(event.target.value, { immediate: false })}
           aria-invalid={invalid || undefined}
+          disabled={disabled}
         />
       )}
     </div>

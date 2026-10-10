@@ -16,6 +16,7 @@ import { EmptyState } from '@/components/states/empty-state';
 import { ErrorState } from '@/components/states/error-state';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 import { mockItems } from './mock-items';
 
@@ -80,6 +81,19 @@ export function DesignShowcase() {
           ))}
           <TagChip label="Read-only tag" />
         </div>
+      </Section>
+
+      <Section title="Tooltip">
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button variant="outline" size="sm" className="w-fit">
+                Hover or focus me
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>Short hints, e.g. a field&apos;s original value.</TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
       </Section>
 
       <Section title="Cards">
