@@ -1,6 +1,8 @@
 import {
   applyOverrides,
   detailsPatchSchemaFor,
+  FILE_DETAIL_FIELDS,
+  fileDetailOrigin,
   languageLabel,
   overridesPatchSchema,
   parseMovieExtra,
@@ -19,6 +21,8 @@ import {
 import type {
   CollectionItem,
   DetailsPatch,
+  FileDetailField,
+  FileDetails,
   ItemCategory,
   MetadataProvider,
   NormalizedItem,
@@ -328,4 +332,35 @@ export function parseNameList(value: string): string[] {
     .split(',')
     .map((entry) => entry.trim())
     .filter(Boolean);
+}
+
+// ---------------------------------------------------------------------------------------------------
+// Copy details from the file itself (FC-23)
+// ---------------------------------------------------------------------------------------------------
+
+/** Label of the marker of a detail that is still what the file's headers said. */
+export const FROM_FILE_LABEL = 'from file';
+
+/**
+ * The marker of a copy detail the scanner took from the file's own headers (`file_details`):
+ * `file` while it still has that value, `edited` (with the file's value) once the user changed or
+ * cleared it. `undefined` for fields nothing was recorded for.
+ */
+export type FileMarker =
+  { kind: 'file' } | { kind: 'edited'; fileValue: string | string[]; hint: string };
+
+export function fileMarkerOf(
+  field: string,
+  stored: unknown,
+  recorded: FileDetails,
+): FileMarker | undefined {
+  if (!(FILE_DETAIL_FIELDS as readonly string[]).includes(field)) return undefined;
+  const fileValue = recorded[field as FileDetailField];
+  const origin = fileDetailOrigin(stored, fileValue);
+  if (!origin || fileValue === undefined) return undefined;
+  if (origin === 'file') return { kind: 'file' };
+  const text = Array.isArray(fileValue)
+    ? fileValue.map((code) => languageLabel(code)).join(', ')
+    : fileValue;
+  return { kind: 'edited', fileValue, hint: `File: ${text}` };
 }

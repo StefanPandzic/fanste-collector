@@ -1,17 +1,15 @@
-import { matchRequestSchema } from '@fanste/core';
+import { matchRequestSchema, matchResponseSchema } from '@fanste/core';
 
-import { GatewayError } from '@/server/errors';
-import { gatewayRoute } from '@/server/gateway';
-import { parseInput, readJson } from '@/server/http/responses';
+import { gatewayRoute, tmdbMatcher } from '@/server/gateway';
+import { jsonOk, parseInput, readJson } from '@/server/http/responses';
+import { matchTitles } from '@/server/match';
 
 /**
  * `POST /api/match/tmdb` with `{ queries: [{ title, year?, kind }] }`: the best TMDB candidates for
- * each scanned title, with a confidence (`matchResponseSchema`). FC-23 scores the candidates from
- * `tmdbMatcher` (`server/gateway.ts`, FC-09).
+ * each scanned title, scored by `scoreCandidates` (FC-23). The scanner sends its files in batches of
+ * `MAX_MATCH_QUERIES`.
  */
 export const POST = gatewayRoute('match.tmdb', async (request) => {
-  parseInput(matchRequestSchema, await readJson(request));
-  throw new GatewayError('not_implemented', 'TMDB matching is not available yet (FC-23).', {
-    provider: 'tmdb',
-  });
+  const { queries } = parseInput(matchRequestSchema, await readJson(request));
+  return jsonOk(matchResponseSchema, await matchTitles(tmdbMatcher, queries));
 });

@@ -4,6 +4,7 @@ import { requireUser } from '@/features/auth/session';
 import { SessionProvider } from '@/features/auth/session-provider';
 import { AppCollectionProvider } from '@/features/collection/collection-provider';
 import { getProfile } from '@/features/profile/queries';
+import { ScanMatcherProvider } from '@/features/scanner/scan-matcher-provider';
 
 import type { ReactNode } from 'react';
 
@@ -16,13 +17,15 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
   return (
     <SessionProvider initialUser={user}>
       <AppCollectionProvider>
-        <AppShell
-          profileName={profile?.display_name ?? null}
-          avatarUrl={profile?.avatar_url ?? null}
-        >
-          {children}
-        </AppShell>
-        <SearchShortcut />
+        <ScanMatcherProvider>
+          <AppShell
+            profileName={profile?.display_name ?? null}
+            avatarUrl={profile?.avatar_url ?? null}
+          >
+            {children}
+          </AppShell>
+          <SearchShortcut />
+        </ScanMatcherProvider>
       </AppCollectionProvider>
     </SessionProvider>
   );

@@ -58,6 +58,7 @@ export type Database = {
           details: Json;
           estimated_value: number | null;
           external_id: string | null;
+          file_details: Json;
           format: string | null;
           format_key: string;
           id: string;
@@ -80,6 +81,7 @@ export type Database = {
           details?: Json;
           estimated_value?: number | null;
           external_id?: string | null;
+          file_details?: Json;
           format?: string | null;
           format_key?: string;
           id?: string;
@@ -102,6 +104,7 @@ export type Database = {
           details?: Json;
           estimated_value?: number | null;
           external_id?: string | null;
+          file_details?: Json;
           format?: string | null;
           format_key?: string;
           id?: string;
@@ -188,6 +191,7 @@ export type Database = {
           file_path: string;
           file_size: number | null;
           id: string;
+          match_candidates: Json | null;
           match_confidence: number | null;
           match_status: string;
           media_info: Json | null;
@@ -207,6 +211,7 @@ export type Database = {
           file_path: string;
           file_size?: number | null;
           id?: string;
+          match_candidates?: Json | null;
           match_confidence?: number | null;
           match_status?: string;
           media_info?: Json | null;
@@ -226,6 +231,7 @@ export type Database = {
           file_path?: string;
           file_size?: number | null;
           id?: string;
+          match_candidates?: Json | null;
           match_confidence?: number | null;
           match_status?: string;
           media_info?: Json | null;
@@ -422,6 +428,10 @@ export type Database = {
         };
         Returns: string[];
       };
+      merge_item_file_details: {
+        Args: { p_id: string; p_values: Json };
+        Returns: string[];
+      };
       merge_item_overrides: {
         Args: { p_id: string; p_patch: Json };
         Returns: string[];
@@ -433,6 +443,36 @@ export type Database = {
         };
         Returns: undefined;
       };
+      set_scan_matches: {
+        Args: { p_matches: Json };
+        Returns: {
+          collection_item_id: string | null;
+          device_id: string;
+          file_modified_at: string | null;
+          file_path: string;
+          file_size: number | null;
+          id: string;
+          match_candidates: Json | null;
+          match_confidence: number | null;
+          match_status: string;
+          media_info: Json | null;
+          parsed_format: string | null;
+          parsed_title: string | null;
+          parsed_year: number | null;
+          path_key: string;
+          removed_at: string | null;
+          scanned_at: string;
+          subtitle_languages: string[];
+          user_id: string;
+        }[];
+        SetofOptions: {
+          from: '*';
+          to: 'scanned_files';
+          isOneToOne: false;
+          isSetofReturn: true;
+        };
+      };
+      set_scanner_settings: { Args: { p_settings: Json }; Returns: undefined };
     };
     Enums: {
       item_category: 'movie' | 'tv' | 'music' | 'video_game' | 'board_game' | 'funko';

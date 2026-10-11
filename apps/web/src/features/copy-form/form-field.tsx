@@ -9,8 +9,11 @@ interface FormFieldProps {
   /** `id` of the control, for the label. */
   id: string;
   label: string;
-  /** Prefill marker, e.g. `from TMDB`, shown until the user changes the value. */
-  marker?: string;
+  /**
+   * Marker next to the label: text (a prefill source like `from TMDB`, shown as a badge) or an
+   * element of its own, e.g. the item page's "edited" marker.
+   */
+  marker?: ReactNode;
   error?: string;
   hint?: string;
   className?: string;
@@ -23,10 +26,12 @@ export function FormField({ id, label, marker, error, hint, className, children 
     <div className={cn('flex flex-col gap-1.5', className)}>
       <div className="flex min-h-5 items-center justify-between gap-2">
         <Label htmlFor={id}>{label}</Label>
-        {marker && (
+        {!marker ? null : typeof marker === 'string' ? (
           <Badge variant="outline" className="font-normal text-muted-foreground">
             {marker}
           </Badge>
+        ) : (
+          marker
         )}
       </div>
       {children}

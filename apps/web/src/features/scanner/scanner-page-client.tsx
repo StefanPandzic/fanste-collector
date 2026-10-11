@@ -7,16 +7,19 @@ import { CollectionError, collectionErrorMessage } from '@fanste/collection';
 
 import { EmptyState } from '@/components/states/empty-state';
 import { ErrorState } from '@/components/states/error-state';
+import { Card } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 
 import { LibraryFolders } from './library-folders';
+import { AutoAddSetting, MatchProgressPanel } from './match-panel';
 import { ScanProgressPanel } from './scan-progress-panel';
 import { ScanResultsTable } from './scan-results-table';
 import { currentFiles, filesPerFolder } from './scanner-view';
 import { useScanner } from './use-scanner';
 
 /**
- * The desktop scanner (FC-21): library folders, scans with live progress, and the scanned files.
+ * The desktop scanner (FC-21): library folders, scans with live progress, the background matching
+ * (FC-23) and the scanned files.
  * Rendered only in the desktop app (`<DesktopOnly>` on the page).
  */
 export function ScannerPageClient() {
@@ -69,7 +72,11 @@ export function ScannerPageClient() {
             onScan={(folder) => void scanner.scan(folder ? [folder.path] : undefined)}
             onRemove={(folder) => void scanner.removeFolder(folder)}
           />
+          <Card className="p-card">
+            <AutoAddSetting />
+          </Card>
           {phase.kind !== 'idle' && <ScanProgressPanel phase={phase} onCancel={scanner.cancel} />}
+          {scanner.matcher && <MatchProgressPanel matcher={scanner.matcher} />}
           {current.length > 0 ? (
             <ScanResultsTable files={current} />
           ) : (

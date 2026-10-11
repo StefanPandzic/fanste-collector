@@ -1,6 +1,8 @@
 'use client';
 
-import { useUpdateItem, useUpdateItemDetails } from '@fanste/collection';
+import { useMemo } from 'react';
+
+import { useItemFileDetails, useUpdateItem, useUpdateItemDetails } from '@fanste/collection';
 import {
   CURRENCIES,
   MAX_NOTES_LENGTH,
@@ -24,13 +26,36 @@ import { CopyDetailsFields } from '@/features/copy-form/copy-details-fields';
 import { showsCopyDetails } from '@/features/copy-form/copy-form';
 import { FormField } from '@/features/copy-form/form-field';
 
-import { copyFieldValues, toCopyPatch, toDetailsPatch } from './item-detail-view';
+import { EditedMarker } from './edited-marker';
+import {
+  copyFieldValues,
+  fileMarkerOf,
+  FROM_FILE_LABEL,
+  toCopyPatch,
+  toDetailsPatch,
+} from './item-detail-view';
 import { SeasonsEditor } from './seasons-editor';
 import { TagPicker } from './tag-picker';
 import { useAutosave } from './use-autosave';
 
 import type { DetailsChange } from '@fanste/collection';
-import type { CollectionItem, NormalizedItem, OwnershipStatus, TvDetails } from '@fanste/core';
+import type {
+  CollectionItem,
+  FileDetailField,
+  NormalizedItem,
+  OwnershipStatus,
+  TvDetails,
+} from '@fanste/core';
+
+/** Names of the details a file's headers fill, for the reset buttons' accessible names. */
+const FILE_FIELD_NAMES: Record<FileDetailField, string> = {
+  fileFormat: 'file format',
+  resolution: 'resolution',
+  hdr: 'HDR',
+  audioChannels: 'audio channels',
+  audioLanguages: 'audio languages',
+  subtitleLanguages: 'subtitle languages',
+};
 
 // Radix Select items can't have an empty value.
 const NO_CURRENCY = '__none__';
@@ -45,7 +70,9 @@ interface CopySectionProps {
 
 /**
  * "My copy" (FC-19): the copy fields, tags and the category's copy details (FC-15). Every field
- * saves on its own: pickers at once, text after a pause or when it loses focus.
+ * saves on its own: pickers at once, text after a pause or when it loses focus. Details the scanner
+ * read from the file's own headers are marked "from file", and "edited" with a reset to the file's
+ * value once changed (FC-23).
  */
 export function CopySection({ item, metadata, defaultCurrency }: CopySectionProps) {
   const updateItem = useUpdateItem();
@@ -79,6 +106,30 @@ export function CopySection({ item, metadata, defaultCurrency }: CopySectionProp
   const shownCurrency = values.currency || defaultCurrency;
   const hasDetails = showsCopyDetails(values.ownership);
   const readOnly = values.ownership === 'sold';
+
+  const fileDetails = useItemFileDetails(item.id);
+  const recorded = useMemo(() => fileDetails.data ?? {}, [fileDetails.data]);
+
+  function markerOf(field: string) {
+    const marker = fileMarkerOf(field, details.values[field as keyof TvDetails], recorded);
+    if (!marker) return undefined;
+    if (marker.kind === 'file') return FROM_FILE_LABEL;
+    return (
+      <EditedMarker
+        hint={marker.hint}
+        field={FILE_FIELD_NAMES[field as FileDetailField]}
+        resetTo="the file's value"
+        onReset={
+          readOnly
+            ? undefined
+            : () =>
+                details.set(field as keyof TvDetails, marker.fileValue, {
+                  immediate: true,
+                })
+        }
+      />
+    );
+  }
 
   function textProps<K extends 'quantity' | 'acquiredAt' | 'purchasePrice' | 'estimatedValue'>(
     field: K,
@@ -215,7 +266,7 @@ export function CopySection({ item, metadata, defaultCurrency }: CopySectionProp
             details={details.values}
             onFormatChange={(value, options) => copy.set('format', value, options)}
             onDetailChange={(field, value, options) => details.set(field, value, options)}
-            markerOf={() => undefined}
+            markerOf={markerOf}
             errors={{
               ...details.errors,
               ...(copy.errors.format ? { format: copy.errors.format } : {}),

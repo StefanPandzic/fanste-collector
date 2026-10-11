@@ -199,3 +199,23 @@ export function scanSummary({
   if (removed > 0) parts.push(`${removed.toLocaleString()} gone`);
   return parts.join(' · ');
 }
+
+/**
+ * The toast after a matching run (FC-23), e.g. "Added 132 items, 18 need review". Files the provider
+ * couldn't be asked about are tried again on the next run.
+ */
+export function matchSummary({
+  added,
+  review,
+  remaining,
+}: {
+  added: number;
+  review: number;
+  remaining: number;
+}): string {
+  const parts = [`Added ${added.toLocaleString()} ${added === 1 ? 'item' : 'items'}`];
+  if (review > 0)
+    parts.push(`${review.toLocaleString()} ${review === 1 ? 'needs' : 'need'} review`);
+  if (remaining > 0) parts.push(`${remaining.toLocaleString()} to try again later`);
+  return parts.join(', ');
+}

@@ -5,6 +5,7 @@ import { requireUser } from '@/features/auth/session';
 import { displayName } from '@/features/profile/display';
 import { getProfile } from '@/features/profile/queries';
 import { AvatarForm, DeleteAccountForm, ProfileForm } from '@/features/profile/settings-forms';
+import { ScannerSettingsCard } from '@/features/scanner/scanner-settings-card';
 
 import type { Metadata } from 'next';
 
@@ -35,6 +36,8 @@ export default async function SettingsPage() {
           />
         </CardContent>
       </Card>
+
+      <ScannerSettingsCard />
 
       <Card>
         <CardHeader>

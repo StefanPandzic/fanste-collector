@@ -119,7 +119,7 @@ the error shape are in `@fanste/core` (`gateway/`), and clients call the gateway
 | `GET /api/items/:provider/:externalId`     | Full `NormalizedItem`, cache-first                                                                                                             |
 | `POST /api/items/:provider/:id/refresh`    | Reloads one item from its provider, skipping the TTL (FC-19); rate limited by `REFRESH_LIMITS`                                                 |
 | `POST /api/items/batch`                    | Many items: one cache read, only misses go to providers. Refs it can't load come back in `missing` with a reason: `not_found` or `retry_later` |
-| `POST /api/match/tmdb`                     | Scanner matching; returns 501 until FC-23                                                                                                      |
+| `POST /api/match/tmdb`                     | Scanner matching (FC-23): scored TMDB candidates per title (`server/match.ts`); a title whose search failed comes back `failed`                |
 
 - Every route is wrapped in `gatewayRoute()` (`server/gateway.ts`). It authenticates (session cookies, or
   `Authorization: Bearer <jwt>` for a future mobile app; an invalid bearer is a 401), applies the per-user limit,
@@ -134,7 +134,8 @@ the error shape are in `@fanste/core` (`gateway/`), and clients call the gateway
   is the model to follow: zod schemas for the provider payloads, pure mappers, and the adapter.
 - **TMDB (FC-09)** is registered only when `TMDB_API_READ_TOKEN` is set; `TMDB_LANGUAGE` (default `en-US`)
   applies to the whole deployment, because `metadata_cache` isn't keyed by language. `tmdbMatcher` in
-  `server/gateway.ts` gives the scanner's matching (FC-23) raw candidates with popularity to score.
+  `server/gateway.ts` gives the scanner's matching (FC-23) raw candidates with popularity, which
+  `scoreCandidates` (`@fanste/core`) scores.
 - Adapter tests replay recorded responses from `__fixtures__/`, never live calls. Re-record the TMDB ones with
   `pnpm fixtures:tmdb` (needs the token).
 
@@ -188,6 +189,10 @@ currency and renders `ItemDetailPageClient`.
 - The copy-details form pieces (`CopyDetailsFields`, `SeasonPicker`, `OptionField`, `LanguagePicker`,
   `FormField`) and their helpers (`copy-form.ts`) live in `features/copy-form/`, shared with the add
   dialog. The seasons editor adds per-season overrides through `SeasonPicker`'s `renderSeasonExtra`.
+- Copy details the scanner read from the file's own headers (FC-23) are marked: `useItemFileDetails`
+  loads the values it recorded (`collection_items.file_details`), and `fileMarkerOf` shows "from
+  file" while a detail still has that value, or "edited" with a reset to the file's value. Values
+  guessed from the file name aren't recorded, so they get no marker.
 - "Edit metadata" writes overrides; an empty value or the provider's own value resets a field. A custom
   cover renders `unoptimized`.
 - Delete goes back to the gallery with an "Undo" toast (`useRestoreItem`). "Refresh metadata" calls the
@@ -208,7 +213,7 @@ reads the user's default currency and renders `DashboardPageClient`.
 - "Recently added" is a 12-item `useCollection` page sorted by `added_desc`. An empty collection
   shows `DashboardOnboarding` (search, and in the desktop app the scanner).
 
-## Scanner (FC-21, FC-22)
+## Scanner (FC-21 – FC-23)
 
 `/scanner` is `features/scanner/`, rendered only in the desktop app (`<DesktopOnly>`; the browser gets a
 "desktop app only" state). A desktop build without the FC-21 bridge gets an "Update the desktop app" state.
@@ -226,6 +231,12 @@ reads the user's default currency and renders `DashboardPageClient`.
 - The pure `scanner-view.ts` shapes the table: status counts and filter, search, 100-row pages, file sizes,
   and the Quality column (`qualityLabel`: the file's headers, with the file name filling the gaps). Parsed
   title/year are written with each row by the filename parser (FC-22); match status comes from FC-23.
+- **Background matching (FC-23):** `ScanMatcherProvider` (in the `(app)` layout, desktop only) runs
+  `useScanMatcher` on every page: it matches the device's `pending` files once they load (a stopped run
+  or a restart continues), and the scanner page starts a run after each scan and its probing. The queue
+  is the `pending` rows themselves. A run ends with a summary toast (`matchSummary`); the page shows
+  its progress with Pause/Resume (`MatchProgressPanel`). "Auto-add confident matches"
+  (`AutoAddSetting`) is in `profiles.preferences.scanner`, on the scanner page and in Settings.
 
 ## Design system
 

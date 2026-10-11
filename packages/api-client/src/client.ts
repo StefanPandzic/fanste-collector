@@ -59,13 +59,22 @@ export class ApiClientError extends Error {
   readonly status: number;
   readonly code: ApiErrorCode;
   readonly provider?: MetadataProvider;
+  /** From the `Retry-After` header of a `rate_limited` answer: how long to wait before retrying. */
+  readonly retryAfterSeconds?: number;
 
-  constructor(status: number, code: ApiErrorCode, message: string, provider?: MetadataProvider) {
+  constructor(
+    status: number,
+    code: ApiErrorCode,
+    message: string,
+    provider?: MetadataProvider,
+    retryAfterSeconds?: number,
+  ) {
     super(message);
     this.name = 'ApiClientError';
     this.status = status;
     this.code = code;
     this.provider = provider;
+    if (retryAfterSeconds !== undefined) this.retryAfterSeconds = retryAfterSeconds;
   }
 }
 
@@ -99,7 +108,13 @@ export function createApiClient({
       const parsed = apiErrorSchema.safeParse(json);
       if (parsed.success) {
         const { code, message, provider } = parsed.data.error;
-        throw new ApiClientError(response.status, code, message, provider);
+        throw new ApiClientError(
+          response.status,
+          code,
+          message,
+          provider,
+          retryAfterSeconds(response.headers.get('Retry-After')),
+        );
       }
       throw new ApiClientError(response.status, 'internal', `HTTP ${response.status}`);
     }
@@ -163,6 +178,12 @@ export function createApiClient({
       return { results };
     },
   };
+}
+
+/** Seconds of a `Retry-After` header in its seconds form; the gateway never sends a date. */
+function retryAfterSeconds(header: string | null): number | undefined {
+  if (header === null || !/^\d+$/.test(header.trim())) return undefined;
+  return Number(header.trim());
 }
 
 /** `/api/items/:provider/:externalId`. */
