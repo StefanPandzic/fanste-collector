@@ -1,18 +1,19 @@
 'use client';
 
 import { useQuery } from '@tanstack/react-query';
-import { createContext, use, useCallback, useEffect, useRef, useState } from 'react';
+import { createContext, use, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner';
 
 import { collectionErrorMessage, useScanMatcher, useScannedFiles } from '@fanste/collection';
 
 import { deviceIdQuery, scannerBridge } from './scanner-bridge';
-import { matchSummary } from './scanner-view';
+import { matchSummary, reviewCount } from './scanner-view';
 
 import type { ScanMatcher, ScanMatchSummary } from '@fanste/collection';
 import type { ReactNode } from 'react';
 
 const ScanMatcherContext = createContext<ScanMatcher | null>(null);
+const ReviewCountContext = createContext(0);
 
 /**
  * The background matcher (FC-23) of the desktop app: `null` in a browser or a desktop build without
@@ -20,6 +21,11 @@ const ScanMatcherContext = createContext<ScanMatcher | null>(null);
  */
 export function useScanMatcherContext(): ScanMatcher | null {
   return use(ScanMatcherContext);
+}
+
+/** This device's files that need review (FC-24), for the Scanner nav badge; 0 in a browser. */
+export function useScannerReviewCount(): number {
+  return use(ReviewCountContext);
 }
 
 /**
@@ -51,9 +57,11 @@ export function ScanMatcherProvider({ children }: { children: ReactNode }) {
     matcher.start();
   }, [deviceId.data, files.data, matcher]);
 
+  const review = useMemo(() => reviewCount(files.data ?? []), [files.data]);
+
   return (
     <ScanMatcherContext value={scanner && deviceId.data ? matcher : null}>
-      {children}
+      <ReviewCountContext value={review}>{children}</ReviewCountContext>
     </ScanMatcherContext>
   );
 }

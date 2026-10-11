@@ -104,21 +104,40 @@ export function currentFiles(files: readonly ScannedFile[]): ScannedFile[] {
   return files.filter((file) => file.removedAt === null);
 }
 
-/** The number of files per status, plus `all`. */
+/**
+ * The number of files per status, plus `all`: every file that isn't ignored (FC-24: ignored files
+ * show only under their own tab).
+ */
 export function statusCounts(files: readonly ScannedFile[]): Record<StatusFilter, number> {
   const counts: Record<StatusFilter, number> = {
-    all: files.length,
+    all: 0,
     pending: 0,
     matched: 0,
     unmatched: 0,
     ignored: 0,
     manual: 0,
   };
-  for (const file of files) counts[file.matchStatus] += 1;
+  for (const file of files) {
+    counts[file.matchStatus] += 1;
+    if (file.matchStatus !== 'ignored') counts.all += 1;
+  }
   return counts;
 }
 
-/** The files with the status whose path contains `search` (case-insensitive). */
+/** The current files that need review (`unmatched`, FC-24): the scanner's nav badge. */
+export function reviewCount(files: readonly ScannedFile[]): number {
+  return files.filter((file) => file.removedAt === null && file.matchStatus === 'unmatched').length;
+}
+
+/** The tab the results open on: "Needs review" while there is something to review. */
+export function defaultStatusFilter(files: readonly ScannedFile[]): StatusFilter {
+  return files.some((file) => file.matchStatus === 'unmatched') ? 'unmatched' : 'all';
+}
+
+/**
+ * The files with the status whose path contains `search` (case-insensitive). `all` leaves out ignored
+ * files.
+ */
 export function filterFiles(
   files: readonly ScannedFile[],
   status: StatusFilter,
@@ -127,7 +146,7 @@ export function filterFiles(
   const needle = search.trim().toLowerCase();
   return files.filter(
     (file) =>
-      (status === 'all' || file.matchStatus === status) &&
+      (status === 'all' ? file.matchStatus !== 'ignored' : file.matchStatus === status) &&
       (!needle || file.filePath.toLowerCase().includes(needle)),
   );
 }

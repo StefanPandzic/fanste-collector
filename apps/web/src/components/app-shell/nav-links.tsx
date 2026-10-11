@@ -4,18 +4,21 @@ import { cn } from 'cn';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
+import { useScannerReviewCount } from '@/features/scanner/scan-matcher-provider';
 import { useIsDesktop } from '@/lib/platform';
 
 import { getNavItems, isNavItemActive } from './nav-items';
+import { ReviewBadge } from './review-badge';
 
 /** Sidebar navigation. */
 export function NavLinks() {
   const pathname = usePathname();
   const isDesktop = useIsDesktop();
+  const reviewCount = useScannerReviewCount();
 
   return (
     <nav aria-label="Main" className="flex flex-col gap-1">
-      {getNavItems({ isDesktop }).map(({ href, label, icon: Icon }) => {
+      {getNavItems({ isDesktop }).map(({ href, label, icon: Icon, reviewBadge }) => {
         const active = isNavItemActive(href, pathname);
         return (
           <Link
@@ -31,6 +34,7 @@ export function NavLinks() {
           >
             <Icon className="size-4 shrink-0" aria-hidden />
             {label}
+            {reviewBadge && <ReviewBadge count={reviewCount} className="ml-auto" />}
           </Link>
         );
       })}

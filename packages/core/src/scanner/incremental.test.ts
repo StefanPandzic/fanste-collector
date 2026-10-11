@@ -79,6 +79,15 @@ describe('planScannedFileUpserts', () => {
       expect.objectContaining({ resetMatch: false }),
     ]);
   });
+
+  it('keeps an ignored file ignored when a re-scan finds it again', () => {
+    expect(
+      plan(
+        { ...known, matchStatus: 'ignored', removedAt: '2026-09-20T10:00:00Z' },
+        { ...found, size: 5_000_000_000 },
+      ),
+    ).toEqual([expect.objectContaining({ size: 5_000_000_000, resetMatch: false })]);
+  });
 });
 
 describe('findRemovedFiles', () => {

@@ -62,3 +62,12 @@ export const itemFileDetailsKeys = {
 
 /** Key of the user's scanner settings (`profiles.preferences.scanner`, FC-23). */
 export const scannerSettingsKey = (userId: string) => ['scanner-settings', userId] as const;
+
+/**
+ * Keys of the scanned files linked to an item (FC-24, the item page's "Files"). Outside
+ * `collectionKeys.all`; Fix Match and the background matcher refresh them (`itemScannedFilesKeys.all`).
+ */
+export const itemScannedFilesKeys = {
+  all: (userId: string) => ['item-scanned-files', userId] as const,
+  item: (userId: string, itemId: string) => [...itemScannedFilesKeys.all(userId), itemId] as const,
+};

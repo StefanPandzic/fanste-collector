@@ -131,6 +131,24 @@ export async function listScannedFiles(
 }
 
 /**
+ * The files (any device) linked to a collection item (FC-24): the item page lists the current ones;
+ * removed ones count too when Fix Match tells whether the item will be deleted. Ordered by path.
+ */
+export async function listItemScannedFiles(
+  client: FansteSupabaseClient,
+  itemId: string,
+): Promise<ScannedFile[]> {
+  const { data, error } = await client
+    .from('scanned_files')
+    .select(SCANNED_FILE_SELECT)
+    .eq('collection_item_id', itemId)
+    .order('path_key', { ascending: true })
+    .limit(PAGE_SIZE);
+  if (error) throw toCollectionError(error);
+  return data.map(toScannedFile);
+}
+
+/**
  * Writes the planned rows (`planScannedFileUpserts`) and returns them as stored. Rows that reset
  * different columns (match status, media info) go in separate requests, because a bulk upsert writes
  * the same columns for every row.

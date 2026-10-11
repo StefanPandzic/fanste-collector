@@ -40,9 +40,27 @@ export interface MatchGroup<F extends MatchableFile = MatchableFile> {
 export const SCANNED_FORMAT = 'Digital file';
 
 /**
- * Groups files by the query that would match them, in the order the files come. Files the parser
- * found no title in can't be matched and come back in `unparsed`. Files of `unknown` kind are
- * searched as movies.
+ * The TMDB query for a file, the file name parsed, and the query's `key`: files with the same key
+ * (kind, normalized title and year, e.g. a show's episodes) are matched together. `undefined` when
+ * the parser found no title. Files of `unknown` kind are searched as movies.
+ */
+export function matchQueryOf(
+  filePath: string,
+): { query: MatchQuery; key: string; parsed: ParsedMedia } | undefined {
+  const parsed = parseMediaFilename(filePath);
+  const title = parsed.title?.trim().slice(0, MAX_SEARCH_QUERY_LENGTH).trim();
+  if (!title || normalizeTitle(title) === '') return undefined;
+  const kind = parsed.kind === 'tv' ? 'tv' : 'movie';
+  return {
+    query: { title, kind, ...(parsed.year !== undefined ? { year: parsed.year } : {}) },
+    key: [kind, normalizeTitle(title), parsed.year ?? ''].join('\u0000'),
+    parsed,
+  };
+}
+
+/**
+ * Groups files by the query that would match them (`matchQueryOf`), in the order the files come.
+ * Files the parser found no title in can't be matched and come back in `unparsed`.
  */
 export function groupForMatching<F extends MatchableFile>(
   files: readonly F[],
@@ -50,21 +68,15 @@ export function groupForMatching<F extends MatchableFile>(
   const groups = new Map<string, MatchGroup<F>>();
   const unparsed: F[] = [];
   for (const file of files) {
-    const parsed = parseMediaFilename(file.filePath);
-    const title = parsed.title?.trim().slice(0, MAX_SEARCH_QUERY_LENGTH).trim();
-    if (!title || normalizeTitle(title) === '') {
+    const match = matchQueryOf(file.filePath);
+    if (!match) {
       unparsed.push(file);
       continue;
     }
-    const kind = parsed.kind === 'tv' ? 'tv' : 'movie';
-    const key = [kind, normalizeTitle(title), parsed.year ?? ''].join('\u0000');
+    const { query, key, parsed } = match;
     const group = groups.get(key);
     if (group) group.files.push({ file, parsed });
-    else
-      groups.set(key, {
-        query: { title, kind, ...(parsed.year !== undefined ? { year: parsed.year } : {}) },
-        files: [{ file, parsed }],
-      });
+    else groups.set(key, { query, files: [{ file, parsed }] });
   }
   return { groups: [...groups.values()], unparsed };
 }

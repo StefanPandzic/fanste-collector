@@ -16,13 +16,15 @@ export interface NavItem {
   icon: LucideIcon;
   /** Only shown in the desktop app (Electron), e.g. features that need local file access. */
   desktopOnly?: boolean;
+  /** Shows the number of scanned files that need review (FC-24). */
+  reviewBadge?: boolean;
 }
 
 export const NAV_ITEMS: readonly NavItem[] = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/collection', label: 'Collection', icon: Library },
   { href: '/search', label: 'Search', icon: Search },
-  { href: '/scanner', label: 'Scanner', icon: ScanLine, desktopOnly: true },
+  { href: '/scanner', label: 'Scanner', icon: ScanLine, desktopOnly: true, reviewBadge: true },
   { href: '/export', label: 'Export', icon: FileDown },
   { href: '/settings', label: 'Settings', icon: Settings },
 ];

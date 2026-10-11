@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  listItemScannedFiles,
   markRemovedInList,
   mergeScannedFiles,
   toScannedFile,
@@ -9,6 +10,7 @@ import {
 
 import type { ScannedFile } from './scanned-files';
 import type { ScannedFileUpsert } from '@fanste/core';
+import type { FansteSupabaseClient } from '@fanste/supabase';
 
 const deviceId = '7c2e4a1b-3d5f-4e6a-8b9c-0d1e2f3a4b5c';
 const scannedAt = '2026-10-10T12:00:00.000Z';
@@ -131,6 +133,31 @@ describe('markRemovedInList', () => {
     expect(markRemovedInList([inception, dune], [dune.id], removedAt)).toEqual([
       inception,
       { ...dune, removedAt },
+    ]);
+  });
+});
+
+describe('listItemScannedFiles', () => {
+  it('reads the files linked to an item, ordered by path', async () => {
+    const calls: unknown[][] = [];
+    const builder = {
+      select: () => builder,
+      eq: (...args: unknown[]) => {
+        calls.push(['eq', ...args]);
+        return builder;
+      },
+      order: (...args: unknown[]) => {
+        calls.push(['order', ...args]);
+        return builder;
+      },
+      limit: () => Promise.resolve({ data: [row], error: null }),
+    };
+    const client = { from: () => builder } as unknown as FansteSupabaseClient;
+
+    expect(await listItemScannedFiles(client, row.collection_item_id)).toEqual([inception]);
+    expect(calls).toEqual([
+      ['eq', 'collection_item_id', row.collection_item_id],
+      ['order', 'path_key', { ascending: true }],
     ]);
   });
 });
