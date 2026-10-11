@@ -22,6 +22,7 @@ import { SeasonPicker } from './season-picker';
 
 import type { ChangeOptions } from './copy-form';
 import type { CopyOption, TvDetails, TvSeason } from '@fanste/core';
+import type { ReactNode } from 'react';
 
 const FORMAT_OPTIONS: readonly CopyOption[] = MOVIE_TV_FORMATS.map((value) => ({
   value,
@@ -60,8 +61,11 @@ interface CopyDetailsFieldsProps {
     value: TvDetails[K],
     options: ChangeOptions,
   ) => void;
-  /** The prefill marker of a field (`format` or a details field), if it still has one. */
-  markerOf: (field: string) => string | undefined;
+  /**
+   * The marker of a field (`format` or a details field), if it has one: a prefill source in the
+   * add dialog, where a value came from on the item page.
+   */
+  markerOf: (field: string) => ReactNode;
   /** Errors keyed `format` or `details.<field>`. */
   errors: Readonly<Record<string, string>>;
   /** Shows the values read-only (e.g. a sold copy). */

@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import {
   copyFieldValues,
   creatorsLabel,
+  fileMarkerOf,
   formatRuntime,
   LOADING_TITLE,
   mediaFacts,
@@ -15,7 +16,7 @@ import {
   toOverridesPatch,
 } from './item-detail-view';
 
-import type { CollectionItem, NormalizedItem } from '@fanste/core';
+import type { CollectionItem, FileDetails, NormalizedItem } from '@fanste/core';
 
 const posterUrl = 'https://image.tmdb.org/t/p/w500/9gk7adHYeDvHkCSEqAvQNLV5Uge.jpg';
 const customCover = 'https://images.example.com/inception-steelbook.jpg';
@@ -61,6 +62,11 @@ const copy: CollectionItem = {
   updatedAt: '2026-09-25T14:02:32.123456+00:00',
   tagIds: [],
   metadata: inception,
+};
+
+const fileDetails: FileDetails = {
+  hdr: 'Dolby Vision',
+  subtitleLanguages: ['en', 'sr'],
 };
 
 describe('toItemDetailView', () => {
@@ -237,6 +243,28 @@ describe('toOverridesPatch', () => {
       title: 'The title can’t be empty.',
       releaseYear: 'Enter a year from 1 to 9999.',
       imageUrl: 'Enter an https:// image address.',
+    });
+  });
+});
+
+describe('fileMarkerOf', () => {
+  it('marks values that are still what the file headers said', () => {
+    expect(fileMarkerOf('hdr', 'Dolby Vision', fileDetails)).toEqual({ kind: 'file' });
+    expect(fileMarkerOf('subtitleLanguages', ['en', 'sr'], fileDetails)).toEqual({ kind: 'file' });
+    expect(fileMarkerOf('resolution', '2160p', fileDetails)).toBeUndefined();
+    expect(fileMarkerOf('edition', 'Steelbook', fileDetails)).toBeUndefined();
+  });
+
+  it('marks changed or cleared values as edited with the file value', () => {
+    expect(fileMarkerOf('hdr', 'HDR10', fileDetails)).toEqual({
+      kind: 'edited',
+      fileValue: 'Dolby Vision',
+      hint: 'File: Dolby Vision',
+    });
+    expect(fileMarkerOf('subtitleLanguages', undefined, fileDetails)).toEqual({
+      kind: 'edited',
+      fileValue: ['en', 'sr'],
+      hint: 'File: English, Serbian',
     });
   });
 });

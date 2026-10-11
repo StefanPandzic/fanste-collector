@@ -165,6 +165,7 @@ describe('fromInsertedRow', () => {
       format_key: '4k uhd blu-ray',
       details: {},
       metadata_overrides: {},
+      file_details: {},
       custom_data: null,
       ownership: 'owned',
       quantity: 1,

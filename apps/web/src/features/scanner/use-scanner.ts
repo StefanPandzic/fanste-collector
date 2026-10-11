@@ -6,6 +6,8 @@ import { toast } from 'sonner';
 
 import { collectionErrorMessage, useScannedFiles, useScannedFileSync } from '@fanste/collection';
 
+import { useScanMatcherContext } from './scan-matcher-provider';
+import { deviceIdQuery, scannerBridge } from './scanner-bridge';
 import {
   filesToProbe,
   keysKeptByFolders,
@@ -16,14 +18,7 @@ import {
   scanSummary,
 } from './scanner-view';
 
-import type { DesktopScannerApi, LibraryFolder, ScanProgress } from '@fanste/core';
-
-/** The desktop scanner bridge, or `undefined` in a browser or a desktop build older than FC-21. */
-function scannerBridge(): DesktopScannerApi | undefined {
-  const scanner = typeof window === 'undefined' ? undefined : window.fanste?.scanner;
-  // Desktop builds before FC-21 only had stubs; the web app can be newer than the desktop app.
-  return typeof scanner?.getDeviceId === 'function' ? scanner : undefined;
-}
+import type { LibraryFolder, ScanProgress } from '@fanste/core';
 
 function browserStorage(): Storage | undefined {
   try {
@@ -50,18 +45,15 @@ export type ScanPhase =
  * app, the device's scanned files, and scans. Found files are written in batches as they arrive,
  * only new or changed ones (`useScannedFileSync`); when the scan is done, files that are gone from
  * the completed folders are marked as removed. Then the desktop app reads the headers of the files
- * without media info yet (FC-22); files it couldn't open are tried again after the next scan.
+ * without media info yet (FC-22); files it couldn't open are tried again after the next scan. Last,
+ * the background matcher (FC-23) takes the new files.
  */
 export function useScanner() {
   const [scanner] = useState(scannerBridge);
   const queryClient = useQueryClient();
 
-  const deviceId = useQuery({
-    queryKey: ['desktop-scanner', 'device-id'],
-    queryFn: () => scanner!.getDeviceId(),
-    enabled: scanner !== undefined,
-    staleTime: Number.POSITIVE_INFINITY,
-  });
+  const deviceId = useQuery(deviceIdQuery(scanner));
+  const matcher = useScanMatcherContext();
   const folders = useQuery({
     queryKey: foldersKey,
     queryFn: () => scanner!.getLibraryFolders(),
@@ -202,9 +194,11 @@ export function useScanner() {
         stopProgress();
         running.current = false;
         setPhase({ kind: 'idle' });
+        // After the media info, so the copies it adds get the files' real quality.
+        matcher?.start();
       }
     },
-    [files.data, minSizeMb, probeMediaInfo, scanner, sync],
+    [files.data, matcher, minSizeMb, probeMediaInfo, scanner, sync],
   );
 
   const cancel = useCallback(() => {
@@ -262,6 +256,8 @@ export function useScanner() {
   return {
     /** `false` in a desktop app too old for the scanner. */
     supported: scanner !== undefined,
+    /** The background matching (FC-23); `null` until the device is known. */
+    matcher,
     deviceId,
     folders,
     files,

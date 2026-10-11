@@ -1,8 +1,14 @@
-import { parseMediaInfo, SCAN_MATCH_STATUSES } from '@fanste/core';
+import { matchCandidateSchema, parseMediaInfo, SCAN_MATCH_STATUSES } from '@fanste/core';
 
 import { toCollectionError } from '../errors';
 
-import type { KnownScannedFile, MediaInfo, ScanMatchStatus, ScannedFileUpsert } from '@fanste/core';
+import type {
+  KnownScannedFile,
+  MatchCandidate,
+  MediaInfo,
+  ScanMatchStatus,
+  ScannedFileUpsert,
+} from '@fanste/core';
 import type { FansteSupabaseClient, Tables, TablesInsert } from '@fanste/supabase';
 
 /** A `scanned_files` row (FC-21): a video file the desktop scanner found on one device. */
@@ -16,16 +22,21 @@ export interface ScannedFile extends KnownScannedFile {
    */
   readonly mediaInfo: MediaInfo | null;
   readonly matchConfidence: number | null;
+  /**
+   * The best TMDB candidates the matcher found (FC-23), best first: the "Fix Match" suggestions
+   * (FC-24). `null` until the file has been matched.
+   */
+  readonly matchCandidates: MatchCandidate[] | null;
   readonly collectionItemId: string | null;
   /** When the file was last written by a scan, ISO 8601. */
   readonly scannedAt: string;
 }
 
 /** The columns `SCANNED_FILE_SELECT` reads. */
-type ScannedFileRow = Omit<Tables<'scanned_files'>, 'user_id' | 'parsed_format'>;
+export type ScannedFileRow = Omit<Tables<'scanned_files'>, 'user_id' | 'parsed_format'>;
 
-const SCANNED_FILE_SELECT =
-  'id, device_id, path_key, file_path, file_size, file_modified_at, parsed_title, parsed_year, match_status, match_confidence, collection_item_id, scanned_at, removed_at, subtitle_languages, media_info';
+export const SCANNED_FILE_SELECT =
+  'id, device_id, path_key, file_path, file_size, file_modified_at, parsed_title, parsed_year, match_status, match_confidence, collection_item_id, scanned_at, removed_at, subtitle_languages, media_info, match_candidates';
 
 /** PostgREST returns at most this many rows per request. */
 const PAGE_SIZE = 1000;
@@ -37,6 +48,15 @@ const ID_CHUNK = 100;
 const MEDIA_INFO_CONCURRENCY = 10;
 
 const STATUSES: ReadonlySet<string> = new Set(SCAN_MATCH_STATUSES);
+
+/** Reads stored `match_candidates`, keeping the valid entries. */
+function parseMatchCandidates(value: unknown): MatchCandidate[] | null {
+  if (!Array.isArray(value)) return null;
+  return value.flatMap((entry) => {
+    const result = matchCandidateSchema.safeParse(entry);
+    return result.success ? [result.data] : [];
+  });
+}
 
 export function toScannedFile(row: ScannedFileRow): ScannedFile {
   return {
@@ -51,6 +71,7 @@ export function toScannedFile(row: ScannedFileRow): ScannedFile {
     mediaInfo: parseMediaInfo(row.media_info),
     matchStatus: STATUSES.has(row.match_status) ? (row.match_status as ScanMatchStatus) : 'pending',
     matchConfidence: row.match_confidence,
+    matchCandidates: parseMatchCandidates(row.match_candidates),
     collectionItemId: row.collection_item_id,
     scannedAt: row.scanned_at,
     removedAt: row.removed_at,
@@ -80,7 +101,9 @@ export function toScannedFileRow(
     scanned_at: scannedAt,
     removed_at: null,
     ...(upsert.resetMediaInfo ? { media_info: null } : {}),
-    ...(upsert.resetMatch ? { match_status: 'pending', match_confidence: null } : {}),
+    ...(upsert.resetMatch
+      ? { match_status: 'pending', match_confidence: null, match_candidates: null }
+      : {}),
   };
 }
 

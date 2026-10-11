@@ -88,7 +88,12 @@ metadata overrides (`copy-details.ts`, `metadata-overrides.ts`, `prefill.ts`), t
 (`copy-badges.ts`), the recent-searches list logic (`search-history.ts`), the API gateway contracts (`gateway/`)
 and the scanner logic (`scanner/`: path keys, sidecar subtitle languages, the incremental re-scan plan,
 the filename parser `parseMediaFilename`, and `media-info.ts`: the shape of `scanned_files.media_info` and
-`toCopyDetails`, which merges a file's headers and name into FC-15 copy details). `api-client` is the typed
+`toCopyDetails`, which merges a file's headers and name into FC-15 copy details; FC-23's matching:
+`match-scoring.ts` scores TMDB candidates and `classifyMatch` picks auto-add / review / none,
+`match-plan.ts` groups files into queries and builds or fills the `Digital file` copies,
+`file-details.ts` picks the details that came from a file's own headers (`headerDetails`, recorded in
+`collection_items.file_details`) and compares them (`fileDetailOrigin`), `settings.ts` holds the
+scanner settings). `api-client` is the typed
 client for the gateway.
 `config` holds the tsconfig, ESLint and Tailwind presets (the design tokens).
 
@@ -113,7 +118,11 @@ TanStack Query (peer dependencies), so a future mobile app can reuse it:
   copies of given provider items, e.g. "In collection" on search results). `listScannedFiles`,
   `upsertScannedFiles` (which also writes the parsed title/year) and `markScannedFilesRemoved` hold the
   desktop scanner's `scanned_files` rows (FC-21); `saveScannedFileMediaInfo` stores what the desktop app
-  read from the files' headers (FC-22). `addItem` loads the metadata through the gateway first, so
+  read from the files' headers (FC-22). FC-23's `scan-matching.ts` adds and fills the scanner's copies
+  (`addScannedCopies` upserts on the one-copy-per-format constraint, so a re-scan never duplicates),
+  stores results with `saveScanMatches` (the `set_scan_matches` RPC, which only changes `pending`
+  rows) and the scanner settings. The values a copy got from its file's headers go in `file_details`;
+  `getItemFileDetails` / `useItemFileDetails` read them for the item page's "from file" markers. `addItem` loads the metadata through the gateway first, so
   `metadata_cache` is filled.
 - Filtering runs in Postgres (FC-18). `listItems` calls `collection_items_filtered(filter)`, and
   PostgREST sorts, pages and counts its rows. `getFacets` calls `collection_facets(filter)`, which gives
@@ -124,6 +133,9 @@ TanStack Query (peer dependencies), so a future mobile app can reuse it:
   facets get many times slower.
 - Errors come out as a `CollectionError` with a `code`. Show `collectionErrorMessage()` to users, never the raw
   database text.
+- `scanner/match-runner.ts`: the background matching queue (FC-23) over a device's `pending` files,
+  20 titles per batch: one `/api/match/tmdb` call and one `/api/items/batch` call, spaced
+  `MATCH_REQUEST_GAP_MS` apart, waiting out a 429's `Retry-After`. `useScanMatcher` wraps it.
 - `realtime/`: `subscribeToCollectionChanges()` joins the private `user:<id>` Broadcast topic, and joins it
   again with backoff after a drop.
 - `react/`: `CollectionProvider` and the hooks (`useCollection`, `useAddItem`, …). Mutations update the cache

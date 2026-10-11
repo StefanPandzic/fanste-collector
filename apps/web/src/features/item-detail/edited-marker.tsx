@@ -13,10 +13,15 @@ interface EditedMarkerProps {
   onReset?: () => void;
   /** Field name, for the reset button's accessible name. */
   field?: string;
+  /** What the reset goes back to, for its accessible name (default: `original`). */
+  resetTo?: string;
 }
 
-/** Marks a field the user overrode (FC-15); hover or focus shows the provider's value. */
-export function EditedMarker({ hint, onReset, field }: EditedMarkerProps) {
+/**
+ * Marks a field the user overrode (FC-15), or a copy detail they changed from what its file said
+ * (FC-23); hover or focus shows the original value.
+ */
+export function EditedMarker({ hint, onReset, field, resetTo = 'original' }: EditedMarkerProps) {
   return (
     <span className="inline-flex items-center gap-1 align-middle">
       <Tooltip>
@@ -39,7 +44,7 @@ export function EditedMarker({ hint, onReset, field }: EditedMarkerProps) {
           variant="ghost"
           size="xs"
           onClick={onReset}
-          aria-label={field ? `Reset ${field} to original` : 'Reset to original'}
+          aria-label={field ? `Reset ${field} to ${resetTo}` : `Reset to ${resetTo}`}
         >
           <RotateCcw aria-hidden />
           Reset

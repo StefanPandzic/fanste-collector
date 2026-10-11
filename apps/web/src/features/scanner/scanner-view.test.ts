@@ -8,6 +8,7 @@ import {
   formatFileSize,
   keysKeptByFolders,
   loadMinSize,
+  matchSummary,
   MIN_SIZE_STORAGE_KEY,
   pageOf,
   parentFolder,
@@ -33,6 +34,7 @@ const inception: ScannedFile = {
   mediaInfo: null,
   matchStatus: 'matched',
   matchConfidence: 0.97,
+  matchCandidates: null,
   collectionItemId: '9a8b7c6d-5e4f-4a3b-8c2d-1e0f9a8b7c6d',
   scannedAt: '2026-10-10T12:00:00.000Z',
   removedAt: null,
@@ -199,6 +201,17 @@ describe('scanSummary', () => {
     );
     expect(scanSummary({ found: 1, written: 0, removed: 2 })).toBe(
       'Found 1 video · nothing new · 2 gone',
+    );
+  });
+});
+
+describe('matchSummary', () => {
+  it('summarizes a finished matching run', () => {
+    expect(matchSummary({ added: 132, review: 18, remaining: 0 })).toBe(
+      'Added 132 items, 18 need review',
+    );
+    expect(matchSummary({ added: 1, review: 1, remaining: 5 })).toBe(
+      'Added 1 item, 1 needs review, 5 to try again later',
     );
   });
 });

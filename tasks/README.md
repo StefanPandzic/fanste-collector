@@ -121,7 +121,7 @@ Status legend: `TODO` · `IN PROGRESS` · `DONE` · `BLOCKED`
 | FC-20 | [Dashboard](phase-3-ui-scanning/20-dashboard.md) | FC-14, FC-16 | IN PROGRESS |
 | FC-21 | [Scanner: directory ingestion](phase-3-ui-scanning/21-scanner-directory-ingestion.md) | FC-03, FC-05 | DONE |
 | FC-22 | [Scanner: filename parser](phase-3-ui-scanning/22-scanner-filename-parser.md) | FC-07 | DONE |
-| FC-23 | [Scanner: background TMDB matching](phase-3-ui-scanning/23-scanner-background-matching.md) | FC-09, FC-15, FC-21, FC-22 | TODO |
+| FC-23 | [Scanner: background TMDB matching](phase-3-ui-scanning/23-scanner-background-matching.md) | FC-09, FC-15, FC-21, FC-22 | IN PROGRESS |
 | FC-24 | [Scanner: "Fix Match" UI](phase-3-ui-scanning/24-scanner-fix-match-ui.md) | FC-23 | TODO |
 
 ### Phase 4 — Export Tools & Polish (Week 4)

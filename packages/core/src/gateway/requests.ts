@@ -118,8 +118,14 @@ export const matchCandidateSchema = z.object({
 });
 export type MatchCandidate = z.output<typeof matchCandidateSchema>;
 
-/** One entry per query, in request order, each with its best candidates first. */
+/**
+ * One entry per query, in request order, each with its best candidates first (at least the review
+ * threshold, `scoreCandidates`). `failed` means the provider couldn't be asked: try that title
+ * again later, rather than taking it as "no match".
+ */
 export const matchResponseSchema = z.object({
-  results: z.array(z.object({ candidates: z.array(matchCandidateSchema) })),
+  results: z.array(
+    z.object({ candidates: z.array(matchCandidateSchema), failed: z.boolean().optional() }),
+  ),
 });
 export type MatchResponse = z.output<typeof matchResponseSchema>;

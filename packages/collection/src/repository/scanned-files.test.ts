@@ -29,6 +29,7 @@ const row = {
   removed_at: null,
   subtitle_languages: ['en'],
   media_info: { resolution: '2160p', hdr: 'Dolby Vision', audioChannels: '7.1' },
+  match_candidates: null,
 };
 
 const inception: ScannedFile = {
@@ -43,6 +44,7 @@ const inception: ScannedFile = {
   mediaInfo: { resolution: '2160p', hdr: 'Dolby Vision', audioChannels: '7.1' },
   matchStatus: 'matched',
   matchConfidence: 0.97,
+  matchCandidates: null,
   collectionItemId: row.collection_item_id,
   scannedAt,
   removedAt: null,
@@ -100,6 +102,7 @@ describe('toScannedFileRow', () => {
       media_info: null,
       match_status: 'pending',
       match_confidence: null,
+      match_candidates: null,
     });
   });
 

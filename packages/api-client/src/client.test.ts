@@ -82,6 +82,22 @@ describe('createApiClient', () => {
     expect(error).toMatchObject({ status: 404, code: 'not_found', provider: 'tmdb' });
   });
 
+  it('reads Retry-After of a rate_limited answer', async () => {
+    const fetchFn = vi.fn<typeof fetch>(() =>
+      Promise.resolve(
+        Response.json(
+          { error: { code: 'rate_limited', message: 'Too many requests.' } },
+          { status: 429, headers: { 'Retry-After': '42' } },
+        ),
+      ),
+    );
+    const error: unknown = await createApiClient({ baseUrl, fetch: fetchFn })
+      .matchTmdb([{ title: 'Inception', year: 2010, kind: 'movie' }])
+      .catch((caught: unknown) => caught);
+    expect(error).toBeInstanceOf(ApiClientError);
+    expect(error).toMatchObject({ status: 429, code: 'rate_limited', retryAfterSeconds: 42 });
+  });
+
   it('loads 50 items in one batch request', async () => {
     const fetchFn = fakeFetch({ items: [matrix], missing: [] });
     const refs = Array.from({ length: 50 }, (_, index) => ({

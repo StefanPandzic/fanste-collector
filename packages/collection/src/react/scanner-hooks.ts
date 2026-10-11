@@ -4,7 +4,8 @@ import { useMemo } from 'react';
 import { findRemovedFiles, planScannedFileUpserts } from '@fanste/core';
 
 import { useCollectionContext } from './context';
-import { scannedFilesKey } from './query-keys';
+import { itemFileDetailsKeys, scannedFilesKey } from './query-keys';
+import { getItemFileDetails } from '../repository/scan-matching';
 import {
   listScannedFiles,
   markRemovedInList,
@@ -31,6 +32,18 @@ export function useScannedFiles(deviceId: string | undefined) {
     // A refetch during a scan could land after a batch and briefly show older rows.
     refetchOnWindowFocus: false,
     refetchOnReconnect: false,
+  });
+}
+
+/**
+ * The copy details the scanner took from an item's file headers (FC-23), `{}` for items it didn't
+ * fill. The item page marks them "from file", or "edited" once changed.
+ */
+export function useItemFileDetails(itemId: string) {
+  const { client, userId } = useCollectionContext();
+  return useQuery({
+    queryKey: itemFileDetailsKeys.item(userId, itemId),
+    queryFn: () => getItemFileDetails(client, itemId),
   });
 }
 

@@ -49,3 +49,16 @@ export const copyDefaultsKey = (userId: string) => ['collection-copy-defaults', 
  */
 export const scannedFilesKey = (userId: string, deviceId: string) =>
   ['scanned-files', userId, deviceId] as const;
+
+/**
+ * Keys of the copy details the scanner took from an item's file headers (FC-23). Outside
+ * `collectionKeys.all`; the background matcher refreshes them (`itemFileDetailsKeys.all`) when it
+ * adds or fills copies.
+ */
+export const itemFileDetailsKeys = {
+  all: (userId: string) => ['item-file-details', userId] as const,
+  item: (userId: string, itemId: string) => [...itemFileDetailsKeys.all(userId), itemId] as const,
+};
+
+/** Key of the user's scanner settings (`profiles.preferences.scanner`, FC-23). */
+export const scannerSettingsKey = (userId: string) => ['scanner-settings', userId] as const;
