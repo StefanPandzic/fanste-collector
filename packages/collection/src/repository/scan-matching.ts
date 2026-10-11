@@ -1,18 +1,22 @@
 import {
   addItemInputSchema,
   detailsPatchSchemaFor,
+  fillEmptyDetails,
   parseFileDetails,
+  parseMediaFilename,
   parseScannerSettings,
   SCANNED_FORMAT,
+  scannedCopyInput,
+  scannedFileDetails,
   scannerSettingsSchema,
 } from '@fanste/core';
 
-import { toCollectionError } from '../errors';
+import { CollectionError, toCollectionError } from '../errors';
 import { refKey } from './copies';
 import { toInsertRow } from './mappers';
 import { SCANNED_FILE_SELECT, toScannedFile } from './scanned-files';
 
-import type { ScannedFile } from './scanned-files';
+import type { ScannedFile, ScannedFileRow } from './scanned-files';
 import type {
   AddItemInput,
   FileDetails,
@@ -20,12 +24,15 @@ import type {
   ItemRef,
   Json,
   MatchCandidate,
+  NormalizedItem,
+  ParsedFile,
   ScannerSettings,
 } from '@fanste/core';
 import type { FansteSupabaseClient } from '@fanste/supabase';
 
 // The writes of the scanner's background matching (FC-23): the `Digital file` copies it adds or
-// fills, the match results of the files, and the scanner settings.
+// fills, the match results of the files, and the scanner settings. Also the user's own choices
+// (Fix Match, FC-24): linking files by hand, ignoring them, handing them back to the matcher.
 
 /** External IDs per request, so the `in.(...)` filter stays well within URL limits. */
 const LOOKUP_CHUNK = 100;
@@ -195,6 +202,123 @@ export async function saveScanMatches(
     stored.push(...data.map(toScannedFile));
   }
   return stored;
+}
+
+/** What `relinkScannedFiles` changed. */
+export interface RelinkResult {
+  /** The files as stored now. */
+  files: ScannedFile[];
+  /** Items the files were linked to before that were deleted: added by the scanner, now unlinked. */
+  removedItemIds: string[];
+}
+
+/** File IDs per `relink_scanned_files` call (the function takes at most 1,000). */
+const RELINK_CHUNK = 500;
+
+/**
+ * The user's choice for some scanned files (FC-24): `manual` links them to the copy `itemId`,
+ * `ignored` unlinks them and keeps them out of matching, `pending` unlinks them and hands them back
+ * to the background matcher. Items they were linked to are deleted when the scanner added them and
+ * no scanned file links to them any more, so a wrong match leaves nothing behind. Files in any
+ * status change (unlike `saveScanMatches`): the user's choice wins.
+ */
+export async function relinkScannedFiles(
+  client: FansteSupabaseClient,
+  ids: readonly string[],
+  choice: { status: 'manual'; itemId: string } | { status: 'ignored' | 'pending' },
+): Promise<RelinkResult> {
+  const result: RelinkResult = { files: [], removedItemIds: [] };
+  for (let start = 0; start < ids.length; start += RELINK_CHUNK) {
+    const { data, error } = await client.rpc('relink_scanned_files', {
+      p_ids: ids.slice(start, start + RELINK_CHUNK),
+      p_status: choice.status,
+      ...(choice.status === 'manual' ? { p_item_id: choice.itemId } : {}),
+    });
+    if (error) throw toCollectionError(error);
+    const { files, removedItemIds } = (data ?? {}) as {
+      files?: unknown;
+      removedItemIds?: unknown;
+    };
+    if (!Array.isArray(files) || !Array.isArray(removedItemIds)) {
+      throw new CollectionError('unknown', 'Unexpected answer from relink_scanned_files.');
+    }
+    result.files.push(...(files as ScannedFileRow[]).map(toScannedFile));
+    result.removedItemIds.push(...removedItemIds.map(String));
+  }
+  return result;
+}
+
+/**
+ * Links scanned files to `item` by hand (Fix Match, FC-24): the user's `Digital file` copy of it is
+ * added, or its empty details filled, like the background matcher does (FC-23), then the files are
+ * linked as `manual`. Resolves to the files as stored and the items that were removed.
+ */
+export async function linkFilesToItem(
+  client: FansteSupabaseClient,
+  item: NormalizedItem,
+  files: readonly ScannedFile[],
+): Promise<RelinkResult & { itemId: string }> {
+  if (item.provider === 'custom') {
+    throw new CollectionError('invalid', 'Scanned files only match provider items.');
+  }
+  const ref: ItemRef = { provider: item.provider, externalId: item.externalId };
+  const parsed: ParsedFile<ScannedFile>[] = files.map((file) => ({
+    file,
+    parsed: parseMediaFilename(file.filePath),
+  }));
+  const input = scannedCopyInput(item, parsed);
+  const scanned = input.details ?? {};
+
+  const copy = (await findScannedCopies(client, [ref])).get(refKey(ref));
+  let itemId = copy?.id;
+  let created = false;
+  if (copy) {
+    const patch = fillEmptyDetails(copy.category, copy.details, scanned);
+    if (Object.keys(patch).length > 0) {
+      await fillScannedCopyDetails(
+        client,
+        copy.id,
+        copy.category,
+        patch,
+        scannedFileDetails(parsed, patch),
+      );
+    }
+  } else {
+    created =
+      (await addScannedCopies(client, [
+        { input, fileDetails: scannedFileDetails(parsed, scanned) },
+      ])) > 0;
+    // Read back: a copy another device added meanwhile is skipped by the insert, not returned.
+    itemId = (await findScannedCopies(client, [ref])).get(refKey(ref))?.id;
+  }
+  if (!itemId) throw new CollectionError('unknown', 'The copy could not be added.');
+
+  try {
+    const result = await relinkScannedFiles(
+      client,
+      files.map((file) => file.id),
+      { status: 'manual', itemId },
+    );
+    return { ...result, itemId };
+  } catch (error) {
+    // The copy added for these files must not stay behind without them.
+    if (created) await removeUnlinkedCopy(client, itemId);
+    throw error;
+  }
+}
+
+/** Deletes a copy the scanner added if no scanned file links to it. Best effort. */
+async function removeUnlinkedCopy(client: FansteSupabaseClient, id: string): Promise<void> {
+  try {
+    const { count, error } = await client
+      .from('scanned_files')
+      .select('id', { count: 'exact', head: true })
+      .eq('collection_item_id', id);
+    if (error || count !== 0) return;
+    await client.from('collection_items').delete().eq('id', id).eq('source', 'scanner');
+  } catch {
+    // Left for the user to delete; the original error is what matters.
+  }
 }
 
 /** The user's scanner settings (`profiles.preferences.scanner`), with defaults filled in. */

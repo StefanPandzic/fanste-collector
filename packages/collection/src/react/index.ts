@@ -1,6 +1,7 @@
 export * from './cache-updates';
 export { useCollectionContext } from './context';
 export type { CollectionContextValue } from './context';
+export * from './fix-match-hooks';
 export * from './hooks';
 export * from './scan-matcher-hooks';
 export * from './scanner-hooks';
@@ -16,6 +17,7 @@ export {
   collectionMutationKey,
   copyDefaultsKey,
   itemFileDetailsKeys,
+  itemScannedFilesKeys,
   scannedFilesKey,
   scannerSettingsKey,
 } from './query-keys';

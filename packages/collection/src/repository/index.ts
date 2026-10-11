@@ -7,6 +7,7 @@ export type { CollectionStats, ItemCounts, MonthCount, StatsClock, ValueTotal } 
 export * from './scan-matching';
 // `SCANNED_FILE_SELECT` stays inside the package (`scan-matching.ts` reads the same columns).
 export {
+  listItemScannedFiles,
   listScannedFiles,
   markRemovedInList,
   markScannedFilesRemoved,

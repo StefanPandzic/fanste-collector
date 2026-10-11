@@ -436,6 +436,10 @@ export type Database = {
         Args: { p_id: string; p_patch: Json };
         Returns: string[];
       };
+      relink_scanned_files: {
+        Args: { p_ids: string[]; p_item_id?: string; p_status: string };
+        Returns: Json;
+      };
       set_copy_defaults: {
         Args: {
           p_category: Database['public']['Enums']['item_category'];

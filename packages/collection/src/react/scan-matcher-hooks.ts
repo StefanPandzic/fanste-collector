@@ -5,6 +5,7 @@ import { useCollectionContext } from './context';
 import {
   collectionKeys,
   itemFileDetailsKeys,
+  itemScannedFilesKeys,
   scannedFilesKey,
   scannerSettingsKey,
 } from './query-keys';
@@ -98,6 +99,7 @@ export function useScanMatcher(
       onCollectionChanged: () => {
         void queryClient.invalidateQueries({ queryKey: collectionKeys.all(userId) });
         void queryClient.invalidateQueries({ queryKey: itemFileDetailsKeys.all(userId) });
+        void queryClient.invalidateQueries({ queryKey: itemScannedFilesKeys.all(userId) });
       },
     });
   }, [api, client, deviceId, queryClient, userId]);

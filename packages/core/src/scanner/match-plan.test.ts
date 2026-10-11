@@ -4,6 +4,7 @@ import { parseMediaFilename } from './filename-parser';
 import {
   fillEmptyDetails,
   groupForMatching,
+  matchQueryOf,
   mergeSeasons,
   scannedCopyDetails,
   scannedCopyInput,
@@ -51,6 +52,23 @@ const severanceFiles = [
   parsedFile('1a2b3c4d-5e6f-4a7b-8c9d-0e1f2a3b4c5d', 'F:\\Series\\Severance\\Severance.S01E01.mkv'),
   parsedFile('9a8b7c6d-5e4f-4a3b-8c2d-1e0f9a8b7c6d', 'F:\\Series\\Severance\\Severance.S01E02.mkv'),
 ];
+
+describe('matchQueryOf', () => {
+  it('builds the query and a key shared by files of the same title', () => {
+    const match = matchQueryOf('E:\\Movies\\Inception (2010)\\Inception.mkv');
+    expect(match?.query).toEqual({ title: 'Inception', kind: 'movie', year: 2010 });
+    expect(match?.parsed.title).toBe('Inception');
+    expect(matchQueryOf('E:\\Movies\\Inception.2010.2160p.mkv')?.key).toBe(match?.key);
+    expect(matchQueryOf('F:\\Series\\Severance\\Severance.S01E01.mkv')?.query).toEqual({
+      title: 'Severance',
+      kind: 'tv',
+    });
+  });
+
+  it('returns undefined when the parser finds no title', () => {
+    expect(matchQueryOf('C:\\Users\\stefan\\Videos\\movie.mkv')).toBeUndefined();
+  });
+});
 
 describe('groupForMatching', () => {
   it('groups files by kind, title and year and keeps unparsed files apart', () => {

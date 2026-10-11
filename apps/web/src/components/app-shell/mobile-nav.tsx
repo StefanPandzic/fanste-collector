@@ -11,14 +11,17 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { useScannerReviewCount } from '@/features/scanner/scan-matcher-provider';
 import { useIsDesktop } from '@/lib/platform';
 
 import { getNavItems, isNavItemActive } from './nav-items';
+import { ReviewBadge } from './review-badge';
 
 /** Navigation for narrow windows, where the sidebar is hidden. */
 export function MobileNav() {
   const pathname = usePathname();
   const isDesktop = useIsDesktop();
+  const reviewCount = useScannerReviewCount();
 
   return (
     <DropdownMenu>
@@ -28,11 +31,12 @@ export function MobileNav() {
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="start" className="w-48">
-        {getNavItems({ isDesktop }).map(({ href, label, icon: Icon }) => (
+        {getNavItems({ isDesktop }).map(({ href, label, icon: Icon, reviewBadge }) => (
           <DropdownMenuItem key={href} asChild>
             <Link href={href} aria-current={isNavItemActive(href, pathname) ? 'page' : undefined}>
               <Icon aria-hidden />
               {label}
+              {reviewBadge && <ReviewBadge count={reviewCount} className="ml-auto" />}
             </Link>
           </DropdownMenuItem>
         ))}

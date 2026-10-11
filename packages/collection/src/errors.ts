@@ -53,6 +53,7 @@ const POSTGRES_CODES: Record<string, CollectionErrorCode> = {
   '23502': 'invalid', // not_null_violation
   '22P02': 'invalid', // invalid_text_representation (bad uuid, enum, ...)
   '22003': 'invalid', // numeric_value_out_of_range
+  '22023': 'invalid', // invalid_parameter_value (a function refused its arguments)
   '42501': 'forbidden', // insufficient_privilege / RLS
   PGRST116: 'not_found', // `.single()` matched no row
   PGRST301: 'forbidden', // JWT expired or invalid

@@ -1,5 +1,6 @@
 export * from './file-details';
 export * from './filename-parser';
+export * from './fix-match';
 export * from './incremental';
 export * from './match-plan';
 export * from './match-scoring';

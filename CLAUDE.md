@@ -93,8 +93,8 @@ the filename parser `parseMediaFilename`, and `media-info.ts`: the shape of `sca
 `match-plan.ts` groups files into queries and builds or fills the `Digital file` copies,
 `file-details.ts` picks the details that came from a file's own headers (`headerDetails`, recorded in
 `collection_items.file_details`) and compares them (`fileDetailOrigin`), `settings.ts` holds the
-scanner settings). `api-client` is the typed
-client for the gateway.
+scanner settings, and FC-24's `fix-match.ts` picks the files a Fix Match choice covers).
+`api-client` is the typed client for the gateway.
 `config` holds the tsconfig, ESLint and Tailwind presets (the design tokens).
 
 **`@fanste/supabase`** holds the generated `Database` types (`database.types.ts`, written by `pnpm db:types`;
@@ -122,7 +122,10 @@ TanStack Query (peer dependencies), so a future mobile app can reuse it:
   (`addScannedCopies` upserts on the one-copy-per-format constraint, so a re-scan never duplicates),
   stores results with `saveScanMatches` (the `set_scan_matches` RPC, which only changes `pending`
   rows) and the scanner settings. The values a copy got from its file's headers go in `file_details`;
-  `getItemFileDetails` / `useItemFileDetails` read them for the item page's "from file" markers. `addItem` loads the metadata through the gateway first, so
+  `getItemFileDetails` / `useItemFileDetails` read them for the item page's "from file" markers.
+  FC-24's `relinkScannedFiles` / `linkFilesToItem` store the user's Fix Match choices (the
+  `relink_scanned_files` RPC, which also deletes a scanner-added item no file links to any more),
+  used by `useFixScannedFiles`. `addItem` loads the metadata through the gateway first, so
   `metadata_cache` is filled.
 - Filtering runs in Postgres (FC-18). `listItems` calls `collection_items_filtered(filter)`, and
   PostgREST sorts, pages and counts its rows. `getFacets` calls `collection_facets(filter)`, which gives

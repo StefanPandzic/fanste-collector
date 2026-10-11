@@ -32,6 +32,7 @@ import {
   listItems,
   updateItem,
 } from './repository/items';
+import { relinkScannedFiles } from './repository/scan-matching';
 import {
   listScannedFiles,
   markScannedFilesRemoved,
@@ -426,5 +427,72 @@ describe('collection repository (dev Supabase project)', () => {
     await expect(listScannedFiles(createPublicClient(), device)).rejects.toMatchObject({
       code: 'forbidden',
     });
+  });
+
+  it('re-links scanned files and removes the wrong item once no file links it (FC-24)', async () => {
+    const wrong = testMovie('FC24 Wrong');
+    const right = testMovie('FC24 Right');
+    const kept = testMovie('FC24 Kept');
+    for (const movie of [wrong, right, kept]) cachedMovies.set(movie.externalId, movie);
+    const scannerCopy = (movie: NormalizedItem) =>
+      addItem(deviceA, { ...movieInput(movie, 'Digital file'), source: 'scanner' }, deps);
+    const wrongItem = await scannerCopy(wrong);
+    const rightItem = await scannerCopy(right);
+    const keptItem = await addItem(deviceA, movieInput(kept, 'Digital file'), deps);
+
+    const device = `test-device-${randomUUID()}`;
+    const [first, second, third] = await upsertScannedFiles(
+      deviceA,
+      device,
+      planScannedFileUpserts(
+        new Map(),
+        ['A.mkv', 'B.mkv', 'C.mkv'].map((name) => ({
+          path: `D:/Movies/${name}`,
+          pathKey: `d:/movies/${name.toLowerCase()}`,
+          size: 100,
+          modifiedAt: '2026-10-01T10:00:00.000Z',
+          subtitleLanguages: [],
+        })),
+      ),
+    );
+    const ids = (...files: (typeof first)[]) => files.map((file) => file!.id);
+    await relinkScannedFiles(deviceA, ids(first, second), {
+      status: 'manual',
+      itemId: wrongItem.id,
+    });
+    await relinkScannedFiles(deviceA, ids(third), { status: 'manual', itemId: keptItem.id });
+
+    // B still links the wrong item, so it stays.
+    const moved = await relinkScannedFiles(deviceA, ids(first), {
+      status: 'manual',
+      itemId: rightItem.id,
+    });
+    expect(moved.files).toEqual([
+      expect.objectContaining({
+        id: first!.id,
+        matchStatus: 'manual',
+        collectionItemId: rightItem.id,
+      }),
+    ]);
+    expect(moved.removedItemIds).toEqual([]);
+
+    // Ignoring B unlinks the last file: the scanner's wrong item goes.
+    const ignored = await relinkScannedFiles(deviceA, ids(second), { status: 'ignored' });
+    expect(ignored.files[0]).toMatchObject({ matchStatus: 'ignored', collectionItemId: null });
+    expect(ignored.removedItemIds).toEqual([wrongItem.id]);
+    expect(await getItem(deviceA, wrongItem.id)).toBeNull();
+
+    // An item the user added (not the scanner) is never removed.
+    const restored = await relinkScannedFiles(deviceA, ids(third), { status: 'pending' });
+    expect(restored.removedItemIds).toEqual([]);
+    expect(await getItem(deviceA, keptItem.id)).not.toBeNull();
+
+    // `manual` needs an item; signed out, nothing can be changed.
+    await expect(
+      relinkScannedFiles(deviceA, ids(third), { status: 'manual', itemId: '' }),
+    ).rejects.toBeInstanceOf(CollectionError);
+    await expect(
+      relinkScannedFiles(createPublicClient(), ids(third), { status: 'ignored' }),
+    ).rejects.toMatchObject({ code: 'forbidden' });
   });
 });

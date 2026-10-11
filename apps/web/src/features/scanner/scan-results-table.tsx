@@ -1,10 +1,14 @@
 'use client';
 
-import { ChevronLeft, ChevronRight, Search } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Search, Wand2 } from 'lucide-react';
 import { useMemo, useState } from 'react';
+import { toast } from 'sonner';
+
+import { useFixScannedFiles } from '@fanste/collection';
 
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import { InputGroup, InputGroupAddon, InputGroupInput } from '@/components/ui/input-group';
 import {
   Table,
@@ -16,7 +20,12 @@ import {
 } from '@/components/ui/table';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
+import { FileSelectionBar } from './file-selection-bar';
+import { FixMatchDialog } from './fix-match-dialog';
+import { fixSummary } from './fix-match-view';
+import { useScanMatcherContext } from './scan-matcher-provider';
 import {
+  defaultStatusFilter,
   fileName,
   filterFiles,
   formatFileSize,
@@ -28,8 +37,9 @@ import {
   statusCounts,
 } from './scanner-view';
 
+import type { FixSession } from './fix-match-view';
 import type { StatusFilter } from './scanner-view';
-import type { ScannedFile } from '@fanste/collection';
+import type { ScannedFile, ScannedFileFix } from '@fanste/collection';
 import type { ScanMatchStatus } from '@fanste/core';
 
 const STATUS_VARIANTS: Record<ScanMatchStatus, 'default' | 'secondary' | 'outline'> = {
@@ -41,11 +51,11 @@ const STATUS_VARIANTS: Record<ScanMatchStatus, 'default' | 'secondary' | 'outlin
 };
 
 const FILTERS: { value: StatusFilter; label: string }[] = [
+  { value: 'unmatched', label: STATUS_LABELS.unmatched },
   { value: 'all', label: 'All' },
   { value: 'pending', label: STATUS_LABELS.pending },
   { value: 'matched', label: STATUS_LABELS.matched },
   { value: 'manual', label: STATUS_LABELS.manual },
-  { value: 'unmatched', label: STATUS_LABELS.unmatched },
   { value: 'ignored', label: STATUS_LABELS.ignored },
 ];
 
@@ -57,16 +67,58 @@ interface ScanResultsTableProps {
 /**
  * The scanned files with their parsed title, detected quality and match status (FC-21). The title
  * comes from the filename parser and the quality from the files' headers (FC-22), the status from
- * matching (FC-23); one page of rows renders at a time, so large libraries stay fast.
+ * matching (FC-23); one page of rows renders at a time, so large libraries stay fast. Files can be
+ * fixed one by one ("Fix match") or in bulk from the selection (FC-24); the table opens on "Needs
+ * review" while there is something to review.
  */
 export function ScanResultsTable({ files }: ScanResultsTableProps) {
-  const [status, setStatus] = useState<StatusFilter>('all');
+  const [status, setStatus] = useState<StatusFilter>(() => defaultStatusFilter(files));
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(0);
+  const [selectedIds, setSelectedIds] = useState<ReadonlySet<string>>(new Set());
+  const [session, setSession] = useState<FixSession | null>(null);
+  const fixFiles = useFixScannedFiles();
+  const matcher = useScanMatcherContext();
 
   const counts = useMemo(() => statusCounts(files), [files]);
   const filtered = useMemo(() => filterFiles(files, status, search), [files, search, status]);
   const current = pageOf(filtered, page);
+  // Only files still in the list count, so a fix that moves files to another tab drops them.
+  const selected = useMemo(
+    () => filtered.filter((file) => selectedIds.has(file.id)),
+    [filtered, selectedIds],
+  );
+  const pageSelected =
+    current.rows.length > 0 && current.rows.every((file) => selectedIds.has(file.id));
+
+  function changeView(next: () => void) {
+    next();
+    setPage(0);
+    setSelectedIds(new Set());
+  }
+
+  function toggle(id: string, on: boolean) {
+    setSelectedIds((ids) => {
+      const next = new Set(ids);
+      if (on) next.add(id);
+      else next.delete(id);
+      return next;
+    });
+  }
+
+  async function bulk(fix: ScannedFileFix) {
+    try {
+      const result = await fixFiles.mutateAsync(fix);
+      toast.success(fixSummary(fix.kind, result));
+      if (fix.kind === 'restore') matcher?.start();
+      setSelectedIds(new Set());
+    } catch {
+      // `useFixScannedFiles` reports the error.
+    }
+  }
+
+  const notIgnored = selected.filter((file) => file.matchStatus !== 'ignored');
+  const ignored = selected.filter((file) => file.matchStatus === 'ignored');
 
   return (
     <section className="flex flex-col gap-3" aria-labelledby="scan-results-heading">
@@ -82,20 +134,14 @@ export function ScanResultsTable({ files }: ScanResultsTableProps) {
             aria-label="Search files"
             placeholder="Search files"
             value={search}
-            onChange={(event) => {
-              setSearch(event.target.value);
-              setPage(0);
-            }}
+            onChange={(event) => changeView(() => setSearch(event.target.value))}
           />
         </InputGroup>
       </div>
 
       <Tabs
         value={status}
-        onValueChange={(value) => {
-          setStatus(value as StatusFilter);
-          setPage(0);
-        }}
+        onValueChange={(value) => changeView(() => setStatus(value as StatusFilter))}
       >
         <TabsList className="flex-wrap">
           {FILTERS.map((filter) => (
@@ -112,24 +158,54 @@ export function ScanResultsTable({ files }: ScanResultsTableProps) {
       <Table aria-label="Scanned files">
         <TableHeader>
           <TableRow>
+            <TableHead className="w-8">
+              <Checkbox
+                aria-label="Select the files on this page"
+                checked={pageSelected}
+                disabled={current.rows.length === 0}
+                onCheckedChange={(checked) =>
+                  setSelectedIds((ids) => {
+                    const next = new Set(ids);
+                    for (const file of current.rows) {
+                      if (checked === true) next.add(file.id);
+                      else next.delete(file.id);
+                    }
+                    return next;
+                  })
+                }
+              />
+            </TableHead>
             <TableHead>File</TableHead>
             <TableHead>Parsed title</TableHead>
             <TableHead>Quality</TableHead>
             <TableHead className="text-right">Size</TableHead>
             <TableHead>Subtitles</TableHead>
             <TableHead>Status</TableHead>
+            <TableHead>
+              <span className="sr-only">Actions</span>
+            </TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {current.rows.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={6} className="py-8 text-center text-muted-foreground">
+              <TableCell colSpan={8} className="py-8 text-center text-muted-foreground">
                 No files match.
               </TableCell>
             </TableRow>
           ) : (
             current.rows.map((file) => (
-              <TableRow key={file.id}>
+              <TableRow
+                key={file.id}
+                data-state={selectedIds.has(file.id) ? 'selected' : undefined}
+              >
+                <TableCell>
+                  <Checkbox
+                    aria-label={`Select ${fileName(file.filePath)}`}
+                    checked={selectedIds.has(file.id)}
+                    onCheckedChange={(checked) => toggle(file.id, checked === true)}
+                  />
+                </TableCell>
                 <TableCell className="max-w-96">
                   <p className="truncate font-medium" title={file.filePath}>
                     {fileName(file.filePath)}
@@ -150,6 +226,22 @@ export function ScanResultsTable({ files }: ScanResultsTableProps) {
                   <Badge variant={STATUS_VARIANTS[file.matchStatus]}>
                     {STATUS_LABELS[file.matchStatus]}
                   </Badge>
+                </TableCell>
+                <TableCell className="text-right">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() =>
+                      setSession({
+                        queue: filtered.map((entry) => entry.id),
+                        currentId: file.id,
+                        done: [],
+                      })
+                    }
+                  >
+                    <Wand2 aria-hidden />
+                    Fix match
+                  </Button>
                 </TableCell>
               </TableRow>
             ))
@@ -182,6 +274,22 @@ export function ScanResultsTable({ files }: ScanResultsTableProps) {
           </Button>
         </nav>
       )}
+
+      {selected.length > 0 && (
+        <FileSelectionBar
+          count={selected.length}
+          withSuggestion={notIgnored.filter((file) => file.matchCandidates?.length).length}
+          ignored={ignored.length}
+          notIgnored={notIgnored.length}
+          busy={fixFiles.isPending}
+          onClear={() => setSelectedIds(new Set())}
+          onAccept={() => void bulk({ kind: 'accept', files: notIgnored })}
+          onIgnore={() => void bulk({ kind: 'ignore', files: notIgnored })}
+          onRestore={() => void bulk({ kind: 'restore', files: ignored })}
+        />
+      )}
+
+      <FixMatchDialog session={session} onSessionChange={setSession} files={files} folderIgnore />
     </section>
   );
 }

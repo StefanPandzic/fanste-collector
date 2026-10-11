@@ -28,6 +28,7 @@ import { EditedMarker } from './edited-marker';
 import { ItemActions } from './item-actions';
 import { originalValueText, toItemDetailView } from './item-detail-view';
 import { ItemHeader } from './item-header';
+import { LinkedFilesSection } from './linked-files-section';
 import { MetadataEditor } from './metadata-editor';
 
 import type { CollectionItem } from '@fanste/core';
@@ -195,6 +196,7 @@ function ItemDetail({ item, currency, onDeleted }: ItemDetailProps) {
       <Separator />
       {/* A new form per copy, so its unsaved edits never carry over to another copy. */}
       <CopySection key={item.id} item={item} metadata={view.original} defaultCurrency={currency} />
+      <LinkedFilesSection itemId={item.id} onLeave={onDeleted} />
     </>
   );
 }

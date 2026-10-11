@@ -237,6 +237,15 @@ reads the user's default currency and renders `DashboardPageClient`.
   is the `pending` rows themselves. A run ends with a summary toast (`matchSummary`); the page shows
   its progress with Pause/Resume (`MatchProgressPanel`). "Auto-add confident matches"
   (`AutoAddSetting`) is in `profiles.preferences.scanner`, on the scanner page and in Settings.
+- **Fix Match (FC-24):** `FixMatchDialog` (`fix-match-dialog.tsx`, pure parts in `fix-match-view.ts`)
+  steps through a `FixSession` (a snapshot of the list's file IDs), so fixed files leaving the
+  filtered list don't break "next file". It shows the stored candidates plus a manual `api.search`,
+  and writes through `useFixScannedFiles` (`link` / `accept` / `ignore` / `restore`). A fix covers
+  `fixGroup` (the files the matcher would have matched together) unless the user unticks it. The
+  table opens on "Needs review", leaves ignored files out of "All", and has row selection with bulk
+  actions (`FileSelectionBar`). `ScanMatcherProvider` also gives the review count
+  (`useScannerReviewCount`) for the Scanner nav badge (`reviewBadge` in `nav-items.ts`). The item
+  page's `LinkedFilesSection` opens the same dialog.
 
 ## Design system
 

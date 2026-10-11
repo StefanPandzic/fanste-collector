@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  defaultStatusFilter,
   fileName,
   filesPerFolder,
   filesToProbe,
@@ -15,6 +16,7 @@ import {
   parsedLabel,
   probeEntries,
   qualityLabel,
+  reviewCount,
   scanSummary,
   statusCounts,
 } from './scanner-view';
@@ -58,6 +60,24 @@ const severance: ScannedFile = {
 };
 
 const files = [inception, dune, severance];
+
+const unmatched: ScannedFile = {
+  ...inception,
+  id: '2c3d4e5f-6a7b-4c8d-9e0f-1a2b3c4d5e6f',
+  pathKey: 'e:/movies/tenet.2020.mkv',
+  filePath: 'E:\\Movies\\Tenet.2020.mkv',
+  matchStatus: 'unmatched',
+  collectionItemId: null,
+};
+
+const ignored: ScannedFile = {
+  ...inception,
+  id: '6f7a8b9c-0d1e-4f2a-8b3c-4d5e6f7a8b9c',
+  pathKey: 'e:/movies/extras/trailer.mkv',
+  filePath: 'E:\\Movies\\Extras\\Trailer.mkv',
+  matchStatus: 'ignored',
+  collectionItemId: null,
+};
 
 const movies: LibraryFolder = {
   path: 'E:\\Movies',
@@ -152,6 +172,35 @@ describe('statusCounts', () => {
       manual: 0,
     });
   });
+
+  it('leaves ignored files out of all', () => {
+    expect(statusCounts([inception, ignored])).toEqual({
+      all: 1,
+      pending: 0,
+      matched: 1,
+      unmatched: 0,
+      ignored: 1,
+      manual: 0,
+    });
+  });
+});
+
+describe('reviewCount', () => {
+  it('counts the current files that need review', () => {
+    const removed = {
+      ...unmatched,
+      id: 'f1e2d3c4-b5a6-4978-8c6d-5e4f3a2b1c0d',
+      removedAt: '2026-10-10T12:30:00.000Z',
+    };
+    expect(reviewCount([...files, unmatched, removed])).toBe(1);
+  });
+});
+
+describe('defaultStatusFilter', () => {
+  it('opens on needs review while there is something to review', () => {
+    expect(defaultStatusFilter([...files, unmatched])).toBe('unmatched');
+    expect(defaultStatusFilter(files)).toBe('all');
+  });
 });
 
 describe('filterFiles', () => {
@@ -159,6 +208,11 @@ describe('filterFiles', () => {
     expect(filterFiles(files, 'pending', '')).toEqual([dune, severance]);
     expect(filterFiles(files, 'all', ' severance ')).toEqual([severance]);
     expect(filterFiles(files, 'matched', 'dune')).toEqual([]);
+  });
+
+  it('shows ignored files only under their own tab', () => {
+    expect(filterFiles([inception, ignored], 'all', '')).toEqual([inception]);
+    expect(filterFiles([inception, ignored], 'ignored', '')).toEqual([ignored]);
   });
 });
 
