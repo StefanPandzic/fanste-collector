@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { parseMovieExtra, parseTvExtra } from './extras';
+import { parseMovieExtra, parseMusicExtra, parseTvExtra } from './extras';
 
 describe('parseMovieExtra', () => {
   it('returns the movie fields for valid input', () => {
@@ -33,5 +33,24 @@ describe('parseTvExtra', () => {
 
   it('returns undefined for invalid input', () => {
     expect(parseTvExtra({ seasons: [{ name: 'Season 1' }] })).toBeUndefined();
+  });
+});
+
+describe('parseMusicExtra', () => {
+  it('returns the release fields for valid input', () => {
+    const extra = {
+      discogsType: 'release',
+      country: 'UK',
+      labels: [{ name: 'Apple Records', catalogNumber: 'PCS 7088' }],
+      catalogNumber: 'PCS 7088',
+      formats: [{ name: 'Vinyl', quantity: 1, descriptions: ['LP', 'Album'] }],
+      tracklist: [{ position: 'A1', title: 'Come Together', duration: '4:19' }],
+      masterId: 24047,
+    };
+    expect(parseMusicExtra(extra)).toEqual(extra);
+  });
+
+  it('returns undefined for invalid input', () => {
+    expect(parseMusicExtra({ formats: [{ name: 'Vinyl', quantity: 0 }] })).toBeUndefined();
   });
 });

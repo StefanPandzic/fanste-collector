@@ -38,7 +38,10 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Textarea } from '@/components/ui/textarea';
 import { CopyDetailsFields } from '@/features/copy-form/copy-details-fields';
 import { showsCopyDetails } from '@/features/copy-form/copy-form';
+import type { CopyFormDetails } from '@/features/copy-form/copy-form';
 import { FormField } from '@/features/copy-form/form-field';
+import { MusicDetailsFields } from '@/features/copy-form/music-details-fields';
+import { ReleaseDetails } from '@/features/item-detail/release-details';
 
 import { initialFormValues, prefillLabel, toAddItemInput } from './add-item-form';
 import { providerItemQuery } from './item-query';
@@ -46,13 +49,7 @@ import { searchErrorText } from './search-errors';
 
 import type { AddItemFormValues, AddTarget } from './add-item-form';
 import type { ItemCopy } from '@fanste/collection';
-import type {
-  CopyDefaults,
-  NormalizedItem,
-  OwnershipStatus,
-  SearchResult,
-  TvDetails,
-} from '@fanste/core';
+import type { CopyDefaults, NormalizedItem, OwnershipStatus, SearchResult } from '@fanste/core';
 import type { FormEvent } from 'react';
 
 interface AddItemDialogProps {
@@ -191,7 +188,7 @@ function AddItemForm({
     markChanged(field);
   }
 
-  function setDetail<K extends keyof TvDetails>(field: K, value: TvDetails[K]) {
+  function setDetail<K extends keyof CopyFormDetails>(field: K, value: CopyFormDetails[K]) {
     setValues((current) => ({ ...current, details: { ...current.details, [field]: value } }));
     markChanged(field);
     setErrors(({ [`details.${field}`]: _removed, ...rest }) => rest);
@@ -203,7 +200,6 @@ function AddItemForm({
   }
 
   const copy = showsCopyDetails(values.ownership);
-  const category = target.category === 'tv' ? 'tv' : 'movie';
 
   function submit(event: FormEvent) {
     event.preventDefault();
@@ -246,6 +242,23 @@ function AddItemForm({
               ` (${copies.map((entry) => entry.format ?? 'no medium').join(', ')})`}
             . This adds another one.
           </p>
+        )}
+
+        {target.category === 'music' && (
+          // Pressings of one album look alike in the results: show what tells this one apart.
+          <section className="flex flex-col gap-3" aria-labelledby="add-release">
+            <h3 id="add-release" className="text-heading">
+              This pressing
+            </h3>
+            {item.subtitle && <p className="text-sm text-muted-foreground">{item.subtitle}</p>}
+            <ReleaseDetails item={item} heading="h4" />
+            {item.description && (
+              <details className="max-w-prose text-sm">
+                <summary className="cursor-pointer font-medium">Notes</summary>
+                <p className="mt-2 leading-relaxed whitespace-pre-line">{item.description}</p>
+              </details>
+            )}
+          </section>
         )}
 
         <section className="grid gap-4 sm:grid-cols-2" aria-label="Your copy">
@@ -338,21 +351,35 @@ function AddItemForm({
             <h3 id="add-copy-details" className="text-heading">
               Copy details
             </h3>
-            <CopyDetailsFields
-              category={category}
-              format={values.format}
-              details={values.details}
-              seasons={prefill.choices.seasons}
-              onFormatChange={(value) => set('format', value)}
-              onDetailChange={setDetail}
-              markerOf={markerOf}
-              errors={errors}
-            />
+            {target.category === 'music' ? (
+              <MusicDetailsFields
+                format={values.format}
+                details={values.details}
+                onFormatChange={(value) => set('format', value)}
+                onDetailChange={setDetail}
+                markerOf={markerOf}
+                errors={errors}
+              />
+            ) : (
+              <CopyDetailsFields
+                category={target.category === 'tv' ? 'tv' : 'movie'}
+                format={values.format}
+                details={values.details}
+                seasons={prefill.choices.seasons}
+                onFormatChange={(value) => set('format', value)}
+                onDetailChange={setDetail}
+                markerOf={markerOf}
+                errors={errors}
+              />
+            )}
           </section>
         ) : (
           <p className="text-sm text-muted-foreground">
-            Copy details (medium, quality, languages) are for copies you have. Set them when you get
-            it.
+            Copy details (
+            {target.category === 'music'
+              ? 'medium, pressing, condition'
+              : 'medium, quality, languages'}
+            ) are for copies you have. Set them when you get it.
           </p>
         )}
       </div>

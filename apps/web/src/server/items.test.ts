@@ -16,6 +16,10 @@ function movie(externalId: string): NormalizedItem {
   return { provider: 'tmdb', externalId, category: 'movie', title: `TMDB ${externalId}` };
 }
 
+function record(externalId: string): NormalizedItem {
+  return { provider: 'discogs', externalId, category: 'music', title: `Discogs ${externalId}` };
+}
+
 function boardGames(count: number): ItemRef[] {
   return Array.from({ length: count }, (_, index) => ({
     provider: 'bgg' as const,
@@ -44,6 +48,11 @@ function setup(cached: CachedItem[] | 'cache down') {
     provider: 'bgg',
     categories: ['board_game'],
   };
+  const discogsAdapter: ProviderAdapter = {
+    ...tmdbAdapter,
+    provider: 'discogs',
+    categories: ['music'],
+  };
   const cache = {
     getMany: vi.fn((refs: readonly ItemRef[]) =>
       cached === 'cache down'
@@ -56,7 +65,7 @@ function setup(cached: CachedItem[] | 'cache down') {
   };
   const background: (() => Promise<void>)[] = [];
   const service = createItemService({
-    registry: createRegistry([tmdbAdapter, bggAdapter]),
+    registry: createRegistry([tmdbAdapter, bggAdapter, discogsAdapter]),
     cache,
     runInBackground: (task) => background.push(task),
     now: () => now,
@@ -121,6 +130,20 @@ describe('createItemService', () => {
     expect(response.items).toHaveLength(50);
     expect(response.missing).toEqual([]);
     expect(cache.getMany).toHaveBeenCalledTimes(1);
+    expect(getById).not.toHaveBeenCalled();
+  });
+
+  it('serves a gallery of 50 cached Discogs records without calling Discogs', async () => {
+    const refs = Array.from({ length: 50 }, (_, index) => ({
+      provider: 'discogs' as const,
+      externalId: `release:${2607424 + index}`,
+    }));
+    const { service, getById } = setup(
+      refs.map((ref) => ({ item: record(ref.externalId), fetchedAt: now })),
+    );
+    const response = await service.getItemsBatch(refs);
+    expect(response.items).toHaveLength(50);
+    expect(response.missing).toEqual([]);
     expect(getById).not.toHaveBeenCalled();
   });
 

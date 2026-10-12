@@ -3,17 +3,22 @@ import { describe, expect, it } from 'vitest';
 import {
   copyFieldValues,
   creatorsLabel,
+  detailsCategory,
   fileMarkerOf,
   formatRuntime,
+  formatSummary,
   LOADING_TITLE,
+  matrixCodesOf,
   mediaFacts,
   originalValueText,
   overrideFieldValues,
   parseNameList,
+  showsCreators,
   toCopyPatch,
   toDetailsPatch,
   toItemDetailView,
   toOverridesPatch,
+  tracklistOf,
 } from './item-detail-view';
 
 import type { CollectionItem, FileDetails, NormalizedItem } from '@fanste/core';
@@ -39,6 +44,27 @@ const breakingBad: NormalizedItem = {
   category: 'tv',
   title: 'Breaking Bad',
   extra: { seasonCount: 5, episodeCount: 62, status: 'Ended', networks: ['AMC'] },
+};
+
+const abbeyRoad: NormalizedItem = {
+  provider: 'discogs',
+  externalId: 'release:2607424',
+  category: 'music',
+  title: 'Abbey Road',
+  subtitle: 'The Beatles',
+  creators: ['The Beatles'],
+  extra: {
+    discogsType: 'release',
+    country: 'UK',
+    labels: [{ name: 'Apple Records', catalogNumber: 'PCS 7088' }],
+    catalogNumber: 'PCS 7088',
+    formats: [{ name: 'Vinyl', quantity: 1, descriptions: ['LP', 'Album'], text: 'Stereo' }],
+    matrix: [{ value: 'YEX.749', description: 'Side A label' }],
+    tracklist: [
+      { position: 'A1', title: 'Come Together', duration: '4:19' },
+      { position: 'A2', title: 'Something', duration: '3:02' },
+    ],
+  },
 };
 
 const copy: CollectionItem = {
@@ -100,6 +126,43 @@ describe('creatorsLabel', () => {
   it('names the creators for the category', () => {
     expect(creatorsLabel('movie')).toBe('Directed by');
     expect(creatorsLabel('tv')).toBe('Created by');
+    expect(creatorsLabel('music')).toBe('Artists');
+  });
+});
+
+describe('showsCreators', () => {
+  it('hides the artists of a record when they are its subtitle', () => {
+    expect(showsCreators(inception)).toBe(true);
+    expect(showsCreators(abbeyRoad)).toBe(false);
+    expect(showsCreators({ ...abbeyRoad, subtitle: 'Various' })).toBe(true);
+  });
+});
+
+describe('formatSummary', () => {
+  it('describes each format and joins box set parts', () => {
+    expect(
+      formatSummary([
+        { name: 'Vinyl', quantity: 2, descriptions: ['LP', 'Album'], text: 'Red' },
+        { name: 'Box Set', descriptions: ['Limited Edition'] },
+      ]),
+    ).toBe('2×Vinyl, LP, Album, Red + Box Set, Limited Edition');
+  });
+});
+
+describe('tracklistOf', () => {
+  it('returns the tracks of a record and nothing for other categories', () => {
+    expect(tracklistOf(abbeyRoad)).toEqual([
+      { position: 'A1', title: 'Come Together', duration: '4:19' },
+      { position: 'A2', title: 'Something', duration: '3:02' },
+    ]);
+    expect(tracklistOf(inception)).toEqual([]);
+  });
+});
+
+describe('matrixCodesOf', () => {
+  it('returns the matrix codes of a record and nothing for other categories', () => {
+    expect(matrixCodesOf(abbeyRoad)).toEqual([{ value: 'YEX.749', description: 'Side A label' }]);
+    expect(matrixCodesOf(inception)).toEqual([]);
   });
 });
 
@@ -118,6 +181,28 @@ describe('mediaFacts', () => {
       { label: 'Status', value: 'Ended' },
       { label: 'Network', value: 'AMC' },
     ]);
+  });
+
+  it('lists the facts of a music release', () => {
+    expect(mediaFacts(abbeyRoad)).toEqual([
+      { label: 'Label', value: 'Apple Records' },
+      { label: 'Catalog number', value: 'PCS 7088' },
+      { label: 'Country', value: 'UK' },
+      { label: 'Format', value: 'Vinyl, LP, Album, Stereo' },
+    ]);
+  });
+
+  it('lists the barcodes of a release', () => {
+    const withBarcodes = (barcodes: string[]) =>
+      mediaFacts({ ...abbeyRoad, extra: { ...abbeyRoad.extra, barcodes } });
+    expect(withBarcodes(['5 099745 042210'])).toContainEqual({
+      label: 'Barcode',
+      value: '5 099745 042210',
+    });
+    expect(withBarcodes(['5 099745 042210', '5099745042227'])).toContainEqual({
+      label: 'Barcodes',
+      value: '5 099745 042210, 5099745042227',
+    });
   });
 });
 
@@ -170,6 +255,14 @@ describe('toCopyPatch', () => {
   });
 });
 
+describe('detailsCategory', () => {
+  it('picks the copy-details form of the category', () => {
+    expect(detailsCategory('music')).toBe('music');
+    expect(detailsCategory('tv')).toBe('tv');
+    expect(detailsCategory('board_game')).toBe('movie');
+  });
+});
+
 describe('toDetailsPatch', () => {
   it('sets filled fields and removes empty ones', () => {
     expect(
@@ -189,6 +282,13 @@ describe('toDetailsPatch', () => {
     ).toEqual({
       patch: {},
       errors: { 'details.discCount': 'Enter a number of discs from 1 to 99.' },
+    });
+  });
+
+  it('patches the fields of a music copy', () => {
+    expect(toDetailsPatch('music', { mediaCondition: 'VG+', variant: ' ' })).toEqual({
+      patch: { mediaCondition: 'VG+', variant: null },
+      errors: {},
     });
   });
 });

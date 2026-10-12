@@ -62,6 +62,31 @@ describe('createApiClient', () => {
     );
   });
 
+  it('sends the music medium as a search param', async () => {
+    const fetchFn = fakeFetch({ results: [], page: 1, totalPages: 0, totalResults: 0 });
+    await createApiClient({ baseUrl, fetch: fetchFn }).search({
+      category: 'music',
+      q: 'Abbey Road',
+      format: 'Vinyl',
+    });
+    expect(fetchFn.mock.calls[0]?.[0]).toBe(
+      'https://collector.example.com/api/search?category=music&q=Abbey+Road&format=Vinyl',
+    );
+  });
+
+  it('sends the country and code and leaves out an empty query', async () => {
+    const fetchFn = fakeFetch({ results: [], page: 1, totalPages: 0, totalResults: 0 });
+    await createApiClient({ baseUrl, fetch: fetchFn }).search({
+      category: 'music',
+      q: '',
+      country: 'UK',
+      code: 'EPC 450290 1',
+    });
+    expect(fetchFn.mock.calls[0]?.[0]).toBe(
+      'https://collector.example.com/api/search?category=music&country=UK&code=EPC+450290+1',
+    );
+  });
+
   it('sends the access token as a Bearer header', async () => {
     const fetchFn = fakeFetch(matrix);
     const client = createApiClient({ baseUrl, fetch: fetchFn, getAccessToken: () => 'jwt-abc' });

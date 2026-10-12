@@ -18,6 +18,7 @@ const LIST_PARAMS = {
   formats: 'format',
   tagIds: 'tag',
   sources: 'source',
+  countries: 'country',
 } as const satisfies Partial<Record<keyof CollectionFilter, string>>;
 
 type DetailsFilter = NonNullable<CollectionFilter['details']>;
@@ -28,6 +29,9 @@ const DETAIL_PARAMS = {
   edition: 'edition',
   audioLanguages: 'audio',
   subtitleLanguages: 'subtitles',
+  vinylSize: 'size',
+  mediaCondition: 'media',
+  sleeveCondition: 'sleeve',
 } as const satisfies Record<keyof DetailsFilter, string>;
 
 type RawParams = Record<string, string | string[] | undefined>;

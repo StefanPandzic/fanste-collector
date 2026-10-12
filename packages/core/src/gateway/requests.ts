@@ -2,6 +2,7 @@ import { z } from 'zod';
 
 import { itemCategorySchema, PROVIDER_CATEGORIES } from '../models/enums';
 import { isValidExternalId } from '../models/external-id';
+import { MUSIC_SEARCH_FORMATS } from '../models/formats';
 import {
   MAX_RELEASE_YEAR,
   MIN_RELEASE_YEAR,
@@ -30,17 +31,46 @@ export const MAX_BATCH_ITEMS = 100;
 /** Most titles one `POST /api/match/tmdb` may match (FC-23 sends the scanner's files in batches). */
 export const MAX_MATCH_QUERIES = 20;
 
+/** Longest release country of a search, e.g. `UK & Ireland`. */
+export const MAX_SEARCH_COUNTRY_LENGTH = 60;
+/** Longest barcode or catalog number of a search. */
+export const MAX_SEARCH_CODE_LENGTH = 60;
+
+/** A release country, as Discogs names it (`UK`, `Europe`, `Yugoslavia`). */
+export const searchCountrySchema = z.string().trim().min(1).max(MAX_SEARCH_COUNTRY_LENGTH);
+/** A barcode or catalog number to look a music release up by. */
+export const searchCodeSchema = z.string().trim().min(1).max(MAX_SEARCH_CODE_LENGTH);
+
 /**
- * `GET /api/search?category=&q=&page=&year=`. Coerces `page` and `year`, so it parses query-string
- * values too. `year` narrows the results to that release year where the provider supports it (TMDB);
- * other providers ignore it.
+ * Whether a search has something to look for: a query, or for music a barcode / catalog number
+ * (`code`), which finds a pressing without a title.
  */
-export const searchQuerySchema = z.object({
-  category: itemCategorySchema,
-  q: z.string().trim().min(1).max(MAX_SEARCH_QUERY_LENGTH),
-  page: z.coerce.number().int().min(1).max(MAX_SEARCH_PAGE).default(1),
-  year: z.coerce.number().int().min(MIN_RELEASE_YEAR).max(MAX_RELEASE_YEAR).optional(),
-});
+export function hasSearchTerm(search: {
+  category: ItemCategory;
+  q?: string;
+  code?: string;
+}): boolean {
+  return (search.q ?? '').trim() !== '' || (search.category === 'music' && !!search.code?.trim());
+}
+
+/**
+ * `GET /api/search?category=&q=&page=&year=&format=&country=&code=`. Coerces `page` and `year`, so
+ * it parses query-string values too. `year` narrows the results to that release year where the
+ * provider supports it; `format` (a physical medium), `country` (the release country) and `code` (a
+ * barcode or catalog number) narrow music (Discogs, FC-10). Providers that can't filter on one ignore
+ * it. `q` may be empty for a music search by `code`.
+ */
+export const searchQuerySchema = z
+  .object({
+    category: itemCategorySchema,
+    q: z.string().trim().max(MAX_SEARCH_QUERY_LENGTH).default(''),
+    page: z.coerce.number().int().min(1).max(MAX_SEARCH_PAGE).default(1),
+    year: z.coerce.number().int().min(MIN_RELEASE_YEAR).max(MAX_RELEASE_YEAR).optional(),
+    format: z.enum(MUSIC_SEARCH_FORMATS).optional(),
+    country: searchCountrySchema.optional(),
+    code: searchCodeSchema.optional(),
+  })
+  .refine(hasSearchTerm, { message: 'Enter something to search for.', path: ['q'] });
 /** A search as clients send it; `page` defaults to 1. */
 export type SearchQuery = Omit<z.output<typeof searchQuerySchema>, 'page'> & { page?: number };
 

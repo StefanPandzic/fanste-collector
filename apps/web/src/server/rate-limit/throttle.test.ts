@@ -86,4 +86,40 @@ describe('createThrottle', () => {
     finish();
     await Promise.all([running, queued]);
   });
+  it('starts no task until a pause ends', async () => {
+    const throttle = createThrottle({ ratePerSecond: 100, burst: 10, maxConcurrent: 10 });
+    let started = 0;
+    throttle.pauseFor(1000);
+    const done = throttle.schedule(() => {
+      started += 1;
+      return Promise.resolve();
+    });
+
+    await vi.advanceTimersByTimeAsync(999);
+    expect(started).toBe(0);
+
+    await vi.advanceTimersByTimeAsync(1);
+    expect(started).toBe(1);
+    await done;
+  });
+
+  it('starts one task at a time after a pause instead of a burst', async () => {
+    const throttle = createThrottle({ ratePerSecond: 1, burst: 3, maxConcurrent: 3 });
+    let started = 0;
+    throttle.pauseFor(5000);
+    const tasks = [1, 2, 3].map(() =>
+      throttle.schedule(() => {
+        started += 1;
+        return Promise.resolve();
+      }),
+    );
+
+    await vi.advanceTimersByTimeAsync(5000);
+    expect(started).toBe(1);
+    await vi.advanceTimersByTimeAsync(1000);
+    expect(started).toBe(2);
+    await vi.advanceTimersByTimeAsync(1000);
+    await Promise.all(tasks);
+    expect(started).toBe(3);
+  });
 });

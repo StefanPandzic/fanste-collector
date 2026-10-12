@@ -5,6 +5,7 @@ import {
   detailsSchemaFor,
   languageCodeSchema,
   movieDetailsShape,
+  musicDetailsShape,
   tvDetailsShape,
 } from './copy-details';
 import { itemCategorySchema, metadataProviderSchema, ownershipStatusSchema } from './enums';
@@ -107,7 +108,7 @@ const loosePatchSchema = z.record(z.string(), z.unknown());
 const DETAILS_PATCH_SCHEMAS = {
   movie: z.object(patchShape(movieDetailsShape)),
   tv: z.object(patchShape(tvDetailsShape)),
-  music: loosePatchSchema,
+  music: z.object(patchShape(musicDetailsShape)),
   video_game: loosePatchSchema,
   board_game: loosePatchSchema,
   funko: loosePatchSchema,
@@ -170,6 +171,9 @@ export const MAX_COLLECTION_PAGE_SIZE = 200;
 /** Most values one filter can select. */
 export const MAX_FILTER_VALUES = 50;
 
+/** Longest release country a filter can select. */
+export const MAX_COUNTRY_LENGTH = 60;
+
 /** Selected values of one filter: an item matches when it has any of them. */
 function anyOf<T extends z.ZodType>(value: T) {
   return z.array(value).max(MAX_FILTER_VALUES).optional();
@@ -179,7 +183,8 @@ const optionValue = z.string().trim().min(1).max(MAX_FORMAT_LENGTH);
 
 /**
  * Filters on copy details (FC-15). A TV copy matches when the show or any of its seasons has the
- * value (resolution, languages). Movies & TV first; game and music filters come with FC-11 / FC-10.
+ * value (resolution, languages). Music has the vinyl size and the conditions (FC-10); game filters
+ * come with FC-11.
  */
 export const collectionDetailsFilterSchema = z.object({
   resolution: anyOf(optionValue),
@@ -187,6 +192,9 @@ export const collectionDetailsFilterSchema = z.object({
   edition: anyOf(optionValue),
   audioLanguages: anyOf(languageCodeSchema),
   subtitleLanguages: anyOf(languageCodeSchema),
+  vinylSize: anyOf(optionValue),
+  mediaCondition: anyOf(optionValue),
+  sleeveCondition: anyOf(optionValue),
 });
 
 /**
@@ -206,6 +214,8 @@ export const collectionFilterSchema = z.object({
   acquiredTo: z.iso.date().optional(),
   /** Matched against the displayed title and subtitle (overrides applied). */
   search: z.string().trim().max(200).optional(),
+  /** A record's release country from the Discogs data, e.g. `UK` (FC-10), matched exactly. */
+  countries: anyOf(z.string().trim().min(1).max(MAX_COUNTRY_LENGTH)),
   details: collectionDetailsFilterSchema.optional(),
 });
 
@@ -237,6 +247,10 @@ export const COLLECTION_FACETS = [
   'edition',
   'audioLanguage',
   'subtitleLanguage',
+  'vinylSize',
+  'mediaCondition',
+  'sleeveCondition',
+  'country',
 ] as const;
 export type CollectionFacet = (typeof COLLECTION_FACETS)[number];
 

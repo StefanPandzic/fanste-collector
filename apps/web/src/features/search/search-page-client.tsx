@@ -2,10 +2,17 @@
 
 import { Clock, Search, X } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 
-import { categoryLabel, ITEM_CATEGORIES, MAX_SEARCH_QUERY_LENGTH } from '@fanste/core';
+import {
+  categoryLabel,
+  ITEM_CATEGORIES,
+  MAX_SEARCH_CODE_LENGTH,
+  MAX_SEARCH_COUNTRY_LENGTH,
+  MAX_SEARCH_QUERY_LENGTH,
+  MUSIC_SEARCH_FORMATS,
+} from '@fanste/core';
 
 import { CategoryIcon } from '@/components/items/category-icon';
 import { SEARCH_INPUT_ID } from '@/components/search-shortcut';
@@ -20,10 +27,15 @@ import { useDebouncedValue } from '@/lib/use-debounced-value';
 
 import { useRecentSearches } from './recent-searches';
 import { SearchResults } from './search-results';
-import { isSearchable, parseYearInput, searchStateUrl } from './search-state';
+import {
+  COUNTRY_SUGGESTIONS,
+  isSearchable,
+  parseYearInput,
+  searchRequestOf,
+  searchStateUrl,
+} from './search-state';
 
 import type { SearchState } from './search-state';
-import type { SearchRequest } from './use-search-results';
 import type { ItemCategory, RecentSearch } from '@fanste/core';
 import type { FormEvent } from 'react';
 
@@ -31,7 +43,7 @@ import type { FormEvent } from 'react';
 const SEARCH_DEBOUNCE_MS = 300;
 
 interface SearchPageClientProps {
-  /** From the URL (`?category=&q=&year=`). */
+  /** From the URL (`?category=&q=&year=&format=&country=&code=`). */
   initialState: SearchState;
   /** The user's default currency, for prices in the add dialog. */
   currency: string;
@@ -47,22 +59,31 @@ export function SearchPageClient({ initialState, currency }: SearchPageClientPro
   const isDesktop = useIsDesktop();
   const [state, setState] = useState(initialState);
   const [yearInput, setYearInput] = useState(initialState.year?.toString() ?? '');
-  const [debouncedQ, flushQ] = useDebouncedValue(state.q, SEARCH_DEBOUNCE_MS);
+  // The typed text fields settle together, so a search runs once the user stops typing.
+  const typed = useMemo(
+    () => ({ q: state.q, country: state.country, code: state.code }),
+    [state.q, state.country, state.code],
+  );
+  const [debounced, flushTyped] = useDebouncedValue(typed, SEARCH_DEBOUNCE_MS);
   const recent = useRecentSearches(user?.id ?? 'signed-out');
 
-  const q = debouncedQ.trim();
-  const request: SearchRequest | null = q
-    ? { category: state.category, q, ...(state.year !== undefined ? { year: state.year } : {}) }
-    : null;
+  // The music filters are kept while the user looks at another category, but only sent for music.
+  const request = searchRequestOf(state, debounced);
+  const music = state.category === 'music';
 
   // The native history API updates the URL without a server round trip (Next.js keeps in sync).
   useEffect(() => {
     window.history.replaceState(
       null,
       '',
-      searchStateUrl({ category: state.category, q: debouncedQ, year: state.year }),
+      searchStateUrl({
+        category: state.category,
+        year: state.year,
+        format: state.format,
+        ...debounced,
+      }),
     );
-  }, [state.category, debouncedQ, state.year]);
+  }, [state.category, state.year, state.format, debounced]);
 
   function rememberSearch() {
     if (request) recent.add(request);
@@ -70,15 +91,23 @@ export function SearchPageClient({ initialState, currency }: SearchPageClientPro
 
   function submit(event: FormEvent) {
     event.preventDefault();
-    flushQ(state.q);
-    const trimmed = state.q.trim();
-    if (trimmed) recent.add({ category: state.category, q: trimmed, year: state.year });
+    flushTyped(typed);
+    const now = searchRequestOf(state, typed);
+    if (now) recent.add(now);
   }
 
   function runRecent(entry: RecentSearch) {
-    setState({ category: entry.category, q: entry.q, year: entry.year });
+    const next: SearchState = {
+      category: entry.category,
+      q: entry.q,
+      year: entry.year,
+      format: entry.format,
+      country: entry.country,
+      code: entry.code,
+    };
+    setState(next);
     setYearInput(entry.year?.toString() ?? '');
-    flushQ(entry.q);
+    flushTyped({ q: next.q, country: next.country, code: next.code });
   }
 
   function showAdded(title: string) {
@@ -167,6 +196,62 @@ export function SearchPageClient({ initialState, currency }: SearchPageClientPro
             className="w-24"
           />
         </form>
+
+        {music && (
+          <div className="flex flex-wrap items-center gap-2">
+            <div role="group" aria-label="Medium" className="flex flex-wrap gap-2">
+              {MUSIC_SEARCH_FORMATS.map((medium) => {
+                const active = state.format === medium;
+                return (
+                  <Button
+                    key={medium}
+                    type="button"
+                    size="sm"
+                    variant={active ? 'default' : 'outline'}
+                    aria-pressed={active}
+                    onClick={() =>
+                      setState((current) => ({
+                        ...current,
+                        format: current.format === medium ? undefined : medium,
+                      }))
+                    }
+                  >
+                    {medium}
+                  </Button>
+                );
+              })}
+            </div>
+            <Input
+              list="search-countries"
+              maxLength={MAX_SEARCH_COUNTRY_LENGTH}
+              placeholder="Country"
+              aria-label="Release country"
+              value={state.country ?? ''}
+              onChange={(event) => {
+                const value = event.target.value;
+                setState((current) => ({ ...current, country: value || undefined }));
+              }}
+              className="w-36"
+            />
+            <datalist id="search-countries">
+              {COUNTRY_SUGGESTIONS.map((country) => (
+                <option key={country} value={country} />
+              ))}
+            </datalist>
+            <Input
+              maxLength={MAX_SEARCH_CODE_LENGTH}
+              placeholder="Barcode / catalog no."
+              aria-label="Barcode or catalog number"
+              title="Finds the exact pressing; no title needed."
+              value={state.code ?? ''}
+              onChange={(event) => {
+                const value = event.target.value;
+                setState((current) => ({ ...current, code: value || undefined }));
+              }}
+              className="w-52"
+            />
+          </div>
+        )}
       </div>
 
       {request ? (
@@ -189,7 +274,14 @@ export function SearchPageClient({ initialState, currency }: SearchPageClientPro
           <ul className="flex flex-col">
             {recent.recent.map((entry) => (
               <li
-                key={`${entry.category}:${entry.q}:${entry.year ?? ''}`}
+                key={[
+                  entry.category,
+                  entry.q,
+                  entry.year,
+                  entry.format,
+                  entry.country,
+                  entry.code,
+                ].join(':')}
                 className="flex items-center gap-1"
               >
                 <Button
@@ -198,10 +290,13 @@ export function SearchPageClient({ initialState, currency }: SearchPageClientPro
                   onClick={() => runRecent(entry)}
                 >
                   <Clock aria-hidden className="text-muted-foreground" />
-                  <span className="truncate">{entry.q}</span>
+                  <span className="truncate">{entry.q || entry.code}</span>
                   <span className="text-caption text-muted-foreground">
                     {categoryLabel(entry.category, { plural: true })}
                     {entry.year !== undefined && ` · ${entry.year}`}
+                    {entry.format !== undefined && ` · ${entry.format}`}
+                    {entry.country !== undefined && ` · ${entry.country}`}
+                    {entry.q && entry.code !== undefined && ` · ${entry.code}`}
                   </span>
                 </Button>
                 <Button

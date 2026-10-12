@@ -325,7 +325,7 @@ describe('collection repository (dev Supabase project)', () => {
     ).rejects.toMatchObject({ code: 'not_found' });
     // A patch checked against another category's schema doesn't reach a movie.
     await expect(
-      updateItemDetails(deviceA, item.id, { category: 'music', changes: { anything: 1 } }),
+      updateItemDetails(deviceA, item.id, { category: 'music', changes: { catalogNumber: 'X1' } }),
     ).rejects.toMatchObject({ code: 'not_found' });
   });
 

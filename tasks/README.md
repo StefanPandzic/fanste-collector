@@ -104,7 +104,7 @@ Status legend: `TODO` · `IN PROGRESS` · `DONE` · `BLOCKED`
 | FC-07 | [Normalized item model](phase-2-api-data/07-normalized-item-model.md) | FC-01 | DONE |
 | FC-08 | [API gateway, rate limiting & caching](phase-2-api-data/08-api-gateway.md) | FC-02, FC-05, FC-07 | DONE |
 | FC-09 | [TMDB integration (Movies & TV)](phase-2-api-data/09-tmdb-integration.md) | FC-08 | DONE |
-| FC-10 | [Discogs integration (Physical Music)](phase-2-api-data/10-discogs-integration.md) | FC-08 | TODO |
+| FC-10 | [Discogs integration (Physical Music)](phase-2-api-data/10-discogs-integration.md) | FC-08 | IN PROGRESS |
 | FC-11 | [IGDB integration (Video Games)](phase-2-api-data/11-igdb-integration.md) | FC-08 | TODO |
 | FC-12 | [BoardGameGeek integration + XML parser](phase-2-api-data/12-bgg-integration.md) | FC-08 | TODO |
 | FC-13 | [Funko Pops / custom items](phase-2-api-data/13-funko-custom-items.md) | FC-05, FC-07 | TODO |
@@ -138,6 +138,7 @@ Status legend: `TODO` · `IN PROGRESS` · `DONE` · `BLOCKED`
 |---|---|---|---|
 | FC-30 | [Auth provider setup (Supabase dashboard + Google Cloud)](phase-5-post-v1/30-auth-provider-setup.md) | FC-06 | TODO |
 | FC-31 | [Connect your Discogs account (OAuth + collection sync)](phase-5-post-v1/31-discogs-account-connect.md) | FC-10, FC-14 | TODO |
+| FC-32 | [Scanner: music libraries (digital audio files)](phase-5-post-v1/32-scanner-music.md) | FC-10, FC-21–FC-24 | TODO |
 
 ---
 

@@ -3,14 +3,18 @@
 import { useId, useState } from 'react';
 
 import {
+  CONDITION_GRADES,
+  FORMATS_BY_CATEGORY,
   HDR_FORMATS,
+  ITEM_CATEGORIES,
   languageLabel,
   MAX_FILTER_VALUES,
   MOVIE_EDITIONS,
-  MOVIE_TV_FORMATS,
   OWNERSHIP_STATUSES,
   ownershipLabel,
   RESOLUTIONS,
+  SLEEVE_GRADES,
+  VINYL_SIZES,
 } from '@fanste/core';
 
 import { Button } from '@/components/ui/button';
@@ -23,7 +27,13 @@ import { SOURCE_OPTIONS } from './gallery-items';
 import { toggleValue, withDetailFilter } from './gallery-state';
 
 import type { FilterOption } from './filter-options';
-import type { CollectionFacets, CollectionFilter, CopyOption, Tag } from '@fanste/core';
+import type {
+  CollectionFacets,
+  CollectionFilter,
+  CopyOption,
+  ItemCategory,
+  Tag,
+} from '@fanste/core';
 
 interface FilterPanelProps {
   filter: CollectionFilter;
@@ -37,11 +47,15 @@ const OWNERSHIP_OPTIONS: readonly CopyOption[] = OWNERSHIP_STATUSES.map((status)
   value: status,
   label: ownershipLabel(status),
 }));
-const FORMAT_OPTIONS: readonly CopyOption[] = MOVIE_TV_FORMATS.map((value) => ({
-  value,
-  label: value,
-}));
 const EDITION_OPTIONS: readonly CopyOption[] = MOVIE_EDITIONS;
+
+/** The suggested media of the category, or of every category when none is picked. */
+function formatOptions(category: ItemCategory | undefined): CopyOption[] {
+  const media = category
+    ? FORMATS_BY_CATEGORY[category]
+    : ITEM_CATEGORIES.flatMap((entry) => FORMATS_BY_CATEGORY[entry]);
+  return [...new Set(media)].map((value) => ({ value, label: value }));
+}
 
 /**
  * The gallery's filters with their counts (FC-18). A sidebar on wide windows and the content of the
@@ -51,6 +65,7 @@ export function FilterPanel({ filter, facets, tags, onChange }: FilterPanelProps
   const tagOptions = tags.map((tag) => ({ value: tag.id, label: tag.name }));
   const showVideoDetails =
     filter.category === undefined || filter.category === 'movie' || filter.category === 'tv';
+  const showMusicDetails = filter.category === undefined || filter.category === 'music';
 
   function setDetail(key: keyof NonNullable<CollectionFilter['details']>, value: string) {
     onChange(withDetailFilter(filter, key, toggleValue(filter.details?.[key], value)));
@@ -71,7 +86,7 @@ export function FilterPanel({ filter, facets, tags, onChange }: FilterPanelProps
       />
       <OptionGroup
         title="Medium"
-        options={filterOptions(FORMAT_OPTIONS, facets?.format, filter.formats)}
+        options={filterOptions(formatOptions(filter.category), facets?.format, filter.formats)}
         selected={filter.formats}
         onToggle={(value) => onChange({ ...filter, formats: toggleValue(filter.formats, value) })}
       />
@@ -137,6 +152,45 @@ export function FilterPanel({ filter, facets, tags, onChange }: FilterPanelProps
             )}
             selected={filter.details?.subtitleLanguages}
             onToggle={(value) => setDetail('subtitleLanguages', value)}
+          />
+        </>
+      )}
+
+      {showMusicDetails && (
+        <>
+          <OptionGroup
+            title="Country"
+            options={filterOptions([], facets?.country, filter.countries)}
+            selected={filter.countries}
+            onToggle={(value) =>
+              onChange({ ...filter, countries: toggleValue(filter.countries, value) })
+            }
+          />
+          <OptionGroup
+            title="Vinyl size"
+            options={filterOptions(VINYL_SIZES, facets?.vinylSize, filter.details?.vinylSize)}
+            selected={filter.details?.vinylSize}
+            onToggle={(value) => setDetail('vinylSize', value)}
+          />
+          <OptionGroup
+            title="Media condition"
+            options={filterOptions(
+              CONDITION_GRADES,
+              facets?.mediaCondition,
+              filter.details?.mediaCondition,
+            )}
+            selected={filter.details?.mediaCondition}
+            onToggle={(value) => setDetail('mediaCondition', value)}
+          />
+          <OptionGroup
+            title="Sleeve condition"
+            options={filterOptions(
+              SLEEVE_GRADES,
+              facets?.sleeveCondition,
+              filter.details?.sleeveCondition,
+            )}
+            selected={filter.details?.sleeveCondition}
+            onToggle={(value) => setDetail('sleeveCondition', value)}
           />
         </>
       )}

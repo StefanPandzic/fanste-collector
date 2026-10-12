@@ -1,0 +1,126 @@
+{
+  "pagination": {
+    "page": 1,
+    "pages": 500,
+    "items": 18174
+  },
+  "results": [
+    {
+      "id": 14186441,
+      "type": "release",
+      "title": "The Beatles - Abbey Road",
+      "year": "2019",
+      "country": "Worldwide",
+      "format": ["Vinyl", "LP", "Album", "Reissue", "Remastered", "Stereo"],
+      "formats": [
+        {
+          "name": "Vinyl",
+          "qty": "1",
+          "text": "Remix, 50th Anniversary Edition, Optimal Media Pressing, 180g",
+          "descriptions": ["LP", "Album", "Reissue", "Remastered", "Stereo"]
+        }
+      ],
+      "catno": "0602577915123",
+      "thumb": "https://i.discogs.com/ScR7Pf_WOKOMhYFMK-0kk0H4bwaizxzvfqgln6whvxk/rs:fit/g:sm/q:40/h:150/w:150/czM6Ly9kaXNjb2dz/LWRhdGFiYXNlLWlt/YWdlcy9SLTE0MTg2/NDQxLTE1Njk0ODcx/NjEtNzMxNC5qcGVn.jpeg",
+      "cover_image": "https://i.discogs.com/Tq4RLJXx26PDGwUs7f_x2MrkQD2wn3e7XAaUkWnAvA4/rs:fit/g:sm/q:90/h:607/w:600/czM6Ly9kaXNjb2dz/LWRhdGFiYXNlLWlt/YWdlcy9SLTE0MTg2/NDQxLTE1Njk0ODcx/NjEtNzMxNC5qcGVn.jpeg"
+    },
+    {
+      "id": 14192689,
+      "type": "release",
+      "title": "The Beatles - Abbey Road",
+      "year": "2019",
+      "country": "US",
+      "format": ["Vinyl", "LP", "Album", "Reissue", "Remastered", "Stereo"],
+      "formats": [
+        {
+          "name": "Vinyl",
+          "qty": "1",
+          "text": "Remixed, Anniversary Edition, 180 Gram",
+          "descriptions": ["LP", "Album", "Reissue", "Remastered", "Stereo"]
+        }
+      ],
+      "catno": "B0030719-01",
+      "thumb": "https://i.discogs.com/pGVG4G6-BzPBjR3OFkewfPKJiQ0Ydch8kyGULIxmvpI/rs:fit/g:sm/q:40/h:150/w:150/czM6Ly9kaXNjb2dz/LWRhdGFiYXNlLWlt/YWdlcy9SLTE0MTky/Njg5LTE3NjUxMjg2/MzgtNzMxNS5qcGVn.jpeg",
+      "cover_image": "https://i.discogs.com/R4w4NBIdcB4hytIu-WfDdMM3ZKN1I9nk_8BRrfxNZgs/rs:fit/g:sm/q:90/h:592/w:600/czM6Ly9kaXNjb2dz/LWRhdGFiYXNlLWlt/YWdlcy9SLTE0MTky/Njg5LTE3NjUxMjg2/MzgtNzMxNS5qcGVn.jpeg"
+    },
+    {
+      "id": 9269057,
+      "type": "release",
+      "title": "The Beatles - Abbey Road",
+      "year": "2016",
+      "country": "UK & Ireland",
+      "format": ["Vinyl", "LP", "Album", "Reissue", "Remastered"],
+      "formats": [
+        {
+          "name": "Vinyl",
+          "qty": "1",
+          "descriptions": ["LP", "Album", "Reissue", "Remastered"]
+        }
+      ],
+      "catno": "PCS 7088",
+      "thumb": "https://i.discogs.com/xAD52buN0rzqRf4hRVOWJVAtiaP7CCoOkHX4hSOLcHg/rs:fit/g:sm/q:40/h:150/w:150/czM6Ly9kaXNjb2dz/LWRhdGFiYXNlLWlt/YWdlcy9SLTkyNjkw/NTctMTYyNzk5NDE3/Ni0yMzUxLmpwZWc.jpeg",
+      "cover_image": "https://i.discogs.com/axgsDMSzcJWhJhW7HrQ7bFq1nuW_VwAm60l_IAqqSfc/rs:fit/g:sm/q:90/h:598/w:600/czM6Ly9kaXNjb2dz/LWRhdGFiYXNlLWlt/YWdlcy9SLTkyNjkw/NTctMTYyNzk5NDE3/Ni0yMzUxLmpwZWc.jpeg"
+    },
+    {
+      "id": 14183308,
+      "type": "release",
+      "title": "The Beatles - Abbey Road",
+      "year": "2019",
+      "country": "Worldwide",
+      "format": [
+        "Vinyl",
+        "LP",
+        "Album",
+        "Reissue",
+        "Stereo",
+        "Vinyl",
+        "LP",
+        "Box Set",
+        "Limited Edition",
+        "Special Edition"
+      ],
+      "formats": [
+        {
+          "name": "Vinyl",
+          "qty": "1",
+          "text": "180g",
+          "descriptions": ["LP", "Album", "Reissue", "Stereo"]
+        },
+        {
+          "name": "Vinyl",
+          "qty": "2",
+          "text": "180g",
+          "descriptions": ["LP"]
+        },
+        {
+          "name": "Box Set",
+          "qty": "1",
+          "text": "Anniversary Edition",
+          "descriptions": ["Limited Edition", "Special Edition"]
+        }
+      ],
+      "catno": "0602508007446",
+      "thumb": "https://i.discogs.com/RQSM3a12aLzC14as8xuW0ZSpawHcYj2vg17uDN0b5aA/rs:fit/g:sm/q:40/h:150/w:150/czM6Ly9kaXNjb2dz/LWRhdGFiYXNlLWlt/YWdlcy9SLTE0MTgz/MzA4LTE3NjYxMjE4/NTEtODIyNi5qcGVn.jpeg",
+      "cover_image": "https://i.discogs.com/gufHeUvvvH1pSCWyJCZoyxzDaqu64lCPJQKivCXSTeo/rs:fit/g:sm/q:90/h:603/w:600/czM6Ly9kaXNjb2dz/LWRhdGFiYXNlLWlt/YWdlcy9SLTE0MTgz/MzA4LTE3NjYxMjE4/NTEtODIyNi5qcGVn.jpeg"
+    },
+    {
+      "id": 9699717,
+      "type": "release",
+      "title": "The Beatles - Abbey Road",
+      "year": "2017",
+      "country": "Italy",
+      "format": ["Vinyl", "LP", "Album", "Reissue", "Remastered"],
+      "formats": [
+        {
+          "name": "Vinyl",
+          "qty": "1",
+          "text": "180g",
+          "descriptions": ["LP", "Album", "Reissue", "Remastered"]
+        }
+      ],
+      "catno": "PCS 7088",
+      "thumb": "https://i.discogs.com/uPmembFWyZ30HHXylwS33fZ1RrfFMn1XnRB5-Vle4w4/rs:fit/g:sm/q:40/h:150/w:150/czM6Ly9kaXNjb2dz/LWRhdGFiYXNlLWlt/YWdlcy9SLTk2OTk3/MTctMTQ4NTMzNTY4/Mi00NTUzLmpwZWc.jpeg",
+      "cover_image": "https://i.discogs.com/inOI9nx_yaV_1xyCEESajKSO74uT_COODmnEifHTlpA/rs:fit/g:sm/q:90/h:600/w:600/czM6Ly9kaXNjb2dz/LWRhdGFiYXNlLWlt/YWdlcy9SLTk2OTk3/MTctMTQ4NTMzNTY4/Mi00NTUzLmpwZWc.jpeg"
+    }
+  ]
+}

@@ -7,16 +7,20 @@ import { MAX_SEARCH_PAGE } from '@fanste/core';
 
 import { isRetryableSearchError } from './search-errors';
 
-import type { ItemCategory } from '@fanste/core';
+import type { ItemCategory, MusicSearchFormat } from '@fanste/core';
 
 /** Retries of a busy provider before the error is shown: about 1 s, 2 s and 4 s apart. */
 const MAX_RETRIES = 3;
 
 export interface SearchRequest {
   category: ItemCategory;
-  /** Trimmed and not empty. */
+  /** Trimmed; empty only for a music lookup by `code`. */
   q: string;
   year?: number;
+  /** Music only (FC-10). */
+  format?: MusicSearchFormat;
+  country?: string;
+  code?: string;
 }
 
 /**
@@ -27,7 +31,15 @@ export function useSearchResults(request: SearchRequest | null) {
   const { api } = useCollectionContext();
   return useInfiniteQuery({
     // Results are the same for every user, so the key has no user ID.
-    queryKey: ['search', request?.category, request?.q, request?.year ?? null],
+    queryKey: [
+      'search',
+      request?.category,
+      request?.q,
+      request?.year ?? null,
+      request?.format ?? null,
+      request?.country?.toLowerCase() ?? null,
+      request?.code?.toLowerCase() ?? null,
+    ],
     queryFn: ({ pageParam, signal }) => {
       if (!request) throw new Error('No search to run.');
       return api.search({ ...request, page: pageParam }, { signal });

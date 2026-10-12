@@ -38,10 +38,12 @@ export const PROVIDER_LIMITS: Record<ExternalProvider, ProviderLimits> = {
     maxFetchesPerRequest: 20,
     cacheTtlMs: 30 * DAY_MS,
   },
-  // 60 req/min with a token.
+  // 60 req/min with the app's key + secret (25 without), counted over a moving minute. 0.9/s leaves
+  // a little room; the adapter also pauses when `X-Discogs-Ratelimit-Remaining` runs low
+  // (`DISCOGS_RATE`, FC-10).
   discogs: {
-    ratePerSecond: 1,
-    burst: 2,
+    ratePerSecond: 0.9,
+    burst: 3,
     maxConcurrent: 2,
     maxQueue: 15,
     maxFetchesPerRequest: 5,
@@ -66,6 +68,13 @@ export const PROVIDER_LIMITS: Record<ExternalProvider, ProviderLimits> = {
     cacheTtlMs: 30 * DAY_MS,
   },
 };
+
+/**
+ * How the Discogs adapter (FC-10) reads `X-Discogs-Ratelimit-Remaining`: with `reserve` requests or
+ * fewer left in the minute, the throttle pauses one request interval per missing request, so the
+ * moving window can free slots. A 429 pauses for `pauseOn429Ms`; the request itself is retried.
+ */
+export const DISCOGS_RATE = { reserve: 3, pauseOn429Ms: 5_000 };
 
 /** Retries of a provider request that got HTTP 429 or 503. */
 export const PROVIDER_RETRY = {

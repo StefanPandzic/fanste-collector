@@ -6,6 +6,12 @@ import type { AddItemFormValues, AddTarget } from './add-item-form';
 
 const matrixTarget: AddTarget = { category: 'movie', provider: 'tmdb', externalId: 'movie:603' };
 
+const abbeyRoadTarget: AddTarget = {
+  category: 'music',
+  provider: 'discogs',
+  externalId: 'release:2607424',
+};
+
 const formValues: AddItemFormValues = {
   ownership: 'owned',
   quantity: '1',
@@ -96,6 +102,33 @@ describe('toAddItemInput', () => {
     );
     expect(wishlist.ok && wishlist.input.format).toBe(null);
     expect(wishlist.ok && wishlist.input).not.toHaveProperty('details');
+  });
+
+  it('saves the music fields and drops the vinyl fields of a CD', () => {
+    const musicDetails = {
+      discCount: 1,
+      vinylSize: '12"',
+      speed: '33⅓',
+      catalogNumber: 'PCS 7088',
+      mediaCondition: 'NM' as const,
+    };
+    const vinyl = toAddItemInput(
+      { ...formValues, format: 'Vinyl', details: { ...musicDetails, resolution: '1080p' } },
+      abbeyRoadTarget,
+      'EUR',
+    );
+    expect(vinyl.ok && vinyl.input.details).toEqual(musicDetails);
+
+    const cd = toAddItemInput(
+      { ...formValues, format: 'CD', details: musicDetails },
+      abbeyRoadTarget,
+      'EUR',
+    );
+    expect(cd.ok && cd.input.details).toEqual({
+      discCount: 1,
+      catalogNumber: 'PCS 7088',
+      mediaCondition: 'NM',
+    });
   });
 
   it('returns field errors for invalid values', () => {

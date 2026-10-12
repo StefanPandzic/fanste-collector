@@ -1,0 +1,133 @@
+{
+  "id": 24047,
+  "title": "Abbey Road",
+  "year": 1969,
+  "genres": ["Rock"],
+  "styles": ["Pop Rock"],
+  "notes": "The English rock band [a82730] existed from 1962 to 1970 and has recorded 12 studio albums.\r\n\r\nAbbey Road is the 11th studio album by British rock group [a82730], released on September 26, 1969 in Great Britain and Germany. In the UK it was their twelfth album including the compilation album. In Germany it was their 15th album including the compilation albums. It was released in the US on October 3, 1969, where it was their 18th album.\r\n\r\nThe album was named after the street of the same name in London's St. John's Wood in the City of Westminster, where EMI's recording studios are located, where most of their recordings were made. Abbey Road is the last album the Beatles recorded together.\r\n\r\nWith over 31 million copies sold, Abbey Road is one of the most successful albums worldwide.",
+  "uri": "https://www.discogs.com/master/24047-The-Beatles-Abbey-Road",
+  "artists": [
+    {
+      "id": 82730,
+      "name": "The Beatles",
+      "anv": "",
+      "join": ""
+    }
+  ],
+  "tracklist": [
+    {
+      "position": "A1",
+      "type_": "track",
+      "title": "Come Together",
+      "duration": ""
+    },
+    {
+      "position": "A2",
+      "type_": "track",
+      "title": "Something",
+      "duration": ""
+    },
+    {
+      "position": "A3",
+      "type_": "track",
+      "title": "Maxwell's Silver Hammer",
+      "duration": ""
+    },
+    {
+      "position": "A4",
+      "type_": "track",
+      "title": "Oh! Darling",
+      "duration": ""
+    },
+    {
+      "position": "A5",
+      "type_": "track",
+      "title": "Octopus's Garden",
+      "duration": ""
+    },
+    {
+      "position": "A6",
+      "type_": "track",
+      "title": "I Want You (She's So Heavy)",
+      "duration": ""
+    },
+    {
+      "position": "B1",
+      "type_": "track",
+      "title": "Here Comes The Sun",
+      "duration": ""
+    },
+    {
+      "position": "B2",
+      "type_": "track",
+      "title": "Because",
+      "duration": ""
+    },
+    {
+      "position": "B3",
+      "type_": "track",
+      "title": "You Never Give Me Your Money",
+      "duration": ""
+    },
+    {
+      "position": "B4",
+      "type_": "track",
+      "title": "Sun King",
+      "duration": ""
+    },
+    {
+      "position": "B5",
+      "type_": "track",
+      "title": "Mean Mr. Mustard",
+      "duration": ""
+    },
+    {
+      "position": "B6",
+      "type_": "track",
+      "title": "Polythene Pam",
+      "duration": ""
+    },
+    {
+      "position": "B7",
+      "type_": "track",
+      "title": "She Came In Through The Bathroom Window",
+      "duration": ""
+    },
+    {
+      "position": "B8",
+      "type_": "track",
+      "title": "Golden Slumbers",
+      "duration": ""
+    },
+    {
+      "position": "B9",
+      "type_": "track",
+      "title": "Carry That Weight",
+      "duration": ""
+    },
+    {
+      "position": "B10",
+      "type_": "track",
+      "title": "The End",
+      "duration": ""
+    },
+    {
+      "position": "B11",
+      "type_": "track",
+      "title": "Her Majesty",
+      "duration": ""
+    }
+  ],
+  "images": [
+    {
+      "type": "primary",
+      "uri": "https://i.discogs.com/M2yc5OJZPdVoDm2_UlRRXuDlDguamLLSdnbziNmZoQI/rs:fit/g:sm/q:90/h:600/w:600/czM6Ly9kaXNjb2dz/LWRhdGFiYXNlLWlt/YWdlcy9SLTI2MDc0/MjQtMTYzMDYwMTA4/Ny0xMTk5LmpwZWc.jpeg",
+      "uri150": "https://i.discogs.com/uKBZ4UD1ZLYLd8H4ZuEy2ticElp1MpwRfS9gw74wXZk/rs:fit/g:sm/q:40/h:150/w:150/czM6Ly9kaXNjb2dz/LWRhdGFiYXNlLWlt/YWdlcy9SLTI2MDc0/MjQtMTYzMDYwMTA4/Ny0xMTk5LmpwZWc.jpeg"
+    },
+    {
+      "type": "secondary",
+      "uri": "https://i.discogs.com/Dmkx8oK2MyPudMetka17E3-2jI-OHrYXeISNB6r39IE/rs:fit/g:sm/q:90/h:600/w:600/czM6Ly9kaXNjb2dz/LWRhdGFiYXNlLWlt/YWdlcy9SLTI2MDc0/MjQtMTYzMDYwMTEw/NC00MzcwLmpwZWc.jpeg",
+      "uri150": "https://i.discogs.com/EOYOfYYSrW6f3oX3MRyepUOuadpM5gx4VG_8D56Vcpc/rs:fit/g:sm/q:40/h:150/w:150/czM6Ly9kaXNjb2dz/LWRhdGFiYXNlLWlt/YWdlcy9SLTI2MDc0/MjQtMTYzMDYwMTEw/NC00MzcwLmpwZWc.jpeg"
+    }
+  ]
+}

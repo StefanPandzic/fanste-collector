@@ -49,8 +49,75 @@ export const tvExtraSchema = z.object({
 
 export type TvExtra = z.output<typeof tvExtraSchema>;
 
-// Not defined yet: Movies & TV ship first. Until then these categories keep the loose `extra` record.
-// MusicExtra: FC-10. VideoGameExtra: FC-11. BoardGameExtra: FC-12. FunkoExtra: FC-13.
+/** Most tracks kept per release, so a large box set stays a reasonable cache row. */
+export const MAX_TRACKLIST_LENGTH = 500;
+
+/** One format of a release, e.g. `2 × Vinyl, LP, 45 RPM` (Discogs `formats[]`). */
+export const musicFormatSchema = z.object({
+  /** e.g. `Vinyl`, `CD`, `Cassette`, `File`, `Box Set`. */
+  name: text,
+  /** How many of it the release has (discs, tapes). */
+  quantity: z.int().min(1).optional(),
+  /** e.g. `LP`, `12"`, `45 RPM`, `Album`, `Picture Disc`. */
+  descriptions: z.array(text).optional(),
+  /** Free text, e.g. `Red Translucent`. */
+  text: text.optional(),
+});
+
+export type MusicFormatInfo = z.output<typeof musicFormatSchema>;
+
+export const musicLabelSchema = z.object({
+  name: text,
+  catalogNumber: text.optional(),
+});
+
+export type MusicLabel = z.output<typeof musicLabelSchema>;
+
+export const musicTrackSchema = z.object({
+  /** e.g. `A1`, `2-05`. */
+  position: text.optional(),
+  title: text,
+  /** As the provider writes it, e.g. `4:19`. */
+  duration: text.optional(),
+});
+
+export type MusicTrack = z.output<typeof musicTrackSchema>;
+
+/** Most matrix / runout codes kept per release. */
+export const MAX_MATRIX_CODES = 50;
+
+/** A code etched in a record's runout groove (or a CD's inner ring), e.g. `YEX 749-2`. */
+export const musicMatrixSchema = z.object({
+  value: text,
+  /** Which side or variant it is on, e.g. `Side A runout, variant 1`. */
+  description: text.optional(),
+});
+
+export type MusicMatrix = z.output<typeof musicMatrixSchema>;
+
+/** A Discogs release (one pressing) or master (the album across pressings), FC-10. */
+export const musicExtraSchema = z.object({
+  /** `release` items have labels and formats; a `master` has neither. */
+  discogsType: z.enum(['release', 'master']).optional(),
+  /** Release country, e.g. `UK`. */
+  country: text.optional(),
+  labels: z.array(musicLabelSchema).optional(),
+  /** The first real catalog number of the labels. Suggested for the copy (`prefillDetails`). */
+  catalogNumber: text.optional(),
+  /** Offered as the copy's medium, discs and vinyl details (`prefillDetails`). */
+  formats: z.array(musicFormatSchema).optional(),
+  tracklist: z.array(musicTrackSchema).max(MAX_TRACKLIST_LENGTH).optional(),
+  /** Barcodes printed on the release (EAN / UPC), as Discogs writes them. */
+  barcodes: z.array(text).max(MAX_MATRIX_CODES).optional(),
+  /** Matrix / runout codes: they tell almost identical pressings apart. */
+  matrix: z.array(musicMatrixSchema).max(MAX_MATRIX_CODES).optional(),
+  /** The master a release belongs to. */
+  masterId: z.int().min(1).optional(),
+});
+
+export type MusicExtra = z.output<typeof musicExtraSchema>;
+
+// Not defined yet: VideoGameExtra: FC-11. BoardGameExtra: FC-12. FunkoExtra: FC-13.
 
 export function parseMovieExtra(extra: unknown): MovieExtra | undefined {
   const result = movieExtraSchema.safeParse(extra);
@@ -59,5 +126,10 @@ export function parseMovieExtra(extra: unknown): MovieExtra | undefined {
 
 export function parseTvExtra(extra: unknown): TvExtra | undefined {
   const result = tvExtraSchema.safeParse(extra);
+  return result.success ? result.data : undefined;
+}
+
+export function parseMusicExtra(extra: unknown): MusicExtra | undefined {
+  const result = musicExtraSchema.safeParse(extra);
   return result.success ? result.data : undefined;
 }

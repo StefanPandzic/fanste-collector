@@ -50,8 +50,21 @@ describe('copyBadges', () => {
     ).toEqual(['Blu-ray', '1 full season + 4 episodes']);
   });
 
+  it('lists the medium with its count, the variant and the grade of a record', () => {
+    expect(
+      copyBadges('music', 'Vinyl', {
+        discCount: 2,
+        vinylSize: '12"',
+        variant: 'Red',
+        mediaCondition: 'NM',
+      }),
+    ).toEqual(['2×LP', 'Red', 'NM']);
+    expect(copyBadges('music', 'Vinyl', { vinylSize: '7"', variant: 'Black' })).toEqual(['7″']);
+    expect(copyBadges('music', 'CD', { discCount: 2 })).toEqual(['2×CD']);
+  });
+
   it('shows only the format for other categories', () => {
-    expect(copyBadges('music', 'Vinyl', { pressing: 'First' })).toEqual(['Vinyl']);
+    expect(copyBadges('video_game', 'Disc', { platform: 'PS5' })).toEqual(['Disc']);
     expect(copyBadges('board_game', null, {})).toEqual([]);
   });
 });

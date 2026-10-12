@@ -7,7 +7,8 @@ import { OwnershipBadge } from '@/components/items/ownership-badge';
 import { Badge } from '@/components/ui/badge';
 
 import { EditedMarker } from './edited-marker';
-import { creatorsLabel, mediaFacts, originalValueText } from './item-detail-view';
+import { creatorsLabel, originalValueText, showsCreators } from './item-detail-view';
+import { ReleaseDetails } from './release-details';
 
 import type { ItemDetailView } from './item-detail-view';
 import type { CollectionItem, OverridableField } from '@fanste/core';
@@ -19,7 +20,8 @@ interface ItemHeaderProps {
 
 /**
  * The item's metadata (provider values with the user's overrides): title, subtitle, year, genres,
- * creators, description and the category's facts. Overridden fields carry an "edited" marker.
+ * creators, description and the category's facts (`ReleaseDetails`). Overridden fields carry an
+ * "edited" marker.
  */
 export function ItemHeader({ item, view }: ItemHeaderProps) {
   const resetOverrides = useResetOverrides();
@@ -35,8 +37,6 @@ export function ItemHeader({ item, view }: ItemHeaderProps) {
       />
     );
   }
-
-  const facts = display ? mediaFacts(display) : [];
 
   return (
     <div className="flex min-w-0 flex-col gap-4">
@@ -76,7 +76,7 @@ export function ItemHeader({ item, view }: ItemHeaderProps) {
         </div>
       )}
 
-      {display?.creators && display.creators.length > 0 && (
+      {display?.creators && showsCreators(display) && (
         <p className="text-sm">
           <span className="text-muted-foreground">{creatorsLabel(item.category)} </span>
           {display.creators.join(', ')} {marker('creators', 'creators')}
@@ -90,16 +90,7 @@ export function ItemHeader({ item, view }: ItemHeaderProps) {
         </div>
       )}
 
-      {facts.length > 0 && (
-        <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-sm">
-          {facts.map((fact) => (
-            <div key={fact.label} className="contents">
-              <dt className="text-muted-foreground">{fact.label}</dt>
-              <dd>{fact.value}</dd>
-            </div>
-          ))}
-        </dl>
-      )}
+      {display && <ReleaseDetails item={display} />}
     </div>
   );
 }

@@ -84,9 +84,9 @@ export function GalleryList({ items, selected, onToggle, hrefOf }: GalleryListPr
                     >
                       {item.card.title}
                     </Link>
-                    {item.subtitle && (
+                    {(item.subtitle || item.country) && (
                       <span className="truncate text-caption text-muted-foreground">
-                        {item.subtitle}
+                        {[item.subtitle, item.country].filter(Boolean).join(' · ')}
                       </span>
                     )}
                   </div>

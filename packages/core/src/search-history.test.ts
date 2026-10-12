@@ -4,6 +4,7 @@ import {
   addRecentSearch,
   MAX_RECENT_SEARCHES,
   parseRecentSearches,
+  recentSearchSchema,
   removeRecentSearch,
 } from './search-history';
 
@@ -17,6 +18,19 @@ describe('addRecentSearch', () => {
     expect(
       addRecentSearch([lost, matrix], { category: 'movie', q: 'the matrix', year: 1999 }),
     ).toEqual([{ category: 'movie', q: 'the matrix', year: 1999 }, lost]);
+  });
+
+  it('keeps the same query with another medium as a separate search', () => {
+    const vinyl: RecentSearch = { category: 'music', q: 'Abbey Road', format: 'Vinyl' };
+    const cd: RecentSearch = { category: 'music', q: 'Abbey Road', format: 'CD' };
+    expect(addRecentSearch([vinyl], cd)).toEqual([cd, vinyl]);
+  });
+
+  it('keeps searches that differ only by country or code', () => {
+    const uk: RecentSearch = { category: 'music', q: 'Bad', country: 'UK' };
+    const us: RecentSearch = { category: 'music', q: 'Bad', country: 'US' };
+    const catno: RecentSearch = { category: 'music', q: 'Bad', code: 'EPC 450290 1' };
+    expect(addRecentSearch([uk, catno], us)).toEqual([us, uk, catno]);
   });
 
   it('keeps at most the maximum number of searches', () => {
@@ -42,5 +56,18 @@ describe('parseRecentSearches', () => {
       [matrix, lost],
     );
     expect(parseRecentSearches('not a list')).toEqual([]);
+  });
+});
+
+describe('recentSearchSchema', () => {
+  it('accepts a music lookup by code without a query', () => {
+    expect(recentSearchSchema.parse({ category: 'music', code: 'EPC 450290 1' })).toEqual({
+      category: 'music',
+      q: '',
+      code: 'EPC 450290 1',
+    });
+    expect(recentSearchSchema.safeParse({ category: 'movie', code: 'EPC 450290 1' }).success).toBe(
+      false,
+    );
   });
 });

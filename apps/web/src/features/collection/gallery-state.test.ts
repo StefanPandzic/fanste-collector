@@ -66,6 +66,36 @@ describe('galleryStateUrl', () => {
     expect(parseGalleryState(raw)).toEqual(moviesState);
   });
 
+  it('round-trips the vinyl size and the condition filters', () => {
+    const vinylState: GalleryState = {
+      filter: {
+        category: 'music',
+        details: { vinylSize: ['7"'], mediaCondition: ['NM'], sleeveCondition: ['VG+'] },
+      },
+      sort: 'added_desc',
+    };
+    const url = galleryStateUrl(vinylState);
+    expect(url).toContain('size=7%22');
+    expect(url).toContain('media=NM');
+    expect(url).toContain('sleeve=VG%2B');
+    expect(parseGalleryState(Object.fromEntries(new URLSearchParams(url.split('?')[1])))).toEqual(
+      vinylState,
+    );
+  });
+
+  it('round-trips the release country', () => {
+    const ukState: GalleryState = {
+      filter: { category: 'music', countries: ['UK', 'Yugoslavia'] },
+      sort: 'added_desc',
+    };
+    const url = galleryStateUrl(ukState);
+    expect(url).toContain('country=UK');
+    const params = new URLSearchParams(url.split('?')[1]);
+    expect(parseGalleryState({ category: 'music', country: params.getAll('country') })).toEqual(
+      ukState,
+    );
+  });
+
   it('is the bare collection path for the default state', () => {
     expect(galleryStateUrl(DEFAULT_GALLERY_STATE)).toBe('/collection');
   });
@@ -75,6 +105,7 @@ describe('activeFilterCount', () => {
   it('counts the panel filters but not the category and search', () => {
     expect(activeFilterCount(moviesState.filter)).toBe(6);
     expect(activeFilterCount({ category: 'tv', search: 'breaking' })).toBe(0);
+    expect(activeFilterCount({ category: 'music', countries: ['UK'] })).toBe(1);
   });
 });
 

@@ -6,9 +6,12 @@ import {
   isEmptyValue,
   parseAmount,
   parseCount,
+  shownDetails,
   showsCopyDetails,
+  staleVinylFields,
   showsDigitalStore,
   showsFileFormat,
+  showsVinylDetails,
 } from './copy-form';
 
 describe('showsCopyDetails', () => {
@@ -30,6 +33,38 @@ describe('showsDigitalStore', () => {
   it('shows the store only for a digital store copy', () => {
     expect(showsDigitalStore('Digital store')).toBe(true);
     expect(showsDigitalStore('Digital file')).toBe(false);
+  });
+});
+
+describe('showsVinylDetails', () => {
+  it('shows the record details only for vinyl', () => {
+    expect(showsVinylDetails('Vinyl')).toBe(true);
+    expect(showsVinylDetails('CD')).toBe(false);
+  });
+});
+
+describe('shownDetails', () => {
+  it('keeps the music fields the medium shows', () => {
+    const details = { vinylSize: '7"', speed: '45', catalogNumber: 'R 5084', resolution: '1080p' };
+    expect(shownDetails('music', 'Vinyl', details)).toEqual({
+      discCount: undefined,
+      vinylSize: '7"',
+      speed: '45',
+      variant: undefined,
+      catalogNumber: 'R 5084',
+      mediaCondition: undefined,
+      sleeveCondition: undefined,
+    });
+    expect(shownDetails('music', 'Cassette', details)).not.toHaveProperty('speed');
+  });
+
+  it('keeps the file format of a movie only for a digital file', () => {
+    expect(shownDetails('movie', 'Blu-ray', { resolution: '1080p', fileFormat: 'MKV' })).toEqual({
+      resolution: '1080p',
+    });
+    expect(shownDetails('movie', 'Digital file', { fileFormat: 'MKV' })).toEqual({
+      fileFormat: 'MKV',
+    });
   });
 });
 
@@ -78,5 +113,13 @@ describe('copyFieldErrors', () => {
       quantity: 'Enter a whole number from 1 to 9999.',
       'details.discCount': 'Enter a number of discs from 1 to 99.',
     });
+  });
+});
+
+describe('staleVinylFields', () => {
+  it('lists the vinyl details a copy keeps once its medium is not vinyl', () => {
+    const details = { vinylSize: '12"', speed: '33⅓', catalogNumber: 'PCS 7088' };
+    expect(staleVinylFields('CD', details)).toEqual(['vinylSize', 'speed']);
+    expect(staleVinylFields('Vinyl', details)).toEqual([]);
   });
 });
