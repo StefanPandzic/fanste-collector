@@ -5,8 +5,14 @@
 ## Goal
 Adapter for the Discogs API to catalog vinyl, CD and cassette releases with pressing details.
 
+This task uses only the app's own credentials (database search and release metadata). Letting a user connect
+their own Discogs account and sync their Discogs collection is FC-31.
+
 ## Subtasks
-- [ ] Register a Discogs app; use a personal access token (`DISCOGS_TOKEN`) for authenticated requests
+- [ ] Register a Discogs application (ideally on a dedicated Fanste Collector account, not a personal profile) and
+      authenticate with its Consumer Key + Secret (`DISCOGS_CONSUMER_KEY`, `DISCOGS_CONSUMER_SECRET`), not a
+      personal access token; replace `DISCOGS_TOKEN` in `.env.example` and the web env schema. FC-31 reuses the
+      same credentials for the user OAuth flow
 - [ ] Always send a descriptive `User-Agent` (`FansteCollector/1.0 +<url>`) — Discogs requires it
 - [ ] `search`: `/database/search?q=&type=release` (optionally `master`), support `format` filter (Vinyl / CD / Cassette)
 - [ ] `getById`: `/releases/{id}` and `/masters/{id}`; external ID encoded as `release:{id}` / `master:{id}`
@@ -51,3 +57,5 @@ Adapter for the Discogs API to catalog vinyl, CD and cassette releases with pres
 ## Notes
 - Discogs images require authenticated requests for full size; store the URL returned by the API in the cache.
 - Attribution: "Data provided by Discogs" (FC-27).
+- Key + secret auth gives the authenticated rate limit and database search, but no access to any user's
+  collection or wantlist; that needs per-user OAuth tokens (FC-31).

@@ -137,6 +137,7 @@ Status legend: `TODO` · `IN PROGRESS` · `DONE` · `BLOCKED`
 | ID | Task | Depends on | Status |
 |---|---|---|---|
 | FC-30 | [Auth provider setup (Supabase dashboard + Google Cloud)](phase-5-post-v1/30-auth-provider-setup.md) | FC-06 | TODO |
+| FC-31 | [Connect your Discogs account (OAuth + collection sync)](phase-5-post-v1/31-discogs-account-connect.md) | FC-10, FC-14 | TODO |
 
 ---
 
