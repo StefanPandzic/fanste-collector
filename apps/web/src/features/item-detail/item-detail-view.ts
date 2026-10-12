@@ -6,6 +6,7 @@ import {
   languageLabel,
   overridesPatchSchema,
   parseMovieExtra,
+  parseMusicExtra,
   parseTvExtra,
   providerLabel,
   updateItemPatchSchema,
@@ -17,6 +18,7 @@ import {
   parseAmount,
   parseCount,
 } from '@/features/copy-form/copy-form';
+import type { CopyFormDetails } from '@/features/copy-form/copy-form';
 
 import type {
   CollectionItem,
@@ -25,11 +27,13 @@ import type {
   FileDetails,
   ItemCategory,
   MetadataProvider,
+  MusicFormatInfo,
+  MusicMatrix,
+  MusicTrack,
   NormalizedItem,
   OverridableField,
   OverridesPatch,
   OwnershipStatus,
-  TvDetails,
   UpdateItemPatch,
 } from '@fanste/core';
 
@@ -91,7 +95,37 @@ export function formatRuntime(minutes: number): string {
 
 /** The heading of the creators: who `creators` are for the category. */
 export function creatorsLabel(category: ItemCategory): string {
+  if (category === 'music') return 'Artists';
   return category === 'tv' ? 'Created by' : 'Directed by';
+}
+
+/** Whether the creators line adds anything: a record's artists are usually its subtitle already. */
+export function showsCreators(item: NormalizedItem): boolean {
+  if (!item.creators || item.creators.length === 0) return false;
+  return item.category !== 'music' || item.creators.join(', ') !== item.subtitle;
+}
+
+/** A release's formats, e.g. `2×Vinyl, LP, Album, Red` (`+` between formats of a box set). */
+export function formatSummary(formats: readonly MusicFormatInfo[]): string {
+  return formats
+    .map((format) =>
+      [
+        `${format.quantity && format.quantity > 1 ? `${format.quantity}×` : ''}${format.name}`,
+        ...(format.descriptions ?? []),
+        ...(format.text ? [format.text] : []),
+      ].join(', '),
+    )
+    .join(' + ');
+}
+
+/** A record's tracks (FC-10); empty for other categories. */
+export function tracklistOf(item: NormalizedItem): MusicTrack[] {
+  return item.category === 'music' ? (parseMusicExtra(item.extra)?.tracklist ?? []) : [];
+}
+
+/** A record's matrix / runout codes (FC-10); empty for other categories. */
+export function matrixCodesOf(item: NormalizedItem): MusicMatrix[] {
+  return item.category === 'music' ? (parseMusicExtra(item.extra)?.matrix ?? []) : [];
 }
 
 export interface MediaFact {
@@ -100,8 +134,9 @@ export interface MediaFact {
 }
 
 /**
- * The category's own facts (runtime, seasons, status, ...). Movies & TV first; the other
- * categories' sections come with FC-10 – FC-13.
+ * The category's own facts (runtime, seasons, status, label, ...). Video games, board games and
+ * Funko get theirs with FC-11 – FC-13. A record's matrix codes and tracklist are lists of their own
+ * (`matrixCodesOf`, `tracklistOf`).
  */
 export function mediaFacts(item: NormalizedItem): MediaFact[] {
   const facts: MediaFact[] = [];
@@ -125,6 +160,18 @@ export function mediaFacts(item: NormalizedItem): MediaFact[] {
     add('Network', extra?.networks?.join(', '));
     add('Original title', extra?.originalTitle);
     add('Original language', extra?.originalLanguage && languageLabel(extra.originalLanguage));
+  } else if (item.category === 'music') {
+    const extra = parseMusicExtra(item.extra);
+    const labels = [...new Set(extra?.labels?.map((label) => label.name))];
+    add(labels.length > 1 ? 'Labels' : 'Label', labels.join(', '));
+    add('Catalog number', extra?.catalogNumber);
+    add('Country', extra?.country);
+    add('Format', extra?.formats && formatSummary(extra.formats));
+    add(
+      extra?.barcodes && extra.barcodes.length > 1 ? 'Barcodes' : 'Barcode',
+      extra?.barcodes?.join(', '),
+    );
+    if (extra?.discogsType === 'master') add('Release', 'All pressings (master release)');
   }
   return facts;
 }
@@ -225,18 +272,26 @@ export function toCopyPatch(
 // Copy details (`details` jsonb)
 // ---------------------------------------------------------------------------------------------------
 
+/** Categories whose copy details the item page edits. */
+export type DetailsCategory = 'movie' | 'tv' | 'music';
+
+/** The copy-details form of a category; games and board games keep the movie form until FC-11/12. */
+export function detailsCategory(category: ItemCategory): DetailsCategory {
+  return category === 'tv' || category === 'music' ? category : 'movie';
+}
+
 /**
  * Converts changed copy details into a details patch: an empty value (blank, empty list) removes
  * the field (`null`). Errors are keyed `details.<field>`, like the copy-details form shows them.
  */
 export function toDetailsPatch(
-  category: 'movie' | 'tv',
-  changes: Partial<TvDetails>,
-): FieldChanges<DetailsPatch<'movie' | 'tv'>> {
+  category: DetailsCategory,
+  changes: Partial<CopyFormDetails>,
+): FieldChanges<DetailsPatch<DetailsCategory>> {
   const schema = detailsPatchSchemaFor(category);
   const patch: Record<string, unknown> = {};
   const errors: Record<string, string> = {};
-  for (const [field, value] of Object.entries(changes) as [keyof TvDetails, unknown][]) {
+  for (const [field, value] of Object.entries(changes) as [keyof CopyFormDetails, unknown][]) {
     if (category === 'movie' && field === 'seasons') continue;
     const converted = isEmptyValue(value) ? null : value;
     if (schema.safeParse({ [field]: converted }).success) patch[field] = converted;

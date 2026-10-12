@@ -113,13 +113,13 @@ Supabase Auth with cookie sessions (`@supabase/ssr`). Dashboard setup is in READ
 Route Handlers in `src/app/api/*`; the logic lives in `src/server/` (FC-08). The request/response schemas and
 the error shape are in `@fanste/core` (`gateway/`), and clients call the gateway through `@fanste/api-client`.
 
-| Route                                      | Does                                                                                                                                           |
-| ------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------- |
-| `GET /api/search?category=&q=&page=&year=` | One page from the category's provider (in-memory LRU in front)                                                                                 |
-| `GET /api/items/:provider/:externalId`     | Full `NormalizedItem`, cache-first                                                                                                             |
-| `POST /api/items/:provider/:id/refresh`    | Reloads one item from its provider, skipping the TTL (FC-19); rate limited by `REFRESH_LIMITS`                                                 |
-| `POST /api/items/batch`                    | Many items: one cache read, only misses go to providers. Refs it can't load come back in `missing` with a reason: `not_found` or `retry_later` |
-| `POST /api/match/tmdb`                     | Scanner matching (FC-23): scored TMDB candidates per title (`server/match.ts`); a title whose search failed comes back `failed`                |
+| Route                                                             | Does                                                                                                                                                         |
+| ----------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `GET /api/search?category=&q=&page=&year=&format=&country=&code=` | One page from the category's provider (in-memory LRU in front); `format`, `country` and `code` (barcode / catalog no.; `q` may then be empty) are music only |
+| `GET /api/items/:provider/:externalId`                            | Full `NormalizedItem`, cache-first                                                                                                                           |
+| `POST /api/items/:provider/:id/refresh`                           | Reloads one item from its provider, skipping the TTL (FC-19); rate limited by `REFRESH_LIMITS`                                                               |
+| `POST /api/items/batch`                                           | Many items: one cache read, only misses go to providers. Refs it can't load come back in `missing` with a reason: `not_found` or `retry_later`               |
+| `POST /api/match/tmdb`                                            | Scanner matching (FC-23): scored TMDB candidates per title (`server/match.ts`); a title whose search failed comes back `failed`                              |
 
 - Every route is wrapped in `gatewayRoute()` (`server/gateway.ts`). It authenticates (session cookies, or
   `Authorization: Bearer <jwt>` for a future mobile app; an invalid bearer is a 401), applies the per-user limit,
@@ -136,23 +136,34 @@ the error shape are in `@fanste/core` (`gateway/`), and clients call the gateway
   applies to the whole deployment, because `metadata_cache` isn't keyed by language. `tmdbMatcher` in
   `server/gateway.ts` gives the scanner's matching (FC-23) raw candidates with popularity, which
   `scoreCandidates` (`@fanste/core`) scores.
-- Adapter tests replay recorded responses from `__fixtures__/`, never live calls. Re-record the TMDB ones with
-  `pnpm fixtures:tmdb` (needs the token).
+- **Discogs (FC-10)** is registered only when `DISCOGS_CONSUMER_KEY` and `DISCOGS_CONSUMER_SECRET` are set
+  (the app's own credentials; a user's own account is FC-31). Every request sends the key/secret header and
+  the `User-Agent` Discogs requires. Searches return releases (pressings) with a `detail` line (formats ·
+  country · catalog number); `getById` takes `release:<id>` and `master:<id>`. `discogsPauseMs` reads
+  `X-Discogs-Ratelimit-Remaining` and pauses the provider's throttle (`providerFetch`'s `pauseAfter`,
+  `DISCOGS_RATE` in `limits.ts`) before the minute's quota runs out.
+- Adapter tests replay recorded responses from `__fixtures__/`, never live calls. Re-record them with
+  `pnpm fixtures:tmdb` (needs the token) and `pnpm fixtures:discogs` (works without credentials, but search
+  results then have no cover images).
 
 ## Search & add (FC-17)
 
 `/search` is `features/search/`. Its page (Server Component) reads the URL and the user's default currency and
 renders `SearchPageClient`.
 
-- The search (`category`, `q`, `year`) lives in the URL. The client updates it with `window.history.replaceState`,
+- The search (`category`, `q`, `year`, and for music `format`, `country` and the barcode / catalog
+  number `code`) lives in the URL; `searchRequestOf` turns it into the request. The client updates it with `window.history.replaceState`,
   so typing doesn't make a server round trip. `SEARCHABLE_CATEGORIES` (`search-state.ts`) lists the categories
   whose provider is built; the others show as "Coming soon".
 - Results come from `useSearchResults` (an infinite query over `api.search`; busy providers are retried, and
   `failureCount > 0` while fetching shows the "retrying…" banner). `useCollectionCopies` marks results already
-  in the collection.
+  in the collection. Music cards show the artist and the pressing (`resultCardData`).
 - Quick add (`use-quick-add.ts`) and the "Add with details" dialog both load the full item through
   `providerItemQuery` and prefill with `prefillDetails`. The dialog marks prefilled fields with their source until
-  they change. Form → `AddItemInput` conversion is the pure `add-item-form.ts`.
+  they change. Music uses `MusicDetailsFields` (FC-10) instead of `CopyDetailsFields`, and the dialog
+  first shows the pressing (`ReleaseDetails` from `features/item-detail/`: facts, barcode, matrix /
+  runout, tracklist) so almost identical releases can be told apart. Form →
+  `AddItemInput` conversion is the pure `add-item-form.ts`.
 - Recent searches are in `localStorage`, per user (`recent-searches.ts`); the list logic is in `@fanste/core`.
 - `SearchShortcut` (in the `(app)` layout) binds Ctrl+K / Cmd+K in the desktop app only.
 
@@ -172,6 +183,9 @@ renders `SearchPageClient`.
   `images.remotePatterns` for it.
 - `FilterPanel` is the sidebar from `lg` up and a `Sheet` below. `filterOptions` hides values no item has,
   unless selected. Add new detail filters there, in `gallery-state.ts` and in the database function.
+  The Medium list follows the picked category; music has country, vinyl size and media/sleeve
+  condition (FC-10). The country comes from the cached Discogs data, not the copy.
+  Music cards show the artist (`ItemCardData.subtitle`).
 - Bulk actions (`SelectionBar`) use `useBulkDeleteItems`, `useBulkUpdateItems` and
   `useTagAssignment().assignMany`. Cards link to the item page, `/collection/[id]` (FC-19).
 
@@ -186,8 +200,8 @@ currency and renders `ItemDetailPageClient`.
   pure converters in `item-detail-view.ts` (`toCopyPatch`, `toDetailsPatch`, `toOverridesPatch`) turn
   the changed fields into patches of the valid ones plus errors. Copy details and overrides go through the
   FC-15 merge functions.
-- The copy-details form pieces (`CopyDetailsFields`, `SeasonPicker`, `OptionField`, `LanguagePicker`,
-  `FormField`) and their helpers (`copy-form.ts`) live in `features/copy-form/`, shared with the add
+- The copy-details form pieces (`CopyDetailsFields`, `MusicDetailsFields`, `SeasonPicker`, `OptionField`,
+  `LanguagePicker`, `FormField`) and their helpers (`copy-form.ts`) live in `features/copy-form/`, shared with the add
   dialog. The seasons editor adds per-season overrides through `SeasonPicker`'s `renderSeasonExtra`.
 - Copy details the scanner read from the file's own headers (FC-23) are marked: `useItemFileDetails`
   loads the values it recorded (`collection_items.file_details`), and `fileMarkerOf` shows "from

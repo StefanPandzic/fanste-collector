@@ -10,6 +10,12 @@ import type { ExternalProvider } from '@fanste/core';
 export interface ProviderFetchOptions {
   /** Statuses to retry besides 429/503, e.g. BGG's `202 Accepted` "request queued" (FC-12). */
   retryStatuses?: readonly number[];
+  /**
+   * Reads the provider's own rate-limit headers on every response (retries too) and returns how
+   * long to pause the provider's throttle, if at all: e.g. Discogs' `X-Discogs-Ratelimit-Remaining`
+   * (FC-10).
+   */
+  pauseAfter?: (response: Response) => number | undefined;
 }
 
 // One throttle per provider and server instance, shared by all requests.
@@ -35,7 +41,7 @@ export async function providerFetch(
   provider: ExternalProvider,
   url: URL | string,
   init: RequestInit = {},
-  { retryStatuses = [429, 503] }: ProviderFetchOptions = {},
+  { retryStatuses = [429, 503], pauseAfter }: ProviderFetchOptions = {},
 ): Promise<Response> {
   const throttle = throttleFor(provider);
   const path = new URL(url).pathname;
@@ -48,7 +54,14 @@ export async function providerFetch(
         throttle.schedule(() => {
           const timeout = AbortSignal.timeout(PROVIDER_RETRY.timeoutMs);
           const signal = init.signal ? AbortSignal.any([init.signal, timeout]) : timeout;
-          return fetch(url, { ...init, signal });
+          return fetch(url, { ...init, signal }).then((response) => {
+            const pauseMs = pauseAfter?.(response);
+            if (pauseMs !== undefined && pauseMs > 0) {
+              gatewayLog.warn('provider.paused', { provider, path, ms: pauseMs });
+              throttle.pauseFor(pauseMs);
+            }
+            return response;
+          });
         }),
       {
         ...PROVIDER_RETRY,

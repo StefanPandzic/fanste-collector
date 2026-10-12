@@ -6,6 +6,7 @@ import { useState } from 'react';
 import { refKey, useCollectionCopies } from '@fanste/collection';
 import { categoryLabel, providerLabel, providerOfCategory } from '@fanste/core';
 
+import { CARD_BADGES_HEIGHT } from '@/components/items/grid-layout';
 import { ItemCard } from '@/components/items/item-card';
 import { ItemGridSkeleton } from '@/components/items/item-card-skeleton';
 import { ItemGrid } from '@/components/items/item-grid';
@@ -18,7 +19,7 @@ import { Button } from '@/components/ui/button';
 import { AddItemDialog } from './add-item-dialog';
 import { targetOf } from './add-item-form';
 import { retryingText, searchErrorText } from './search-errors';
-import { flattenResults } from './search-state';
+import { flattenResults, resultCardData, searchDescription } from './search-state';
 import { useQuickAdd } from './use-quick-add';
 import { useSearchResults } from './use-search-results';
 
@@ -94,7 +95,7 @@ export function SearchResults({ request, currency, onResultUsed, onAdded }: Sear
       <EmptyState
         icon={SearchX}
         title="No results"
-        description={`${provider} has no ${categoryLabel(request.category, { plural: true }).toLowerCase()} matching “${request.q}”${request.year ? ` from ${request.year}` : ''}. Check the spelling or try fewer words.`}
+        description={`${provider} has no ${categoryLabel(request.category, { plural: true }).toLowerCase()} ${searchDescription(request)}. Check the spelling or try fewer words or filters.`}
       />
     );
   }
@@ -112,12 +113,13 @@ export function SearchResults({ request, currency, onResultUsed, onAdded }: Sear
         items={results}
         getKey={(result) => `${result.provider}:${result.externalId}`}
         label="Search results"
+        cardExtraHeight={request.category === 'music' ? CARD_BADGES_HEIGHT : undefined}
         renderItem={(result, index) => {
           const target = targetOf(result);
           const owned = copiesOf(target);
           return (
             <ItemCard
-              item={result}
+              item={resultCardData(result)}
               priority={index < 6}
               onSelect={() => open(result)}
               badge={owned.length > 0 && <InCollectionBadge copies={owned} />}

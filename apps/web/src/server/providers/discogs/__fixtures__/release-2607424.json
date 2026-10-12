@@ -1,0 +1,437 @@
+{
+  "id": 2607424,
+  "title": "Abbey Road",
+  "year": 1969,
+  "genres": ["Rock"],
+  "styles": ["Pop Rock"],
+  "notes": "This release was originally printed with a misaligned Apple Records logo on the back, which was later corrected (see [r2498807] for example). The front cover photo is more tightly cropped than on other releases, showing less sky (noticeable over the roof tops right) and less of the drainage grating bottom right.\n\nAlso, Her Majesty was originally not printed on the side B label. This was added later (see [r6033667]). \n\nMatrix# on labels in parentheses.\n\nSmall Ⓟ on labels.\n\nB5 appears as \"Mean Mr Mustard\" on cover, but as \"Mean Mr. Mustard\" on label.\n\n[Back cover]:\nAn E.M.I. Recording. Thanks to George Martin, Geoff Emerick and Phillip McDonald\nPhotographs by Iain Macmillan\nPrinted by Garrod & Lofthouse International Ltd\n\n℗ 1969\nMfd. in U.K.\n\nPublishing:\n• Northern Songs - A1, A3, A4, A6, B2 to B11\n• Startling Music - A5\n• Harrisongs - A2, B1\n\nCopies exist with both black and white generic inners.\n\nRunouts are stamped.",
+  "uri": "https://www.discogs.com/release/2607424-The-Beatles-Abbey-Road",
+  "artists": [
+    {
+      "id": 82730,
+      "name": "The Beatles",
+      "anv": "",
+      "join": ""
+    }
+  ],
+  "tracklist": [
+    {
+      "position": "A1",
+      "type_": "track",
+      "title": "Come Together",
+      "duration": ""
+    },
+    {
+      "position": "A2",
+      "type_": "track",
+      "title": "Something",
+      "duration": ""
+    },
+    {
+      "position": "A3",
+      "type_": "track",
+      "title": "Maxwell's Silver Hammer",
+      "duration": ""
+    },
+    {
+      "position": "A4",
+      "type_": "track",
+      "title": "Oh! Darling",
+      "duration": ""
+    },
+    {
+      "position": "A5",
+      "type_": "track",
+      "title": "Octopus's Garden",
+      "duration": ""
+    },
+    {
+      "position": "A6",
+      "type_": "track",
+      "title": "I Want You (She's So Heavy)",
+      "duration": ""
+    },
+    {
+      "position": "B1",
+      "type_": "track",
+      "title": "Here Comes The Sun",
+      "duration": ""
+    },
+    {
+      "position": "B2",
+      "type_": "track",
+      "title": "Because",
+      "duration": ""
+    },
+    {
+      "position": "B3",
+      "type_": "track",
+      "title": "You Never Give Me Your Money",
+      "duration": ""
+    },
+    {
+      "position": "B4",
+      "type_": "track",
+      "title": "Sun King",
+      "duration": ""
+    },
+    {
+      "position": "B5",
+      "type_": "track",
+      "title": "Mean Mr. Mustard",
+      "duration": ""
+    },
+    {
+      "position": "B6",
+      "type_": "track",
+      "title": "Polythene Pam",
+      "duration": ""
+    },
+    {
+      "position": "B7",
+      "type_": "track",
+      "title": "She Came In Through The Bathroom Window",
+      "duration": ""
+    },
+    {
+      "position": "B8",
+      "type_": "track",
+      "title": "Golden Slumbers",
+      "duration": ""
+    },
+    {
+      "position": "B9",
+      "type_": "track",
+      "title": "Carry That Weight",
+      "duration": ""
+    },
+    {
+      "position": "B10",
+      "type_": "track",
+      "title": "The End",
+      "duration": ""
+    },
+    {
+      "position": "B11",
+      "type_": "track",
+      "title": "Her Majesty",
+      "duration": ""
+    }
+  ],
+  "images": [
+    {
+      "type": "primary",
+      "uri": "https://i.discogs.com/M2yc5OJZPdVoDm2_UlRRXuDlDguamLLSdnbziNmZoQI/rs:fit/g:sm/q:90/h:600/w:600/czM6Ly9kaXNjb2dz/LWRhdGFiYXNlLWlt/YWdlcy9SLTI2MDc0/MjQtMTYzMDYwMTA4/Ny0xMTk5LmpwZWc.jpeg",
+      "uri150": "https://i.discogs.com/uKBZ4UD1ZLYLd8H4ZuEy2ticElp1MpwRfS9gw74wXZk/rs:fit/g:sm/q:40/h:150/w:150/czM6Ly9kaXNjb2dz/LWRhdGFiYXNlLWlt/YWdlcy9SLTI2MDc0/MjQtMTYzMDYwMTA4/Ny0xMTk5LmpwZWc.jpeg"
+    },
+    {
+      "type": "secondary",
+      "uri": "https://i.discogs.com/Dmkx8oK2MyPudMetka17E3-2jI-OHrYXeISNB6r39IE/rs:fit/g:sm/q:90/h:600/w:600/czM6Ly9kaXNjb2dz/LWRhdGFiYXNlLWlt/YWdlcy9SLTI2MDc0/MjQtMTYzMDYwMTEw/NC00MzcwLmpwZWc.jpeg",
+      "uri150": "https://i.discogs.com/EOYOfYYSrW6f3oX3MRyepUOuadpM5gx4VG_8D56Vcpc/rs:fit/g:sm/q:40/h:150/w:150/czM6Ly9kaXNjb2dz/LWRhdGFiYXNlLWlt/YWdlcy9SLTI2MDc0/MjQtMTYzMDYwMTEw/NC00MzcwLmpwZWc.jpeg"
+    }
+  ],
+  "country": "UK",
+  "thumb": "https://i.discogs.com/uKBZ4UD1ZLYLd8H4ZuEy2ticElp1MpwRfS9gw74wXZk/rs:fit/g:sm/q:40/h:150/w:150/czM6Ly9kaXNjb2dz/LWRhdGFiYXNlLWlt/YWdlcy9SLTI2MDc0/MjQtMTYzMDYwMTA4/Ny0xMTk5LmpwZWc.jpeg",
+  "master_id": 24047,
+  "labels": [
+    {
+      "name": "Apple Records",
+      "catno": "PCS 7088"
+    }
+  ],
+  "identifiers": [
+    {
+      "type": "Rights Society",
+      "value": "NCB",
+      "description": "A1, A3, A4, A6, B2 to B11"
+    },
+    {
+      "type": "Matrix / Runout",
+      "value": "YEX.749",
+      "description": "Side A label"
+    },
+    {
+      "type": "Matrix / Runout",
+      "value": "YEX.750",
+      "description": "Side B label"
+    },
+    {
+      "type": "Matrix / Runout",
+      "value": "YEX 749-2 MMO 7",
+      "description": "Side A runout, variant 1"
+    },
+    {
+      "type": "Matrix / Runout",
+      "value": "YEX 750-1 AAA 1",
+      "description": "Side B runout, variant 1"
+    },
+    {
+      "type": "Matrix / Runout",
+      "value": "YEX 749-2 HT 1",
+      "description": "Side A runout, variant 2"
+    },
+    {
+      "type": "Matrix / Runout",
+      "value": "YEX 750-1 LM 7",
+      "description": "Side B runout, variant 2"
+    },
+    {
+      "type": "Matrix / Runout",
+      "value": "YEX 749-2 MML",
+      "description": "Side A runout, variant 3"
+    },
+    {
+      "type": "Matrix / Runout",
+      "value": "YEX 750-1",
+      "description": "Side B runout, variant 3"
+    },
+    {
+      "type": "Matrix / Runout",
+      "value": "YEX 749-2 MOG 9",
+      "description": "Side A runout, variant 4"
+    },
+    {
+      "type": "Matrix / Runout",
+      "value": "YEX 750-1 ADM 4",
+      "description": "Side B runout, variant 4"
+    },
+    {
+      "type": "Matrix / Runout",
+      "value": "YEX 749-2 OAL 3",
+      "description": "Side A runout, variant 5"
+    },
+    {
+      "type": "Matrix / Runout",
+      "value": "YEX 750-1 MGP 3",
+      "description": "Side B runout, variant 5"
+    },
+    {
+      "type": "Matrix / Runout",
+      "value": "YEX 749-2 ODT 6",
+      "description": "Side A runout, variant 6"
+    },
+    {
+      "type": "Matrix / Runout",
+      "value": "YEX 750-1 ALR 10",
+      "description": "Side B runout, variant 6"
+    },
+    {
+      "type": "Matrix / Runout",
+      "value": "YEX 749-2 OMP 5",
+      "description": "Side A runout, variant 7"
+    },
+    {
+      "type": "Matrix / Runout",
+      "value": "YEX 750-1 MRH 3",
+      "description": "Side B runout, variant 7"
+    },
+    {
+      "type": "Matrix / Runout",
+      "value": "YEX 749-2 MOD 9",
+      "description": "Side A runout, variant 8"
+    },
+    {
+      "type": "Matrix / Runout",
+      "value": "YEX 750-1 ARL 7",
+      "description": "Side B runout, variant 8"
+    },
+    {
+      "type": "Matrix / Runout",
+      "value": "YEX 749-2 MLG 1",
+      "description": "Side A runout, variant 9"
+    },
+    {
+      "type": "Matrix / Runout",
+      "value": "YEX 750-1 AHT 5",
+      "description": "Side B runout, variant 9"
+    },
+    {
+      "type": "Matrix / Runout",
+      "value": "YEX 749-2 ODA 1",
+      "description": "Side A runout, variant 10"
+    },
+    {
+      "type": "Matrix / Runout",
+      "value": "YEX 750-1 ATT 4",
+      "description": "Side B runout, variant 10"
+    },
+    {
+      "type": "Matrix / Runout",
+      "value": "YEX 749-2 LIL P 1",
+      "description": "Side A runout, variant 11"
+    },
+    {
+      "type": "Matrix / Runout",
+      "value": "YEX 750-1 AOH 1",
+      "description": "Side B runout, variant 11"
+    },
+    {
+      "type": "Matrix / Runout",
+      "value": "YEX 750-2 AGM 5",
+      "description": "Side A runout, variant 12"
+    },
+    {
+      "type": "Matrix / Runout",
+      "value": "YEX 749-1 MMH 5",
+      "description": "Side B runout, variant 12"
+    },
+    {
+      "type": "Matrix / Runout",
+      "value": "YEX 749-2 ORO 4",
+      "description": "Side A runout, variant 13"
+    },
+    {
+      "type": "Matrix / Runout",
+      "value": "YEX 750-1 AOT 2",
+      "description": "Side B runout, variant 13"
+    },
+    {
+      "type": "Matrix / Runout",
+      "value": "YEX 749-2 MLT 1",
+      "description": "Side A runout, variant 14"
+    },
+    {
+      "type": "Matrix / Runout",
+      "value": "YEX 750-1 APL 4",
+      "description": "Side B runout, variant 14"
+    },
+    {
+      "type": "Matrix / Runout",
+      "value": "YEX 749-2 MTG 5",
+      "description": "Side A runout, variant 15"
+    },
+    {
+      "type": "Matrix / Runout",
+      "value": "YEX 750-1 APD 10",
+      "description": "Side B runout, variant 15"
+    },
+    {
+      "type": "Matrix / Runout",
+      "value": "YEX 749-2 MG 3",
+      "description": "Side A runout, variant 16"
+    },
+    {
+      "type": "Matrix / Runout",
+      "value": "YEX 750-1 PR 3",
+      "description": "Side B runout, variant 16"
+    },
+    {
+      "type": "Matrix / Runout",
+      "value": "YEX 749-2 MRT 5",
+      "description": "Side A runout, variant 17"
+    },
+    {
+      "type": "Matrix / Runout",
+      "value": "YEX 750-1 AGM 5",
+      "description": "Side B runout, variant 17"
+    },
+    {
+      "type": "Matrix / Runout",
+      "value": "YEX 749-2 ODL 4",
+      "description": "Side A runout, variant 18"
+    },
+    {
+      "type": "Matrix / Runout",
+      "value": "YEX 750-1 APO 3",
+      "description": "Side B runout, variant 18"
+    },
+    {
+      "type": "Matrix / Runout",
+      "value": "YEX 749-2 MLH 6",
+      "description": "Side A runout, variant 19"
+    },
+    {
+      "type": "Matrix / Runout",
+      "value": "YEX 750-1 APR 4",
+      "description": "Side B runout, variant 19"
+    },
+    {
+      "type": "Matrix / Runout",
+      "value": "YEX 749-2 GGH 5",
+      "description": "Side A runout, variant 20"
+    },
+    {
+      "type": "Matrix / Runout",
+      "value": "YEX 750-1 GDH 7",
+      "description": "Side B runout, variant 20"
+    },
+    {
+      "type": "Matrix / Runout",
+      "value": "YEX 749-2 GTD 6",
+      "description": "Side A runout, variant 21"
+    },
+    {
+      "type": "Matrix / Runout",
+      "value": "YEX 750-1 RTD 3",
+      "description": "Side B runout, variant 21"
+    },
+    {
+      "type": "Matrix / Runout",
+      "value": "YEX 749-2 RLR 5",
+      "description": "Side A runout, variant 22"
+    },
+    {
+      "type": "Matrix / Runout",
+      "value": "YEX 750-1 GTM 5",
+      "description": "Side B runout, variant 22"
+    },
+    {
+      "type": "Matrix / Runout",
+      "value": "YEX 749-2 GAA 9 10",
+      "description": "Side A runout, variant 23"
+    },
+    {
+      "type": "Matrix / Runout",
+      "value": "YEX 750-1 GRR 5",
+      "description": "Side B runout, variant 23"
+    },
+    {
+      "type": "Matrix / Runout",
+      "value": "YEX 749-2 MMM 3",
+      "description": "Side A runout, variant 24"
+    },
+    {
+      "type": "Matrix / Runout",
+      "value": "YEX 750-1 AMA 7",
+      "description": "Side B runout, variant 24"
+    },
+    {
+      "type": "Matrix / Runout",
+      "value": "YEX 749-2 RAM 1",
+      "description": "Side A runout, variant 25"
+    },
+    {
+      "type": "Matrix / Runout",
+      "value": "YEX 750-1 GTT 4",
+      "description": "Side B runout, variant 25"
+    },
+    {
+      "type": "Matrix / Runout",
+      "value": "YEX 749-2 OGA 4",
+      "description": "Side A runout, variant 26"
+    },
+    {
+      "type": "Matrix / Runout",
+      "value": "YEX 750-1 APP 8",
+      "description": "Side B runout, variant 26"
+    },
+    {
+      "type": "Matrix / Runout",
+      "value": "YEX 749-2 GTL 1",
+      "description": "Side A runout, variant 27"
+    },
+    {
+      "type": "Matrix / Runout",
+      "value": "YEX 750-1 GLA 9",
+      "description": "Side B runout, variant 27"
+    }
+  ],
+  "formats": [
+    {
+      "name": "Vinyl",
+      "qty": "1",
+      "descriptions": ["LP", "Album", "Misprint", "Stereo"],
+      "text": "Misaligned Apple"
+    }
+  ]
+}

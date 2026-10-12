@@ -1,4 +1,4 @@
-import { applyOverrides, copyBadges, ITEM_SOURCES } from '@fanste/core';
+import { applyOverrides, copyBadges, ITEM_SOURCES, parseMusicExtra } from '@fanste/core';
 
 import type { ItemCardData } from '@/components/items/item-card';
 
@@ -9,6 +9,8 @@ export interface GalleryItem {
   id: string;
   card: ItemCardData & { badges: readonly string[] };
   subtitle?: string;
+  /** A record's release country (FC-10). */
+  country?: string;
   format: string | null;
   acquiredAt: string | null;
   estimatedValue: number | null;
@@ -22,11 +24,17 @@ export const LOADING_TITLE = 'Loading…';
 export function toGalleryItem(item: CollectionItem): GalleryItem {
   const overrides = item.metadataOverrides;
   const display = item.metadata ? applyOverrides(item.metadata, overrides).item : undefined;
+  const country =
+    item.category === 'music' ? parseMusicExtra(item.metadata?.extra)?.country : undefined;
   return {
     id: item.id,
     card: {
       title: display?.title ?? overrides.title ?? LOADING_TITLE,
       category: item.category,
+      // A record is known by its artist; a movie's or show's subtitle (network) stays off the card.
+      ...(item.category === 'music' && (display?.subtitle ?? overrides.subtitle)
+        ? { subtitle: display?.subtitle ?? overrides.subtitle }
+        : {}),
       releaseYear: display?.releaseYear ?? overrides.releaseYear,
       imageUrl: display?.imageUrl ?? overrides.imageUrl,
       thumbnailUrl: display?.thumbnailUrl ?? overrides.imageUrl,
@@ -35,6 +43,7 @@ export function toGalleryItem(item: CollectionItem): GalleryItem {
       badges: copyBadges(item.category, item.format, item.details, item.metadata?.extra),
     },
     subtitle: display?.subtitle ?? overrides.subtitle,
+    ...(country ? { country } : {}),
     format: item.format,
     acquiredAt: item.acquiredAt,
     estimatedValue: item.estimatedValue,

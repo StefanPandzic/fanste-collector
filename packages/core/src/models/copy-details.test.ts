@@ -5,6 +5,7 @@ import {
   detailsSchemaFor,
   formatOwnedEpisodes,
   movieDetailsSchema,
+  musicDetailsSchema,
   ownedEpisodeCount,
   parseDetails,
   seasonDetails,
@@ -83,11 +84,31 @@ describe('tvDetailsSchema', () => {
   });
 });
 
+describe('musicDetailsSchema', () => {
+  it('accepts a graded vinyl copy', () => {
+    const details = {
+      discCount: 2,
+      vinylSize: '12"',
+      speed: '33⅓',
+      variant: 'Red Translucent',
+      catalogNumber: 'PCS 7088',
+      mediaCondition: 'VG+',
+      sleeveCondition: 'Generic',
+    };
+    expect(musicDetailsSchema.parse(details)).toEqual(details);
+  });
+
+  it('rejects a grade outside the Goldmine scale', () => {
+    expect(musicDetailsSchema.safeParse({ mediaCondition: 'Mint' }).success).toBe(false);
+  });
+});
+
 describe('detailsSchemaFor', () => {
   it('returns the schema of the category', () => {
     expect(detailsSchemaFor('movie')).toBe(movieDetailsSchema);
     expect(detailsSchemaFor('tv')).toBe(tvDetailsSchema);
-    expect(detailsSchemaFor('music').parse({ vinylColor: 'Red' })).toEqual({ vinylColor: 'Red' });
+    expect(detailsSchemaFor('music')).toBe(musicDetailsSchema);
+    expect(detailsSchemaFor('video_game').parse({ platform: 'PS5' })).toEqual({ platform: 'PS5' });
   });
 });
 
@@ -128,8 +149,15 @@ describe('copyDetailsSchema', () => {
       copyDetailsSchema.safeParse({ category: 'movie', details: { discCount: 0 } }).success,
     ).toBe(false);
     expect(
-      copyDetailsSchema.parse({ category: 'music', format: 'Vinyl', details: { rpm: 33 } }),
-    ).toEqual({ category: 'music', format: 'Vinyl', details: { rpm: 33 } });
+      copyDetailsSchema.safeParse({
+        category: 'music',
+        format: 'Vinyl',
+        details: { mediaCondition: 'Mint' },
+      }).success,
+    ).toBe(false);
+    expect(
+      copyDetailsSchema.parse({ category: 'video_game', format: 'Disc', details: { psn: true } }),
+    ).toEqual({ category: 'video_game', format: 'Disc', details: { psn: true } });
   });
 });
 
@@ -138,6 +166,12 @@ describe('parseDetails', () => {
     expect(parseDetails('movie', { resolution: '2160p', discCount: 0, hdr: 42 })).toEqual({
       resolution: '2160p',
     });
+  });
+
+  it('keeps the valid fields of a music copy', () => {
+    expect(parseDetails('music', { vinylSize: '7"', speed: '45', mediaCondition: 'Mint' })).toEqual(
+      { vinylSize: '7"', speed: '45' },
+    );
   });
 
   it('drops invalid and duplicate seasons of a TV copy', () => {

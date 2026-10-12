@@ -12,6 +12,7 @@ import { authenticateRequest } from './http/authenticate';
 import { createGatewayRoute } from './http/handler';
 import { createItemService } from './items';
 import { REFRESH_LIMITS, SEARCH_CACHE, USER_RATE_LIMIT } from './limits';
+import { createDiscogsAdapter } from './providers/discogs/adapter';
 import { createRegistry } from './providers/registry';
 import { createTmdbAdapter } from './providers/tmdb/adapter';
 import { createUserLimiter } from './rate-limit/user-limiter';
@@ -28,12 +29,21 @@ const tmdb = serverEnv.TMDB_API_READ_TOKEN
     })
   : undefined;
 
+const discogs =
+  serverEnv.DISCOGS_CONSUMER_KEY && serverEnv.DISCOGS_CONSUMER_SECRET
+    ? createDiscogsAdapter({
+        consumerKey: serverEnv.DISCOGS_CONSUMER_KEY,
+        consumerSecret: serverEnv.DISCOGS_CONSUMER_SECRET,
+        contactUrl: serverEnv.DISCOGS_USER_AGENT_URL,
+      })
+    : undefined;
+
 /**
  * The provider adapters. Each integration task registers its adapter here: TMDB (FC-09), Discogs
  * (FC-10), IGDB (FC-11) and BGG (FC-12). A provider without an adapter (not built yet, or its secret
  * isn't set) answers `provider_not_configured` for its categories.
  */
-const registry = createRegistry([tmdb].filter((adapter) => adapter !== undefined));
+const registry = createRegistry([tmdb, discogs].filter((adapter) => adapter !== undefined));
 
 /** TMDB title matching for the scanner (FC-23); `undefined` when TMDB isn't configured. */
 export const tmdbMatcher: TmdbMatcher | undefined = tmdb;

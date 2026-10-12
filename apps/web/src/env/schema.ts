@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-import { optionalString } from './client-schema';
+import { optionalString, optionalUrl } from './client-schema';
 
 /**
  * Env var schemas, shared by `./server` and `next.config.ts`, which validates them once at startup
@@ -24,7 +24,11 @@ export const serverEnvSchema = z.object({
       .regex(/^[a-z]{2}(-[A-Z]{2})?$/, 'Use an ISO 639-1 code, optionally with a region: en-US')
       .optional(),
   ),
-  DISCOGS_TOKEN: optionalString,
+  /** The Discogs app's Consumer Key + Secret (FC-10); FC-31 reuses them for the user OAuth flow. */
+  DISCOGS_CONSUMER_KEY: optionalString,
+  DISCOGS_CONSUMER_SECRET: optionalString,
+  /** The contact URL in the `User-Agent` Discogs requires (FC-10); defaults to the repository. */
+  DISCOGS_USER_AGENT_URL: optionalUrl,
   TWITCH_CLIENT_ID: optionalString,
   TWITCH_CLIENT_SECRET: optionalString,
   BGG_API_TOKEN: optionalString,

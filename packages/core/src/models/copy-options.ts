@@ -1,6 +1,6 @@
 // Suggested values for the copy-details fields (FC-15). The fields are free text, so the UI offers
-// these lists and also accepts an "Other" value. Movies & TV ship first; the other categories get
-// their lists with their provider tasks (FC-10…FC-13).
+// these lists and also accepts an "Other" value, except for the condition grades, which are a fixed
+// scale. Video games, board games and Funko get their lists with FC-11…FC-13.
 
 /** A suggested value and how the UI shows it. */
 export interface CopyOption {
@@ -81,6 +81,59 @@ export const DIGITAL_STORES = plain([
   'Vudu',
   'Rakuten TV',
 ]);
+
+// ---------------------------------------------------------------------------------------------------
+// Music (FC-10)
+// ---------------------------------------------------------------------------------------------------
+
+/** Record sizes. Stored with a plain `"`, as Discogs writes them. */
+export const VINYL_SIZES = [
+  { value: '7"', label: '7″' },
+  { value: '10"', label: '10″' },
+  { value: '12"', label: '12″' },
+] as const satisfies readonly CopyOption[];
+
+/** Playing speeds in RPM. */
+export const VINYL_SPEEDS = [
+  { value: '33⅓', label: '33⅓ RPM' },
+  { value: '45', label: '45 RPM' },
+  { value: '78', label: '78 RPM' },
+] as const satisfies readonly CopyOption[];
+
+/** Common record variants; any other color or finish can be typed. */
+export const VINYL_VARIANTS = plain([
+  'Black',
+  'Colored',
+  'Clear',
+  'Splatter',
+  'Marbled',
+  'Picture Disc',
+]);
+
+/**
+ * The Goldmine grades Discogs uses for a record's media and sleeve, best first. Stored as the code
+ * (`VG+`), so a Discogs collection import (FC-31) maps one to one.
+ */
+export const CONDITION_GRADES = [
+  { value: 'M', label: 'Mint (M)' },
+  { value: 'NM', label: 'Near Mint (NM)' },
+  { value: 'VG+', label: 'Very Good Plus (VG+)' },
+  { value: 'VG', label: 'Very Good (VG)' },
+  { value: 'G+', label: 'Good Plus (G+)' },
+  { value: 'G', label: 'Good (G)' },
+  { value: 'F', label: 'Fair (F)' },
+  { value: 'P', label: 'Poor (P)' },
+] as const satisfies readonly CopyOption[];
+
+/** Sleeve grades: the media grades, plus Discogs' "Generic" and "No Cover". */
+export const SLEEVE_GRADES = [
+  ...CONDITION_GRADES,
+  { value: 'Generic', label: 'Generic sleeve' },
+  { value: 'No Cover', label: 'No cover' },
+] as const satisfies readonly CopyOption[];
+
+export type ConditionGrade = (typeof CONDITION_GRADES)[number]['value'];
+export type SleeveGrade = (typeof SLEEVE_GRADES)[number]['value'];
 
 /**
  * Languages offered for audio and subtitles, as ISO 639-1 codes. Any 2–3 letter ISO 639 code is

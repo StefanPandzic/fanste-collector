@@ -83,8 +83,8 @@ the web app and adds local-only features through the `window.fanste` preload bri
 Keep packages free of Next.js/Electron imports so a future mobile app can reuse them, and use relative imports
 inside packages (the `@/*` alias is for apps only). `export` is still an empty stub.
 `core` holds constants, the bridge types, the auth/profile zod schemas, the normalized item model (with the
-category/ownership display metadata, `CATEGORY_META`, and provider names, `providerLabel`), the copy details and
-metadata overrides (`copy-details.ts`, `metadata-overrides.ts`, `prefill.ts`), the gallery badges
+category/ownership display metadata, `CATEGORY_META`, and provider names, `providerLabel`), the copy details (typed for movies, TV and music; `prefill.ts` suggests them from TMDB, the
+Discogs release (FC-10) and the scanner) and metadata overrides (`copy-details.ts`, `metadata-overrides.ts`), the gallery badges
 (`copy-badges.ts`), the recent-searches list logic (`search-history.ts`), the API gateway contracts (`gateway/`)
 and the scanner logic (`scanner/`: path keys, sidecar subtitle languages, the incremental re-scan plan,
 the filename parser `parseMediaFilename`, and `media-info.ts`: the shape of `scanned_files.media_info` and

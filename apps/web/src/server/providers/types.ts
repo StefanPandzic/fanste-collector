@@ -1,9 +1,21 @@
-import type { ExternalProvider, ItemCategory, NormalizedItem, SearchResponse } from '@fanste/core';
+import type {
+  ExternalProvider,
+  ItemCategory,
+  MusicSearchFormat,
+  NormalizedItem,
+  SearchResponse,
+} from '@fanste/core';
 
 export interface SearchOptions {
   category: ItemCategory;
   page: number;
   year?: number;
+  /** Music only (Discogs, FC-10); other adapters ignore them. */
+  format?: MusicSearchFormat;
+  /** The release country, e.g. `UK`. */
+  country?: string;
+  /** A barcode or catalog number; with it, `q` may be empty. */
+  code?: string;
 }
 
 /**
@@ -14,7 +26,9 @@ export interface SearchOptions {
 export interface ProviderAdapter {
   provider: ExternalProvider;
   categories: readonly ItemCategory[];
-  /** `year` narrows the results to that release year; adapters whose provider can't filter ignore it. */
+  /**
+   * `year` (and `format`) narrow the results; adapters whose provider can't filter on one ignore it.
+   */
   search(q: string, opts: SearchOptions): Promise<SearchResponse>;
   getById(externalId: string, category: ItemCategory): Promise<NormalizedItem>;
 }

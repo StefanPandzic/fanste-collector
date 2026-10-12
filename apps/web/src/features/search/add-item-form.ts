@@ -6,9 +6,9 @@ import {
   parseAmount,
   parseCount,
   showsCopyDetails,
-  showsDigitalStore,
-  showsFileFormat,
+  shownDetails,
 } from '@/features/copy-form/copy-form';
+import type { CopyFormDetails } from '@/features/copy-form/copy-form';
 
 import type {
   AddItemInput,
@@ -19,7 +19,6 @@ import type {
   PrefillResult,
   PrefillSource,
   SearchResult,
-  TvDetails,
 } from '@fanste/core';
 
 /** The provider item a new copy is of. */
@@ -30,8 +29,8 @@ export interface AddTarget {
 }
 
 /**
- * The "Add with details" form. Text inputs hold strings until they're converted on submit. Movie and
- * TV details share one shape (`TvDetails` adds `seasons`); other categories get theirs with FC-10…
+ * The "Add with details" form. Text inputs hold strings until they're converted on submit. The
+ * details hold the category's fields (`CopyFormDetails`); games get theirs with FC-11.
  */
 export interface AddItemFormValues {
   ownership: OwnershipStatus;
@@ -43,7 +42,7 @@ export interface AddItemFormValues {
   notes: string;
   /** Medium, empty for none. */
   format: string;
-  details: TvDetails;
+  details: CopyFormDetails;
 }
 
 /** The add target of a search result; `undefined` for a custom item, which has no provider. */
@@ -68,7 +67,7 @@ export function initialFormValues(prefill: PrefillResult): AddItemFormValues {
     estimatedValue: '',
     notes: '',
     format: prefill.format ?? '',
-    details: { ...prefill.details },
+    details: { ...(prefill.details as CopyFormDetails) },
   };
 }
 
@@ -88,13 +87,6 @@ export function toAddItemInput(
   const purchasePrice = parseAmount(values.purchasePrice);
   const estimatedValue = parseAmount(values.estimatedValue);
   const copy = showsCopyDetails(values.ownership);
-  // Fields hidden for the chosen medium aren't saved.
-  const { fileFormat, digitalStore, ...details } = values.details;
-  const shownDetails = {
-    ...details,
-    ...(showsFileFormat(values.format) ? { fileFormat } : {}),
-    ...(showsDigitalStore(values.format) ? { digitalStore } : {}),
-  };
   const raw = {
     ...target,
     ownership: values.ownership,
@@ -105,7 +97,10 @@ export function toAddItemInput(
     currency: purchasePrice !== null || estimatedValue !== null ? currency : null,
     notes: values.notes,
     format: copy ? values.format : null,
-    ...(copy ? { details: cleanDetails(shownDetails) } : {}),
+    // Fields hidden for the chosen medium aren't saved.
+    ...(copy
+      ? { details: cleanDetails(shownDetails(target.category, values.format, values.details)) }
+      : {}),
     source: 'search',
   } satisfies AddItemInput;
 

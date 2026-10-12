@@ -16,6 +16,8 @@ import type { ReactNode } from 'react';
 export interface ItemCardData {
   title: string;
   category: ItemCategory;
+  /** Shown before the year, e.g. a record's artist. */
+  subtitle?: string;
   releaseYear?: number;
   imageUrl?: string;
   thumbnailUrl?: string;
@@ -109,7 +111,11 @@ export function ItemCard({
           )}
         </h3>
         <div className="flex items-center justify-between gap-2 text-caption text-muted-foreground">
-          {item.releaseYear !== undefined && <span>{item.releaseYear}</span>}
+          {(item.subtitle !== undefined || item.releaseYear !== undefined) && (
+            <span className="truncate" title={item.subtitle}>
+              {[item.subtitle, item.releaseYear].filter((part) => part !== undefined).join(' · ')}
+            </span>
+          )}
           <CategoryBadge category={item.category} iconOnly className="ml-auto" />
         </div>
         {item.badges && (

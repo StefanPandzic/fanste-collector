@@ -31,11 +31,13 @@ interface OptionFieldProps {
   onChange: (value: string, options: ChangeOptions) => void;
   invalid?: boolean;
   disabled?: boolean;
+  /** `false` for a fixed scale (the condition grades): no "Other…" choice. */
+  allowOther?: boolean;
 }
 
 /**
- * A copy-details field: picks from the suggested options, or "Other…" for free text (every option
- * field accepts any value, FC-15).
+ * A copy-details field: picks from the suggested options, or "Other…" for free text (most option
+ * fields accept any value, FC-15).
  */
 export function OptionField({
   id,
@@ -45,9 +47,10 @@ export function OptionField({
   onChange,
   invalid,
   disabled,
+  allowOther = true,
 }: OptionFieldProps) {
   const known = options.some((option) => option.value === value);
-  const [other, setOther] = useState(value !== '' && !known);
+  const [other, setOther] = useState(allowOther && value !== '' && !known);
   const selected = other ? OTHER : value === '' ? NONE : value;
 
   function select(next: string) {
@@ -69,8 +72,12 @@ export function OptionField({
               {option.label}
             </SelectItem>
           ))}
-          <SelectSeparator />
-          <SelectItem value={OTHER}>Other…</SelectItem>
+          {allowOther && (
+            <>
+              <SelectSeparator />
+              <SelectItem value={OTHER}>Other…</SelectItem>
+            </>
+          )}
         </SelectContent>
       </Select>
       {other && (

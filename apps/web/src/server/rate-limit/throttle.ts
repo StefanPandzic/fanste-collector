@@ -26,6 +26,11 @@ export interface Throttle {
    * with a `ThrottleFullError` when the queue is full.
    */
   schedule<T>(task: () => Promise<T>): Promise<T>;
+  /**
+   * Starts no task for `ms` from now (running tasks go on), e.g. when the provider says its quota is
+   * almost used up. A shorter pause than the current one changes nothing.
+   */
+  pauseFor(ms: number): void;
 }
 
 interface Pending {
@@ -43,7 +48,15 @@ export function createThrottle({
   let tokens = burst;
   let lastRefill = Date.now();
   let active = 0;
+  let pausedUntil = 0;
   let timer: ReturnType<typeof setTimeout> | undefined;
+
+  function wakeUpIn(waitMs: number) {
+    timer = setTimeout(() => {
+      timer = undefined;
+      pump();
+    }, waitMs);
+  }
 
   function refill() {
     const now = Date.now();
@@ -52,7 +65,17 @@ export function createThrottle({
   }
 
   function pump() {
+    const pausedMs = pausedUntil - Date.now();
+    if (pausedMs > 0) {
+      if (queue.length > 0 && timer === undefined) wakeUpIn(pausedMs);
+      return;
+    }
     refill();
+    if (pausedUntil > 0) {
+      // Tokens kept filling during the pause; start again one request at a time, not with a burst.
+      pausedUntil = 0;
+      tokens = Math.min(tokens, 1);
+    }
     while (queue.length > 0 && active < maxConcurrent && tokens >= 1) {
       tokens -= 1;
       active += 1;
@@ -60,11 +83,7 @@ export function createThrottle({
     }
     // Out of tokens: wake up when the next one is due. (A free concurrency slot calls `pump` itself.)
     if (queue.length > 0 && active < maxConcurrent && timer === undefined) {
-      const waitMs = Math.ceil(((1 - tokens) / ratePerSecond) * 1000);
-      timer = setTimeout(() => {
-        timer = undefined;
-        pump();
-      }, waitMs);
+      wakeUpIn(Math.ceil(((1 - tokens) / ratePerSecond) * 1000));
     }
   }
 
@@ -89,6 +108,18 @@ export function createThrottle({
         });
         pump();
       });
+    },
+
+    pauseFor(ms) {
+      const until = Date.now() + ms;
+      if (until <= pausedUntil) return;
+      pausedUntil = until;
+      // A pending wake-up may be due before the pause ends; `pump` re-arms it for the pause.
+      if (timer !== undefined) {
+        clearTimeout(timer);
+        timer = undefined;
+      }
+      pump();
     },
   };
 }

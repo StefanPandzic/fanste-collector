@@ -55,6 +55,29 @@ describe('toGalleryItem', () => {
     expect(item.estimatedValue).toBe(24.99);
   });
 
+  it('shows the artist and release country of a record only', () => {
+    const record = toGalleryItem({
+      ...inception,
+      category: 'music',
+      provider: 'discogs',
+      externalId: 'release:2607424',
+      format: 'Vinyl',
+      details: {},
+      metadata: {
+        provider: 'discogs',
+        externalId: 'release:2607424',
+        category: 'music',
+        title: 'Abbey Road',
+        subtitle: 'The Beatles',
+        extra: { country: 'UK' },
+      },
+    });
+    expect(record.card.subtitle).toBe('The Beatles');
+    expect(record.country).toBe('UK');
+    expect(toGalleryItem(inception).card).not.toHaveProperty('subtitle');
+    expect(toGalleryItem(inception)).not.toHaveProperty('country');
+  });
+
   it('applies the overrides and leaves a custom cover unoptimized', () => {
     const item = toGalleryItem({
       ...inception,

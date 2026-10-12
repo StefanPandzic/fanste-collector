@@ -4,8 +4,8 @@ import { parseTvExtra } from './extras';
 import type { ItemCategory } from './enums';
 
 // Short labels of a copy's key details, shown as small badges on gallery cards and rows (FC-18),
-// e.g. `4K UHD · Dolby Vision · Steelbook`. Movies & TV first; game and music badges ("Steam",
-// "2×LP") come with FC-11 / FC-10.
+// e.g. `4K UHD · Dolby Vision · Steelbook` or `2×LP · Red · NM`. Game badges ("Steam") come with
+// FC-11.
 
 /** Media whose name is too long for a badge. */
 const SHORT_FORMATS: Record<string, string> = {
@@ -28,6 +28,7 @@ export function copyBadges(
   details: unknown,
   extra?: unknown,
 ): string[] {
+  if (category === 'music') return musicBadges(format, details);
   if (category !== 'movie' && category !== 'tv') return format ? [format] : [];
   const copy = parseDetails(category, details);
   const badges: string[] = [];
@@ -50,5 +51,25 @@ export function copyBadges(
       badges.push(formatOwnedEpisodes(ownedEpisodeCount(tv, parseTvExtra(extra))));
     }
   }
+  return badges;
+}
+
+/**
+ * A music copy: the medium with its count (`2×LP`, `CD`, `7″`), the variant and the media grade.
+ * A 12" record is an `LP`, so its size isn't repeated.
+ */
+function musicBadges(format: string | null, details: unknown): string[] {
+  const copy = parseDetails('music', details);
+  const badges: string[] = [];
+  if (format) {
+    let medium = format;
+    if (format === 'Vinyl') {
+      medium = copy.vinylSize && copy.vinylSize !== '12"' ? copy.vinylSize.replace('"', '″') : 'LP';
+    }
+    const count = copy.discCount ?? 1;
+    badges.push(count > 1 && format !== 'Digital' ? `${count}×${medium}` : medium);
+  }
+  if (format === 'Vinyl' && copy.variant && copy.variant !== 'Black') badges.push(copy.variant);
+  if (copy.mediaCondition) badges.push(copy.mediaCondition);
   return badges;
 }

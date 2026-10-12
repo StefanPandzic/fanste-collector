@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import {
   addItemInputSchema,
   collectionFilterSchema,
+  COLLECTION_FACETS,
   collectionQuerySchema,
   detailsPatchSchemaFor,
   overridesPatchSchema,
@@ -62,6 +63,13 @@ describe('detailsPatchSchemaFor', () => {
       edition: null,
     });
     expect(detailsPatchSchemaFor('movie').safeParse({ discCount: 0 }).success).toBe(false);
+    expect(detailsPatchSchemaFor('music').parse({ mediaCondition: 'NM', variant: null })).toEqual({
+      mediaCondition: 'NM',
+      variant: null,
+    });
+    expect(detailsPatchSchemaFor('music').safeParse({ mediaCondition: 'Mint' }).success).toBe(
+      false,
+    );
   });
 });
 
@@ -121,6 +129,13 @@ describe('collectionFilterSchema', () => {
       acquiredTo: '2024-12-31',
       details: { resolution: ['2160p'], hdr: ['Dolby Vision'], audioLanguages: ['en'] },
     });
+  });
+
+  it('accepts release countries and offers country counts', () => {
+    expect(collectionFilterSchema.parse({ countries: ['UK', 'Yugoslavia'] })).toEqual({
+      countries: ['UK', 'Yugoslavia'],
+    });
+    expect(COLLECTION_FACETS).toContain('country');
   });
 
   it('rejects unknown sources and malformed dates', () => {

@@ -1,6 +1,6 @@
-import { COPY_DETAIL_STATUSES } from '@fanste/core';
+import { COPY_DETAIL_STATUSES, musicDetailsShape } from '@fanste/core';
 
-import type { OwnershipStatus } from '@fanste/core';
+import type { ItemCategory, MusicDetails, OwnershipStatus, TvDetails } from '@fanste/core';
 
 // Form helpers shared by the "Add with details" dialog (FC-17) and the item page (FC-19).
 
@@ -25,6 +25,57 @@ export function showsFileFormat(format: string): boolean {
 /** The store (`digitalStore`) only applies to a `Digital store` copy. */
 export function showsDigitalStore(format: string): boolean {
   return format === 'Digital store';
+}
+
+/** The record's size, speed and variant only apply to a `Vinyl` copy (FC-10). */
+export function showsVinylDetails(format: string): boolean {
+  return format === 'Vinyl';
+}
+
+/**
+ * The copy details a form holds: the movie and TV fields (`TvDetails` adds `seasons`), or the music
+ * fields (FC-10). Each category's form only shows and saves its own.
+ */
+export type CopyFormDetails = TvDetails & MusicDetails;
+
+const VINYL_FIELDS = ['vinylSize', 'speed', 'variant'] as const;
+const MUSIC_FIELDS = Object.keys(musicDetailsShape) as (keyof MusicDetails)[];
+
+/**
+ * The vinyl details a music copy still has once its medium is `format`: an autosaving form clears
+ * them when the medium moves off Vinyl, so a CD never matches a vinyl-size filter.
+ */
+export function staleVinylFields(
+  format: string,
+  details: MusicDetails,
+): (typeof VINYL_FIELDS)[number][] {
+  if (showsVinylDetails(format)) return [];
+  return VINYL_FIELDS.filter((field) => details[field] !== undefined);
+}
+
+/**
+ * The details of the category that the form shows for the medium: fields hidden for it (a movie's
+ * file format on a disc, a record's speed on a CD) aren't saved.
+ */
+export function shownDetails(
+  category: ItemCategory,
+  format: string,
+  details: CopyFormDetails,
+): Record<string, unknown> {
+  if (category === 'music') {
+    return Object.fromEntries(
+      MUSIC_FIELDS.filter(
+        (field) =>
+          showsVinylDetails(format) || !(VINYL_FIELDS as readonly string[]).includes(field),
+      ).map((field) => [field, details[field]]),
+    );
+  }
+  const { fileFormat, digitalStore, ...rest } = details;
+  return {
+    ...rest,
+    ...(showsFileFormat(format) ? { fileFormat } : {}),
+    ...(showsDigitalStore(format) ? { digitalStore } : {}),
+  };
 }
 
 /** Whether a form value counts as "not set": `undefined`, blank text or an empty list. */
@@ -65,6 +116,8 @@ export const COPY_FIELD_MESSAGES: Readonly<Record<string, string>> = {
   notes: 'Notes can be at most 5000 characters.',
   format: 'The medium can be at most 100 characters.',
   'details.discCount': 'Enter a number of discs from 1 to 99.',
+  'details.catalogNumber': 'The catalog number can be at most 100 characters.',
+  'details.variant': 'The variant can be at most 100 characters.',
   'details.seasons': 'Pick at least one episode for each ticked season.',
 };
 

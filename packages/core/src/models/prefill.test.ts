@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import {
   allSeasonsOwned,
   copyDefaultsFrom,
+  musicPrefill,
   ownAllSeasons,
   parsePreferences,
   prefillDetails,
@@ -30,6 +31,21 @@ const breakingBad: NormalizedItem = {
   category: 'tv',
   title: 'Breaking Bad',
   extra: { originalLanguage: 'en', seasons: breakingBadSeasons },
+};
+
+const abbeyRoad: NormalizedItem = {
+  provider: 'discogs',
+  externalId: 'release:2607424',
+  category: 'music',
+  title: 'Abbey Road',
+  subtitle: 'The Beatles',
+  extra: {
+    discogsType: 'release',
+    country: 'UK',
+    labels: [{ name: 'Apple Records', catalogNumber: 'PCS 7088' }],
+    catalogNumber: 'PCS 7088',
+    formats: [{ name: 'Vinyl', quantity: 1, descriptions: ['LP', 'Album', 'Stereo'] }],
+  },
 };
 
 const defaults = { format: '4K UHD Blu-ray', details: { resolution: '2160p', hdr: 'HDR10' } };
@@ -116,6 +132,56 @@ describe('prefillDetails', () => {
       { seasonNumber: 2, episodesOwned: [1, 2] },
     ]);
   });
+
+  it('suggests the medium and vinyl details of a Discogs release', () => {
+    expect(prefillDetails('music', abbeyRoad)).toEqual({
+      format: 'Vinyl',
+      details: { catalogNumber: 'PCS 7088', discCount: 1, vinylSize: '12"', speed: '33⅓' },
+      choices: {},
+      sources: {
+        format: 'provider',
+        catalogNumber: 'provider',
+        discCount: 'provider',
+        vinylSize: 'provider',
+        speed: 'provider',
+      },
+    });
+  });
+});
+
+describe('musicPrefill', () => {
+  it('takes the color part of a long format text as the variant', () => {
+    expect(
+      musicPrefill({
+        formats: [{ name: 'Vinyl', descriptions: ['LP'], text: 'Gatefold, Red Translucent, 180g' }],
+      }).details,
+    ).toHaveProperty('variant', 'Red Translucent');
+  });
+
+  it('reads the discs, size, speed and color of a vinyl release', () => {
+    expect(
+      musicPrefill({
+        formats: [
+          { name: 'Vinyl', quantity: 2, descriptions: ['7"', '45 RPM', 'Single'], text: 'Red' },
+        ],
+      }),
+    ).toEqual({
+      format: 'Vinyl',
+      details: { discCount: 2, vinylSize: '7"', speed: '45', variant: 'Red' },
+    });
+    expect(
+      musicPrefill({ formats: [{ name: 'Vinyl', descriptions: ['LP', 'Picture Disc'] }] }).details,
+    ).toHaveProperty('variant', 'Picture Disc');
+  });
+
+  it('maps CDs and files to their medium without vinyl details', () => {
+    expect(
+      musicPrefill({ formats: [{ name: 'CD', quantity: 1, descriptions: ['Album'] }] }),
+    ).toEqual({ format: 'CD', details: { discCount: 1 } });
+    expect(musicPrefill({ formats: [{ name: 'File', descriptions: ['FLAC'] }] }).format).toBe(
+      'Digital',
+    );
+  });
 });
 
 describe('allSeasonsOwned', () => {
@@ -183,6 +249,17 @@ describe('copyDefaultsFrom', () => {
         audioLanguages: ['en'],
       }),
     ).toEqual({ format: '4K UHD Blu-ray', details: { resolution: '2160p' } });
+  });
+
+  it('remembers only the medium of a music copy', () => {
+    expect(
+      copyDefaultsFrom('music', 'Vinyl', {
+        vinylSize: '12"',
+        speed: '33⅓',
+        catalogNumber: 'PCS 7088',
+        mediaCondition: 'NM',
+      }),
+    ).toEqual({ format: 'Vinyl', details: {} });
   });
 });
 

@@ -41,4 +41,11 @@ describe('providerFetch', () => {
       provider: 'tmdb',
     });
   });
+  it('passes every response to pauseAfter', async () => {
+    stubFetch(Response.json({ id: 603, title: 'The Matrix' }));
+    const pauseAfter = vi.fn<(response: Response) => number | undefined>(() => undefined);
+    await providerFetch('tmdb', movieUrl, {}, { pauseAfter });
+    expect(pauseAfter).toHaveBeenCalledTimes(1);
+    expect(pauseAfter.mock.calls[0]?.[0].status).toBe(200);
+  });
 });

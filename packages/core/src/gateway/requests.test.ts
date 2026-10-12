@@ -4,6 +4,7 @@ import {
   batchRequestSchema,
   batchResponseSchema,
   categoryOfExternalId,
+  hasSearchTerm,
   itemRefSchema,
   MAX_BATCH_ITEMS,
   matchRequestSchema,
@@ -32,9 +33,36 @@ describe('searchQuerySchema', () => {
     );
   });
 
+  it('accepts a physical music medium', () => {
+    expect(
+      searchQuerySchema.parse({ category: 'music', q: 'Abbey Road', format: 'Vinyl' }).format,
+    ).toBe('Vinyl');
+    expect(
+      searchQuerySchema.safeParse({ category: 'music', q: 'Abbey Road', format: '8-track' })
+        .success,
+    ).toBe(false);
+  });
+
+  it('accepts a music lookup by code and country without a query', () => {
+    expect(
+      searchQuerySchema.parse({ category: 'music', code: 'EPC 450290 1', country: 'UK' }),
+    ).toEqual({ category: 'music', q: '', page: 1, code: 'EPC 450290 1', country: 'UK' });
+    expect(searchQuerySchema.safeParse({ category: 'movie', code: 'EPC 450290 1' }).success).toBe(
+      false,
+    );
+  });
+
   it('rejects an empty query and unknown categories', () => {
     expect(searchQuerySchema.safeParse({ category: 'movie', q: '   ' }).success).toBe(false);
     expect(searchQuerySchema.safeParse({ category: 'books', q: 'Dune' }).success).toBe(false);
+  });
+});
+
+describe('hasSearchTerm', () => {
+  it('needs a query, or a code for music', () => {
+    expect(hasSearchTerm({ category: 'movie', q: 'Inception' })).toBe(true);
+    expect(hasSearchTerm({ category: 'music', q: ' ', code: '5099745042210' })).toBe(true);
+    expect(hasSearchTerm({ category: 'movie', q: '', code: '5099745042210' })).toBe(false);
   });
 });
 

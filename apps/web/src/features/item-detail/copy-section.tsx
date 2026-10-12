@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 
 import { useItemFileDetails, useUpdateItem, useUpdateItemDetails } from '@fanste/collection';
 import {
@@ -23,12 +23,15 @@ import {
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { CopyDetailsFields } from '@/features/copy-form/copy-details-fields';
-import { showsCopyDetails } from '@/features/copy-form/copy-form';
+import { showsCopyDetails, staleVinylFields } from '@/features/copy-form/copy-form';
+import type { CopyFormDetails } from '@/features/copy-form/copy-form';
 import { FormField } from '@/features/copy-form/form-field';
+import { MusicDetailsFields } from '@/features/copy-form/music-details-fields';
 
 import { EditedMarker } from './edited-marker';
 import {
   copyFieldValues,
+  detailsCategory,
   fileMarkerOf,
   FROM_FILE_LABEL,
   toCopyPatch,
@@ -38,13 +41,14 @@ import { SeasonsEditor } from './seasons-editor';
 import { TagPicker } from './tag-picker';
 import { useAutosave } from './use-autosave';
 
+import type { CopyFieldValues } from './item-detail-view';
+import type { Autosave } from './use-autosave';
 import type { DetailsChange } from '@fanste/collection';
 import type {
   CollectionItem,
   FileDetailField,
   NormalizedItem,
   OwnershipStatus,
-  TvDetails,
 } from '@fanste/core';
 
 /** Names of the details a file's headers fill, for the reset buttons' accessible names. */
@@ -77,17 +81,42 @@ interface CopySectionProps {
 export function CopySection({ item, metadata, defaultCurrency }: CopySectionProps) {
   const updateItem = useUpdateItem();
   const updateDetails = useUpdateItemDetails();
-  const category = item.category === 'tv' ? 'tv' : 'movie';
+  const category = detailsCategory(item.category);
+
+  // The latest autosaves, for work that runs once a save has finished.
+  const latest = useRef<{ copy: Autosave<CopyFieldValues>; details: Autosave<CopyFormDetails> }>(
+    undefined,
+  );
+
+  /**
+   * Once a record's new medium is saved, removes the vinyl details it no longer shows (size, speed,
+   * variant), so a CD never matches a vinyl-size filter. Only after the save: if it fails, the copy
+   * is still vinyl and keeps them. The medium may have changed again meanwhile, so the current one
+   * decides.
+   */
+  function clearStaleVinylDetails() {
+    const current = latest.current;
+    if (!current || category !== 'music') return;
+    const stale = staleVinylFields(current.copy.values.format, current.details.values);
+    if (stale.length === 0) return;
+    for (const field of stale) current.details.set(field, undefined);
+    current.details.flush();
+  }
 
   const copy = useAutosave(copyFieldValues(item), (changes, onSettled) => {
     const { patch, errors } = toCopyPatch(changes, item, defaultCurrency);
-    if (Object.keys(patch).length > 0)
-      updateItem.mutateAsync({ id: item.id, patch }).then(onSettled, onSettled);
-    else onSettled();
+    if (Object.keys(patch).length > 0) {
+      updateItem.mutateAsync({ id: item.id, patch }).then(() => {
+        onSettled();
+        if (patch.format !== undefined) clearStaleVinylDetails();
+      }, onSettled);
+    } else {
+      onSettled();
+    }
     return errors;
   });
 
-  const details = useAutosave<TvDetails>(
+  const details = useAutosave<CopyFormDetails>(
     parseDetails(category, item.details),
     (changes, onSettled) => {
       const { patch, errors } = toDetailsPatch(category, changes);
@@ -102,7 +131,15 @@ export function CopySection({ item, metadata, defaultCurrency }: CopySectionProp
     (key) => key.replace(/^details\./, ''),
   );
 
+  useEffect(() => {
+    latest.current = { copy, details };
+  });
+
   const values = copy.values;
+  const detailErrors = {
+    ...details.errors,
+    ...(copy.errors.format ? { format: copy.errors.format } : {}),
+  };
   const shownCurrency = values.currency || defaultCurrency;
   const hasDetails = showsCopyDetails(values.ownership);
   const readOnly = values.ownership === 'sold';
@@ -111,7 +148,7 @@ export function CopySection({ item, metadata, defaultCurrency }: CopySectionProp
   const recorded = useMemo(() => fileDetails.data ?? {}, [fileDetails.data]);
 
   function markerOf(field: string) {
-    const marker = fileMarkerOf(field, details.values[field as keyof TvDetails], recorded);
+    const marker = fileMarkerOf(field, details.values[field as keyof CopyFormDetails], recorded);
     if (!marker) return undefined;
     if (marker.kind === 'file') return FROM_FILE_LABEL;
     return (
@@ -123,7 +160,7 @@ export function CopySection({ item, metadata, defaultCurrency }: CopySectionProp
           readOnly
             ? undefined
             : () =>
-                details.set(field as keyof TvDetails, marker.fileValue, {
+                details.set(field as keyof CopyFormDetails, marker.fileValue, {
                   immediate: true,
                 })
         }
@@ -259,20 +296,30 @@ export function CopySection({ item, metadata, defaultCurrency }: CopySectionProp
               This copy is sold, so its details are read-only. Change the status to edit them.
             </p>
           )}
-          <CopyDetailsFields
-            idPrefix="item"
-            category={category}
-            format={values.format}
-            details={details.values}
-            onFormatChange={(value, options) => copy.set('format', value, options)}
-            onDetailChange={(field, value, options) => details.set(field, value, options)}
-            markerOf={markerOf}
-            errors={{
-              ...details.errors,
-              ...(copy.errors.format ? { format: copy.errors.format } : {}),
-            }}
-            disabled={readOnly}
-          />
+          {category === 'music' ? (
+            <MusicDetailsFields
+              idPrefix="item"
+              format={values.format}
+              details={details.values}
+              onFormatChange={(value, options) => copy.set('format', value, options)}
+              onDetailChange={(field, value, options) => details.set(field, value, options)}
+              markerOf={markerOf}
+              errors={detailErrors}
+              disabled={readOnly}
+            />
+          ) : (
+            <CopyDetailsFields
+              idPrefix="item"
+              category={category}
+              format={values.format}
+              details={details.values}
+              onFormatChange={(value, options) => copy.set('format', value, options)}
+              onDetailChange={(field, value, options) => details.set(field, value, options)}
+              markerOf={markerOf}
+              errors={detailErrors}
+              disabled={readOnly}
+            />
+          )}
           {category === 'tv' && (
             <section className="flex flex-col gap-3" aria-labelledby="item-seasons">
               <h3 id="item-seasons" className="text-sm font-medium">
@@ -291,8 +338,10 @@ export function CopySection({ item, metadata, defaultCurrency }: CopySectionProp
         </section>
       ) : (
         <p className="text-sm text-muted-foreground">
-          Copy details (medium, quality, languages) are for copies you have. They are kept while the
-          item is on your wishlist; change the status to see them.
+          Copy details (
+          {category === 'music' ? 'medium, pressing, condition' : 'medium, quality, languages'}) are
+          for copies you have. They are kept while the item is on your wishlist; change the status
+          to see them.
         </p>
       )}
     </div>

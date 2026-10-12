@@ -31,6 +31,11 @@ metadata.
 - [ ] Respect the Discogs rate limit (FC-08 throttle, shared with FC-10's requests); large imports run as a
       queued background job with progress
 - [ ] Optional: import/sync the wantlist (`/users/{username}/wants`)
+- [ ] Price guide (moved here from FC-10): show Discogs' suggested price per condition
+      (`/marketplace/price_suggestions/{release_id}`, which answers 401 without the user's own OAuth
+      token) on the item page and in the add dialog, in the user's Discogs currency; optionally offer it
+      as the copy's estimated value for the copy's media condition. `/marketplace/stats/{release_id}`
+      (lowest listed price + number for sale) is public but was left out of FC-10 by choice
 - [ ] Unit tests for the mapping and the sync plan, with fixtures
 
 ## Acceptance criteria

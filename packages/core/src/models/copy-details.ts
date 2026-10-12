@@ -1,5 +1,6 @@
 import { z } from 'zod';
 
+import { CONDITION_GRADES, SLEEVE_GRADES } from './copy-options';
 import { ITEM_CATEGORIES } from './enums';
 import { jsonByteLength, parseFields } from './lenient';
 
@@ -10,8 +11,8 @@ import type { TvExtra } from './extras';
 // `collection_items.details` next to the `format` column. Every field is optional. Option fields are
 // free text (the lists in `copy-options.ts` are suggestions), so "Other" values fit.
 //
-// Movies & TV ship first. The other categories keep a loose record until their provider tasks type
-// it: music FC-10, video games FC-11, board games FC-12, Funko FC-13.
+// Movies, TV and music are typed. The other categories keep a loose record until their provider
+// tasks type it: video games FC-11, board games FC-12, Funko FC-13.
 
 /** Longest value of an option field such as `edition` or `digitalStore`. */
 export const MAX_OPTION_LENGTH = 100;
@@ -116,6 +117,23 @@ const seasons = z
 
 export const tvDetailsShape = { ...movieDetailsShape, seasons: seasons.optional() };
 
+/** Fields of a music copy (FC-10). The vinyl fields only apply to a `Vinyl` copy. */
+export const musicDetailsShape = {
+  /** Discs or tapes in the release. */
+  discCount: discCount.optional(),
+  /** e.g. `12"` (see `VINYL_SIZES`). */
+  vinylSize: optionText.optional(),
+  /** e.g. `33⅓` (see `VINYL_SPEEDS`). */
+  speed: optionText.optional(),
+  /** Color or finish, e.g. `Red Translucent` (see `VINYL_VARIANTS`). */
+  variant: optionText.optional(),
+  catalogNumber: optionText.optional(),
+  /** Goldmine grade of the record or disc (`CONDITION_GRADES`), a fixed scale. */
+  mediaCondition: z.enum(CONDITION_GRADES.map((grade) => grade.value)).optional(),
+  /** Goldmine grade of the sleeve (`SLEEVE_GRADES`). */
+  sleeveCondition: z.enum(SLEEVE_GRADES.map((grade) => grade.value)).optional(),
+};
+
 function withSizeLimit<T extends z.ZodType>(schema: T) {
   return schema.refine(
     (value) => jsonByteLength(value) <= MAX_DETAILS_BYTES,
@@ -125,18 +143,20 @@ function withSizeLimit<T extends z.ZodType>(schema: T) {
 
 export const movieDetailsSchema = withSizeLimit(z.object(movieDetailsShape));
 export const tvDetailsSchema = withSizeLimit(z.object(tvDetailsShape));
+export const musicDetailsSchema = withSizeLimit(z.object(musicDetailsShape));
 /** Details of a category that isn't typed yet. */
 export const looseDetailsSchema = withSizeLimit(z.record(z.string(), z.unknown()));
 
 export type MovieDetails = z.output<typeof movieDetailsSchema>;
 export type TvDetails = z.output<typeof tvDetailsSchema>;
+export type MusicDetails = z.output<typeof musicDetailsSchema>;
 export type LooseDetails = z.output<typeof looseDetailsSchema>;
 
 /** The `details` type of each category. */
 export interface DetailsByCategory {
   movie: MovieDetails;
   tv: TvDetails;
-  music: LooseDetails;
+  music: MusicDetails;
   video_game: LooseDetails;
   board_game: LooseDetails;
   funko: LooseDetails;
@@ -145,7 +165,7 @@ export interface DetailsByCategory {
 const DETAILS_SCHEMAS = {
   movie: movieDetailsSchema,
   tv: tvDetailsSchema,
-  music: looseDetailsSchema,
+  music: musicDetailsSchema,
   video_game: looseDetailsSchema,
   board_game: looseDetailsSchema,
   funko: looseDetailsSchema,
@@ -158,7 +178,7 @@ export function detailsSchemaFor<C extends ItemCategory>(category: C): (typeof D
 
 const medium = optionText.nullable().optional();
 const untypedCategories = ITEM_CATEGORIES.filter(
-  (category) => category !== 'movie' && category !== 'tv',
+  (category) => category !== 'movie' && category !== 'tv' && category !== 'music',
 );
 
 /**
@@ -168,6 +188,7 @@ const untypedCategories = ITEM_CATEGORIES.filter(
 export const copyDetailsSchema = z.discriminatedUnion('category', [
   z.object({ category: z.literal('movie'), format: medium, details: movieDetailsSchema }),
   z.object({ category: z.literal('tv'), format: medium, details: tvDetailsSchema }),
+  z.object({ category: z.literal('music'), format: medium, details: musicDetailsSchema }),
   z.object({ category: z.enum(untypedCategories), format: medium, details: looseDetailsSchema }),
 ]);
 
@@ -182,6 +203,7 @@ export function parseDetails<C extends ItemCategory>(
   value: unknown,
 ): DetailsByCategory[C] {
   if (category === 'movie') return parseFields(movieDetailsShape, value);
+  if (category === 'music') return parseFields(musicDetailsShape, value);
   if (category === 'tv') {
     const details: TvDetails = parseFields(movieDetailsShape, value);
     const list = (value as { seasons?: unknown } | null)?.seasons;
