@@ -1,0 +1,76 @@
+[
+  {
+    "id": 119133,
+    "cover": {
+      "id": 212094,
+      "image_id": "co4jni"
+    },
+    "first_release_date": 1645747200,
+    "genres": [
+      {
+        "id": 12,
+        "name": "Role-playing (RPG)"
+      },
+      {
+        "id": 31,
+        "name": "Adventure"
+      }
+    ],
+    "involved_companies": [
+      {
+        "id": 334813,
+        "company": {
+          "id": 248,
+          "name": "Bandai Namco Entertainment"
+        },
+        "developer": false,
+        "publisher": true
+      },
+      {
+        "id": 334814,
+        "company": {
+          "id": 1012,
+          "name": "FromSoftware"
+        },
+        "developer": true,
+        "publisher": true
+      }
+    ],
+    "name": "Elden Ring",
+    "platforms": [
+      {
+        "id": 169,
+        "abbreviation": "Series X|S",
+        "name": "Xbox Series X|S"
+      },
+      {
+        "id": 48,
+        "abbreviation": "PS4",
+        "name": "PlayStation 4"
+      },
+      {
+        "id": 508,
+        "abbreviation": "Switch 2",
+        "name": "Nintendo Switch 2"
+      },
+      {
+        "id": 6,
+        "abbreviation": "PC",
+        "name": "PC (Microsoft Windows)"
+      },
+      {
+        "id": 167,
+        "abbreviation": "PS5",
+        "name": "PlayStation 5"
+      },
+      {
+        "id": 49,
+        "abbreviation": "XONE",
+        "name": "Xbox One"
+      }
+    ],
+    "summary": "Elden Ring is an action RPG developed by FromSoftware and published by Bandai Namco Entertainment, released in February 2022. Directed by Hidetaka Miyazaki, with world-building contributions from novelist George R. R. Martin, the game features an expansive open world called the Lands Between. Players assume the role of a customisable character known as the Tarnished, who must explore this world, battle formidable enemies, and seek to restore the Elden Ring to become the Elden Lord.\n\nThe game builds on the challenging gameplay mechanics familiar from the Dark Souls series but introduces a more open-ended structure with vast exploration, dynamic weather, and a day-night cycle. It offers deep lore, complex characters, and an interconnected world filled with secrets, dungeons, and powerful bosses.",
+    "url": "https://www.igdb.com/games/elden-ring",
+    "game_type": 0
+  }
+]

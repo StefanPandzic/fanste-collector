@@ -3,17 +3,17 @@ import { z } from 'zod';
 import { MAX_FORMAT_LENGTH } from './collection-input';
 import { MAX_OPTION_LENGTH, parseDetails } from './copy-details';
 import { itemCategorySchema } from './enums';
-import { parseMovieExtra, parseMusicExtra, parseTvExtra } from './extras';
+import { parseMovieExtra, parseMusicExtra, parseTvExtra, parseVideoGameExtra } from './extras';
 
 import type { AddItemInput } from './collection-input';
 import type { DetailsByCategory, TvDetails, TvSeasonDetails } from './copy-details';
 import type { ExternalProvider, ItemCategory } from './enums';
-import type { MusicExtra, MusicFormatInfo, TvSeason } from './extras';
+import type { GamePlatform, MusicExtra, MusicFormatInfo, TvSeason } from './extras';
 import type { NormalizedItem } from './normalized-item';
 
 // Suggested copy details when an item is added (FC-15): the user sees them in the add dialog (FC-17)
-// and can change any of them before saving. Music suggestions come from the Discogs release (FC-10);
-// IGDB and BGG suggestions come with FC-11 / FC-12.
+// and can change any of them before saving. Music suggestions come from the Discogs release (FC-10),
+// video game ones from the IGDB game (FC-11); BGG suggestions come with FC-12.
 
 /** What the desktop scanner knows about a file (FC-21 / FC-22), used by FC-23. */
 export interface ScanPrefill {
@@ -54,6 +54,8 @@ export const REMEMBERED_DETAIL_FIELDS: Partial<Record<ItemCategory, readonly str
   // Discs, vinyl details, catalog number and condition all describe one record, not a habit; only
   // the medium (`format`) is remembered.
   music: [],
+  // "Always PC on Steam"; the edition, discs and completeness describe one copy.
+  video_game: ['platform', 'storefront', 'region'],
 };
 
 /** The last-used medium and detail habits of a category (`profiles.preferences.copyDefaults`). */
@@ -117,6 +119,8 @@ export interface PrefillResult<C extends ItemCategory = ItemCategory> {
   /** Values the UI offers to pick from, e.g. the show's seasons for `seasons[]`. */
   choices: {
     seasons?: TvSeason[];
+    /** A game's platforms, when it has more than one (FC-11). */
+    platforms?: GamePlatform[];
   };
   /** The source of each suggested value, keyed by `format` or the `details` field name. */
   sources: Record<string, PrefillSource>;
@@ -164,6 +168,21 @@ export function prefillDetails<C extends ItemCategory>(
       sources.format = 'provider';
     }
     for (const [field, value] of Object.entries(music.details)) suggest(field, value, 'provider');
+  }
+
+  if (item && category === 'video_game') {
+    const platforms = parseVideoGameExtra(item.extra)?.platforms ?? [];
+    const [only] = platforms;
+    if (platforms.length === 1 && only) suggest('platform', only.name, 'provider');
+    else if (platforms.length > 1) {
+      choices.platforms = platforms;
+      // A remembered platform the game isn't on would be wrong for it.
+      const remembered = details.platform;
+      if (remembered !== undefined && !platforms.some((entry) => entry.name === remembered)) {
+        delete details.platform;
+        delete sources.platform;
+      }
+    }
   }
 
   if (scan) {

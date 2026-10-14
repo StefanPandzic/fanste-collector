@@ -33,6 +33,16 @@ describe('addRecentSearch', () => {
     expect(addRecentSearch([uk, catno], us)).toEqual([us, uk, catno]);
   });
 
+  it('keeps searches that differ only by game platform', () => {
+    const ps5: RecentSearch = { category: 'video_game', q: 'Elden Ring', platform: 167 };
+    const pc: RecentSearch = { category: 'video_game', q: 'Elden Ring', platform: 6 };
+    expect(addRecentSearch([ps5], pc)).toEqual([pc, ps5]);
+    expect(addRecentSearch([ps5, pc], { ...ps5, q: 'elden ring' })).toEqual([
+      { ...ps5, q: 'elden ring' },
+      pc,
+    ]);
+  });
+
   it('keeps at most the maximum number of searches', () => {
     const list = Array.from({ length: MAX_RECENT_SEARCHES }, (_, index) => ({
       category: 'movie' as const,

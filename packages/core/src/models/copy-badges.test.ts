@@ -63,8 +63,38 @@ describe('copyBadges', () => {
     expect(copyBadges('music', 'CD', { discCount: 2 })).toEqual(['2×CD']);
   });
 
+  it('lists the platform, storefront or medium and completeness of a game copy', () => {
+    const extra = {
+      platforms: [
+        { id: 6, name: 'PC (Microsoft Windows)', abbreviation: 'PC' },
+        { id: 167, name: 'PlayStation 5', abbreviation: 'PS5' },
+      ],
+    };
+    expect(
+      copyBadges(
+        'video_game',
+        'Digital',
+        { platform: 'PC (Microsoft Windows)', storefront: 'Steam' },
+        extra,
+      ),
+    ).toEqual(['PC', 'Steam']);
+    expect(
+      copyBadges('video_game', 'Disc', { platform: 'PlayStation 5', completeness: 'CIB' }, extra),
+    ).toEqual(['PS5', 'Disc', 'CIB']);
+    expect(copyBadges('video_game', 'Digital code', { storefront: 'Steam' })).toEqual([
+      'Steam code',
+    ]);
+  });
+
+  it('falls back to a known short platform name without the game data', () => {
+    expect(copyBadges('video_game', 'Cartridge', { platform: 'Nintendo Switch' })).toEqual([
+      'Switch',
+      'Cartridge',
+    ]);
+  });
+
   it('shows only the format for other categories', () => {
-    expect(copyBadges('video_game', 'Disc', { platform: 'PS5' })).toEqual(['Disc']);
+    expect(copyBadges('board_game', 'Box', {})).toEqual(['Box']);
     expect(copyBadges('board_game', null, {})).toEqual([]);
   });
 });

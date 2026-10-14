@@ -5,6 +5,7 @@ import {
   MAX_BATCH_ITEMS,
   MAX_MATCH_QUERIES,
   matchResponseSchema,
+  platformListResponseSchema,
   searchResponseSchema,
 } from '@fanste/core';
 
@@ -16,6 +17,7 @@ import type {
   MatchResponse,
   MetadataProvider,
   NormalizedItem,
+  PlatformListResponse,
   SearchQuery,
   SearchResponse,
 } from '@fanste/core';
@@ -52,6 +54,8 @@ export interface ApiClient {
   getItemsBatch(refs: readonly ItemRef[], options?: RequestOptions): Promise<BatchResponse>;
   /** TMDB candidates per query, in query order; sent in chunks of `MAX_MATCH_QUERIES`. */
   matchTmdb(queries: readonly MatchQuery[], options?: RequestOptions): Promise<MatchResponse>;
+  /** Every IGDB platform, for a game copy's platform field (FC-11). */
+  getGamePlatforms(options?: RequestOptions): Promise<PlatformListResponse>;
 }
 
 /** A gateway error response, with the gateway's error `code`. */
@@ -127,7 +131,7 @@ export function createApiClient({
   }
 
   return {
-    search({ category, q, page, year, format, country, code }, options) {
+    search({ category, q, page, year, format, country, code, platform }, options) {
       const params = new URLSearchParams({ category });
       if (q) params.set('q', q);
       if (page !== undefined) params.set('page', String(page));
@@ -135,6 +139,7 @@ export function createApiClient({
       if (format !== undefined) params.set('format', format);
       if (country !== undefined) params.set('country', country);
       if (code !== undefined) params.set('code', code);
+      if (platform !== undefined) params.set('platform', String(platform));
       return request(`/api/search?${params.toString()}`, searchResponseSchema, {
         method: 'GET',
         signal: options?.signal,
@@ -180,6 +185,13 @@ export function createApiClient({
         results.push(...response.results);
       }
       return { results };
+    },
+
+    getGamePlatforms(options) {
+      return request('/api/platforms/igdb', platformListResponseSchema, {
+        method: 'GET',
+        signal: options?.signal,
+      });
     },
   };
 }

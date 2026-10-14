@@ -30,7 +30,7 @@ export interface AddTarget {
 
 /**
  * The "Add with details" form. Text inputs hold strings until they're converted on submit. The
- * details hold the category's fields (`CopyFormDetails`); games get theirs with FC-11.
+ * details hold the category's fields (`CopyFormDetails`).
  */
 export interface AddItemFormValues {
   ownership: OwnershipStatus;

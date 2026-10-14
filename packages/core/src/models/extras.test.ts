@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { parseMovieExtra, parseMusicExtra, parseTvExtra } from './extras';
+import { parseMovieExtra, parseMusicExtra, parseTvExtra, parseVideoGameExtra } from './extras';
 
 describe('parseMovieExtra', () => {
   it('returns the movie fields for valid input', () => {
@@ -52,5 +52,23 @@ describe('parseMusicExtra', () => {
 
   it('returns undefined for invalid input', () => {
     expect(parseMusicExtra({ formats: [{ name: 'Vinyl', quantity: 0 }] })).toBeUndefined();
+  });
+});
+
+describe('parseVideoGameExtra', () => {
+  it('returns the game fields for valid input', () => {
+    const extra = {
+      platforms: [
+        { id: 6, name: 'PC (Microsoft Windows)', abbreviation: 'PC' },
+        { id: 167, name: 'PlayStation 5', abbreviation: 'PS5' },
+      ],
+      publishers: ['Bandai Namco Entertainment'],
+      gameType: 'Main Game',
+    };
+    expect(parseVideoGameExtra(extra)).toEqual(extra);
+  });
+
+  it('returns undefined for invalid input', () => {
+    expect(parseVideoGameExtra({ platforms: [{ id: 0, name: 'PlayStation 5' }] })).toBeUndefined();
   });
 });

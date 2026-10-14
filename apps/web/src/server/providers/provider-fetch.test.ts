@@ -13,6 +13,7 @@ function stubFetch(response: Response) {
 
 beforeEach(() => {
   vi.spyOn(console, 'info').mockImplementation(() => undefined);
+  vi.spyOn(console, 'warn').mockImplementation(() => undefined);
   vi.spyOn(console, 'error').mockImplementation(() => undefined);
 });
 
@@ -47,5 +48,16 @@ describe('providerFetch', () => {
     await providerFetch('tmdb', movieUrl, {}, { pauseAfter });
     expect(pauseAfter).toHaveBeenCalledTimes(1);
     expect(pauseAfter.mock.calls[0]?.[0].status).toBe(200);
+  });
+
+  it('returns a failure status listed in returnStatuses', async () => {
+    stubFetch(new Response(null, { status: 401 }));
+    const response = await providerFetch(
+      'igdb',
+      'https://api.igdb.com/v4/games',
+      {},
+      { returnStatuses: [401] },
+    );
+    expect(response.status).toBe(401);
   });
 });

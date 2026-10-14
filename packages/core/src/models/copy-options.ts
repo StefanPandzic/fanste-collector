@@ -1,6 +1,6 @@
 // Suggested values for the copy-details fields (FC-15). The fields are free text, so the UI offers
 // these lists and also accepts an "Other" value, except for the condition grades, which are a fixed
-// scale. Video games, board games and Funko get their lists with FC-11…FC-13.
+// scale. Board games and Funko get their lists with FC-12 / FC-13.
 
 /** A suggested value and how the UI shows it. */
 export interface CopyOption {
@@ -134,6 +134,36 @@ export const SLEEVE_GRADES = [
 
 export type ConditionGrade = (typeof CONDITION_GRADES)[number]['value'];
 export type SleeveGrade = (typeof SLEEVE_GRADES)[number]['value'];
+
+// ---------------------------------------------------------------------------------------------------
+// Video games (FC-11). The platform list comes from IGDB (`GET /api/platforms/igdb`).
+// ---------------------------------------------------------------------------------------------------
+
+/** Where a `Digital` or `Digital code` copy is (or is redeemed). */
+export const GAME_STOREFRONTS = plain([
+  'Steam',
+  'Epic Games Store',
+  'GOG',
+  'PlayStation Store',
+  'Xbox Store',
+  'Nintendo eShop',
+  'Battle.net',
+  'EA app',
+  'Ubisoft Connect',
+  'itch.io',
+]);
+
+export const GAME_EDITIONS = plain(['Standard', 'Deluxe', 'GOTY', "Collector's"]);
+
+/** Regions of a disc or cartridge. */
+export const GAME_REGIONS = plain(['PAL', 'NTSC-U', 'NTSC-J', 'Region-free']);
+
+/** How complete a physical copy is: still sealed, complete in box, or the disc / cartridge alone. */
+export const GAME_COMPLETENESS = [
+  { value: 'Sealed', label: 'Sealed' },
+  { value: 'CIB', label: 'Complete in box (CIB)' },
+  { value: 'Loose', label: 'Loose' },
+] as const satisfies readonly CopyOption[];
 
 /**
  * Languages offered for audio and subtitles, as ISO 639-1 codes. Any 2–3 letter ISO 639 code is

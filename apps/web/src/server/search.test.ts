@@ -29,6 +29,21 @@ const abbeyRoadPage: SearchResponse = {
   totalResults: 1,
 };
 
+const eldenRingPage: SearchResponse = {
+  results: [
+    {
+      provider: 'igdb',
+      externalId: '119133',
+      category: 'video_game',
+      title: 'Elden Ring',
+      subtitle: 'FromSoftware',
+    },
+  ],
+  page: 1,
+  totalPages: 1,
+  totalResults: 1,
+};
+
 describe('createSearchService', () => {
   it('serves a repeated search from the cache', async () => {
     const search = vi.fn<ProviderAdapter['search']>(() => Promise.resolve(matrixPage));
@@ -120,6 +135,30 @@ describe('createSearchService', () => {
       page: 1,
       country: 'UK',
       code: 'PCS 7088',
+    });
+  });
+
+  it('passes the game platform to the provider and caches each platform separately', async () => {
+    const search = vi.fn<ProviderAdapter['search']>(() => Promise.resolve(eldenRingPage));
+    const adapter: ProviderAdapter = {
+      provider: 'igdb',
+      categories: ['video_game'],
+      search,
+      getById: () => Promise.reject(new Error('not used')),
+    };
+    const service = createSearchService({
+      registry: createRegistry([adapter]),
+      cache: createLruCache<SearchResponse>({ maxEntries: 10, ttlMs: 60_000 }),
+    });
+
+    await service.search({ category: 'video_game', q: 'Elden Ring', page: 1, platform: 167 });
+    await service.search({ category: 'video_game', q: 'Elden Ring', page: 1, platform: 167 });
+    await service.search({ category: 'video_game', q: 'Elden Ring', page: 1, platform: 6 });
+    expect(search).toHaveBeenCalledTimes(2);
+    expect(search).toHaveBeenNthCalledWith(1, 'Elden Ring', {
+      category: 'video_game',
+      page: 1,
+      platform: 167,
     });
   });
 });

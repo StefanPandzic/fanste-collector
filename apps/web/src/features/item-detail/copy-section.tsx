@@ -11,6 +11,7 @@ import {
   ownershipLabel,
   parseDetails,
   parseTvExtra,
+  parseVideoGameExtra,
 } from '@fanste/core';
 
 import { Input } from '@/components/ui/input';
@@ -23,10 +24,16 @@ import {
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { CopyDetailsFields } from '@/features/copy-form/copy-details-fields';
-import { showsCopyDetails, staleVinylFields } from '@/features/copy-form/copy-form';
+import {
+  copyDetailsSummary,
+  showsCopyDetails,
+  staleGameFields,
+  staleVinylFields,
+} from '@/features/copy-form/copy-form';
 import type { CopyFormDetails } from '@/features/copy-form/copy-form';
 import { FormField } from '@/features/copy-form/form-field';
 import { MusicDetailsFields } from '@/features/copy-form/music-details-fields';
+import { VideoGameDetailsFields } from '@/features/copy-form/video-game-details-fields';
 
 import { EditedMarker } from './edited-marker';
 import {
@@ -66,7 +73,7 @@ const NO_CURRENCY = '__none__';
 
 interface CopySectionProps {
   item: CollectionItem;
-  /** The provider item (TMDB seasons for the TV editor). */
+  /** The provider item (TMDB seasons for the TV editor, a game's platforms). */
   metadata: NormalizedItem | undefined;
   /** The user's default currency, set with a first price or value. */
   defaultCurrency: string;
@@ -89,15 +96,20 @@ export function CopySection({ item, metadata, defaultCurrency }: CopySectionProp
   );
 
   /**
-   * Once a record's new medium is saved, removes the vinyl details it no longer shows (size, speed,
-   * variant), so a CD never matches a vinyl-size filter. Only after the save: if it fails, the copy
-   * is still vinyl and keeps them. The medium may have changed again meanwhile, so the current one
-   * decides.
+   * Once the new medium is saved, removes the details it no longer shows: a record's vinyl details
+   * (so a CD never matches a vinyl-size filter) or a game's storefront, discs, region and
+   * completeness (so a disc never matches the Steam filter, FC-11). Only after the save: if it
+   * fails, the copy keeps its old medium and details. The medium may have changed again meanwhile,
+   * so the current one decides.
    */
-  function clearStaleVinylDetails() {
+  function clearStaleDetails() {
     const current = latest.current;
-    if (!current || category !== 'music') return;
-    const stale = staleVinylFields(current.copy.values.format, current.details.values);
+    if (!current || (category !== 'music' && category !== 'video_game')) return;
+    const format = current.copy.values.format;
+    const stale =
+      category === 'music'
+        ? staleVinylFields(format, current.details.values)
+        : staleGameFields(format, current.details.values);
     if (stale.length === 0) return;
     for (const field of stale) current.details.set(field, undefined);
     current.details.flush();
@@ -108,7 +120,7 @@ export function CopySection({ item, metadata, defaultCurrency }: CopySectionProp
     if (Object.keys(patch).length > 0) {
       updateItem.mutateAsync({ id: item.id, patch }).then(() => {
         onSettled();
-        if (patch.format !== undefined) clearStaleVinylDetails();
+        if (patch.format !== undefined) clearStaleDetails();
       }, onSettled);
     } else {
       onSettled();
@@ -307,6 +319,18 @@ export function CopySection({ item, metadata, defaultCurrency }: CopySectionProp
               errors={detailErrors}
               disabled={readOnly}
             />
+          ) : category === 'video_game' ? (
+            <VideoGameDetailsFields
+              idPrefix="item"
+              format={values.format}
+              details={details.values}
+              gamePlatforms={parseVideoGameExtra(metadata?.extra)?.platforms}
+              onFormatChange={(value, options) => copy.set('format', value, options)}
+              onDetailChange={(field, value, options) => details.set(field, value, options)}
+              markerOf={markerOf}
+              errors={detailErrors}
+              disabled={readOnly}
+            />
           ) : (
             <CopyDetailsFields
               idPrefix="item"
@@ -338,10 +362,8 @@ export function CopySection({ item, metadata, defaultCurrency }: CopySectionProp
         </section>
       ) : (
         <p className="text-sm text-muted-foreground">
-          Copy details (
-          {category === 'music' ? 'medium, pressing, condition' : 'medium, quality, languages'}) are
-          for copies you have. They are kept while the item is on your wishlist; change the status
-          to see them.
+          Copy details ({copyDetailsSummary(category)}) are for copies you have. They are kept while
+          the item is on your wishlist; change the status to see them.
         </p>
       )}
     </div>

@@ -117,7 +117,33 @@ export const musicExtraSchema = z.object({
 
 export type MusicExtra = z.output<typeof musicExtraSchema>;
 
-// Not defined yet: VideoGameExtra: FC-11. BoardGameExtra: FC-12. FunkoExtra: FC-13.
+/** Most platforms kept per game. */
+export const MAX_GAME_PLATFORMS = 100;
+
+/** An IGDB platform, e.g. `{ id: 167, name: 'PlayStation 5', abbreviation: 'PS5' }`. */
+export const gamePlatformSchema = z.object({
+  /** The IGDB platform ID. */
+  id: z.int().min(1),
+  /** Stored as the copy's `platform` (FC-11). */
+  name: text,
+  /** Short name for badges, e.g. `PS5`, `PC`. */
+  abbreviation: text.optional(),
+});
+
+export type GamePlatform = z.output<typeof gamePlatformSchema>;
+
+/** An IGDB game (FC-11). Its developers are the item's `creators`. */
+export const videoGameExtraSchema = z.object({
+  /** The platforms the game came out on; offered as the copy's platform (`prefillDetails`). */
+  platforms: z.array(gamePlatformSchema).max(MAX_GAME_PLATFORMS).optional(),
+  publishers: z.array(text).optional(),
+  /** IGDB game type, e.g. `Main Game`, `Remaster`, `Expansion`. */
+  gameType: text.optional(),
+});
+
+export type VideoGameExtra = z.output<typeof videoGameExtraSchema>;
+
+// Not defined yet: BoardGameExtra: FC-12. FunkoExtra: FC-13.
 
 export function parseMovieExtra(extra: unknown): MovieExtra | undefined {
   const result = movieExtraSchema.safeParse(extra);
@@ -131,5 +157,10 @@ export function parseTvExtra(extra: unknown): TvExtra | undefined {
 
 export function parseMusicExtra(extra: unknown): MusicExtra | undefined {
   const result = musicExtraSchema.safeParse(extra);
+  return result.success ? result.data : undefined;
+}
+
+export function parseVideoGameExtra(extra: unknown): VideoGameExtra | undefined {
+  const result = videoGameExtraSchema.safeParse(extra);
   return result.success ? result.data : undefined;
 }

@@ -10,6 +10,7 @@ import {
   parseDetails,
   seasonDetails,
   tvDetailsSchema,
+  videoGameDetailsSchema,
 } from './copy-details';
 
 import type { TvDetails } from './copy-details';
@@ -103,6 +104,27 @@ describe('musicDetailsSchema', () => {
   });
 });
 
+describe('videoGameDetailsSchema', () => {
+  it('accepts a complete-in-box disc copy', () => {
+    const details = {
+      platform: 'PlayStation 5',
+      discCount: 1,
+      edition: 'GOTY',
+      region: 'PAL',
+      completeness: 'CIB',
+      dlcNotes: 'Shadow of the Erdtree',
+    };
+    expect(videoGameDetailsSchema.parse(details)).toEqual(details);
+    expect(
+      videoGameDetailsSchema.parse({ platform: 'PC (Microsoft Windows)', storefront: 'Steam' }),
+    ).toEqual({ platform: 'PC (Microsoft Windows)', storefront: 'Steam' });
+  });
+
+  it('rejects a completeness outside Sealed, CIB and Loose', () => {
+    expect(videoGameDetailsSchema.safeParse({ completeness: 'Boxed' }).success).toBe(false);
+  });
+});
+
 describe('detailsSchemaFor', () => {
   it('returns the schema of the category', () => {
     expect(detailsSchemaFor('movie')).toBe(movieDetailsSchema);
@@ -156,8 +178,28 @@ describe('copyDetailsSchema', () => {
       }).success,
     ).toBe(false);
     expect(
-      copyDetailsSchema.parse({ category: 'video_game', format: 'Disc', details: { psn: true } }),
-    ).toEqual({ category: 'video_game', format: 'Disc', details: { psn: true } });
+      copyDetailsSchema.parse({
+        category: 'board_game',
+        format: 'Box',
+        details: { sleeved: true },
+      }),
+    ).toEqual({ category: 'board_game', format: 'Box', details: { sleeved: true } });
+  });
+
+  it('checks the details of a video game copy', () => {
+    const copy = {
+      category: 'video_game',
+      format: 'Digital',
+      details: { platform: 'PC (Microsoft Windows)', storefront: 'Steam' },
+    };
+    expect(copyDetailsSchema.parse(copy)).toEqual(copy);
+    expect(
+      copyDetailsSchema.safeParse({
+        category: 'video_game',
+        format: 'Disc',
+        details: { completeness: 'Boxed' },
+      }).success,
+    ).toBe(false);
   });
 });
 
@@ -172,6 +214,16 @@ describe('parseDetails', () => {
     expect(parseDetails('music', { vinylSize: '7"', speed: '45', mediaCondition: 'Mint' })).toEqual(
       { vinylSize: '7"', speed: '45' },
     );
+  });
+
+  it('keeps the valid fields of a video game copy', () => {
+    expect(
+      parseDetails('video_game', {
+        platform: 'Nintendo Switch',
+        completeness: 'Boxed',
+        discCount: 0,
+      }),
+    ).toEqual({ platform: 'Nintendo Switch' });
   });
 
   it('drops invalid and duplicate seasons of a TV copy', () => {

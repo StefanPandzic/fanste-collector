@@ -8,6 +8,7 @@ import {
   parseMovieExtra,
   parseMusicExtra,
   parseTvExtra,
+  parseVideoGameExtra,
   providerLabel,
   updateItemPatchSchema,
 } from '@fanste/core';
@@ -96,13 +97,18 @@ export function formatRuntime(minutes: number): string {
 /** The heading of the creators: who `creators` are for the category. */
 export function creatorsLabel(category: ItemCategory): string {
   if (category === 'music') return 'Artists';
+  if (category === 'video_game') return 'Developed by';
   return category === 'tv' ? 'Created by' : 'Directed by';
 }
 
-/** Whether the creators line adds anything: a record's artists are usually its subtitle already. */
+/**
+ * Whether the creators line adds anything: a record's artists and a game's developers are usually
+ * its subtitle already.
+ */
 export function showsCreators(item: NormalizedItem): boolean {
   if (!item.creators || item.creators.length === 0) return false;
-  return item.category !== 'music' || item.creators.join(', ') !== item.subtitle;
+  if (item.category !== 'music' && item.category !== 'video_game') return true;
+  return item.creators.join(', ') !== item.subtitle;
 }
 
 /** A release's formats, e.g. `2×Vinyl, LP, Album, Red` (`+` between formats of a box set). */
@@ -134,8 +140,8 @@ export interface MediaFact {
 }
 
 /**
- * The category's own facts (runtime, seasons, status, label, ...). Video games, board games and
- * Funko get theirs with FC-11 – FC-13. A record's matrix codes and tracklist are lists of their own
+ * The category's own facts (runtime, seasons, status, label, platforms, ...). Board games and Funko
+ * get theirs with FC-12 / FC-13. A record's matrix codes and tracklist are lists of their own
  * (`matrixCodesOf`, `tracklistOf`).
  */
 export function mediaFacts(item: NormalizedItem): MediaFact[] {
@@ -172,6 +178,18 @@ export function mediaFacts(item: NormalizedItem): MediaFact[] {
       extra?.barcodes?.join(', '),
     );
     if (extra?.discogsType === 'master') add('Release', 'All pressings (master release)');
+  } else if (item.category === 'video_game') {
+    const extra = parseVideoGameExtra(item.extra);
+    const platforms = extra?.platforms ?? [];
+    add(
+      platforms.length > 1 ? 'Platforms' : 'Platform',
+      platforms.map((platform) => platform.name).join(', '),
+    );
+    const developers = item.creators ?? [];
+    add(developers.length > 1 ? 'Developers' : 'Developer', developers.join(', '));
+    const publishers = extra?.publishers ?? [];
+    add(publishers.length > 1 ? 'Publishers' : 'Publisher', publishers.join(', '));
+    if (extra?.gameType && extra.gameType !== 'Main Game') add('Type', extra.gameType);
   }
   return facts;
 }
@@ -273,11 +291,13 @@ export function toCopyPatch(
 // ---------------------------------------------------------------------------------------------------
 
 /** Categories whose copy details the item page edits. */
-export type DetailsCategory = 'movie' | 'tv' | 'music';
+export type DetailsCategory = 'movie' | 'tv' | 'music' | 'video_game';
 
-/** The copy-details form of a category; games and board games keep the movie form until FC-11/12. */
+/** The copy-details form of a category; board games keep the movie form until FC-12. */
 export function detailsCategory(category: ItemCategory): DetailsCategory {
-  return category === 'tv' || category === 'music' ? category : 'movie';
+  return category === 'tv' || category === 'music' || category === 'video_game'
+    ? category
+    : 'movie';
 }
 
 /**

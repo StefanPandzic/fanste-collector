@@ -87,6 +87,27 @@ describe('createApiClient', () => {
     );
   });
 
+  it('sends the game platform as a search param', async () => {
+    const fetchFn = fakeFetch({ results: [], page: 1, totalPages: 0, totalResults: 0 });
+    await createApiClient({ baseUrl, fetch: fetchFn }).search({
+      category: 'video_game',
+      q: 'Elden Ring',
+      platform: 167,
+    });
+    expect(fetchFn.mock.calls[0]?.[0]).toBe(
+      'https://collector.example.com/api/search?category=video_game&q=Elden+Ring&platform=167',
+    );
+  });
+
+  it('gets the IGDB platform list', async () => {
+    const platforms = [{ id: 167, name: 'PlayStation 5', abbreviation: 'PS5' }];
+    const fetchFn = fakeFetch({ platforms });
+    const response = await createApiClient({ baseUrl, fetch: fetchFn }).getGamePlatforms();
+    expect(fetchFn.mock.calls[0]?.[0]).toBe('https://collector.example.com/api/platforms/igdb');
+    expect(fetchFn.mock.calls[0]?.[1]?.method).toBe('GET');
+    expect(response).toEqual({ platforms });
+  });
+
   it('sends the access token as a Bearer header', async () => {
     const fetchFn = fakeFetch(matrix);
     const client = createApiClient({ baseUrl, fetch: fetchFn, getAccessToken: () => 'jwt-abc' });

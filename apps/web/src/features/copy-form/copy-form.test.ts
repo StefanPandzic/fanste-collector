@@ -2,17 +2,27 @@ import { describe, expect, it } from 'vitest';
 
 import {
   cleanDetails,
+  copyDetailsSummary,
   copyFieldErrors,
   isEmptyValue,
   parseAmount,
   parseCount,
+  platformOptions,
   shownDetails,
   showsCopyDetails,
+  showsGameDiscs,
+  showsPhysicalGameDetails,
+  showsStorefront,
+  staleGameFields,
   staleVinylFields,
   showsDigitalStore,
   showsFileFormat,
   showsVinylDetails,
 } from './copy-form';
+
+const pc = { id: 6, name: 'PC (Microsoft Windows)', abbreviation: 'PC' };
+const ps5 = { id: 167, name: 'PlayStation 5', abbreviation: 'PS5' };
+const switchPlatform = { id: 130, name: 'Nintendo Switch', abbreviation: 'Switch' };
 
 describe('showsCopyDetails', () => {
   it('shows details for copies the user has', () => {
@@ -43,6 +53,63 @@ describe('showsVinylDetails', () => {
   });
 });
 
+describe('copyDetailsSummary', () => {
+  it('describes the copy details of the category', () => {
+    expect(copyDetailsSummary('video_game')).toBe('medium, platform, storefront');
+    expect(copyDetailsSummary('music')).toBe('medium, pressing, condition');
+    expect(copyDetailsSummary('movie')).toBe('medium, quality, languages');
+  });
+});
+
+describe('showsStorefront', () => {
+  it('shows the storefront only for a digital game', () => {
+    expect(showsStorefront('Digital')).toBe(true);
+    expect(showsStorefront('Digital code')).toBe(true);
+    expect(showsStorefront('Disc')).toBe(false);
+  });
+});
+
+describe('showsGameDiscs', () => {
+  it('shows the disc count only for a game on discs', () => {
+    expect(showsGameDiscs('Disc')).toBe(true);
+    expect(showsGameDiscs('Cartridge')).toBe(false);
+  });
+});
+
+describe('showsPhysicalGameDetails', () => {
+  it('shows the region and completeness for a disc or cartridge', () => {
+    expect(showsPhysicalGameDetails('Disc')).toBe(true);
+    expect(showsPhysicalGameDetails('Cartridge')).toBe(true);
+    expect(showsPhysicalGameDetails('Digital')).toBe(false);
+  });
+});
+
+describe('staleGameFields', () => {
+  it('lists the game details a copy keeps that its medium does not show', () => {
+    const details = {
+      platform: 'PlayStation 5',
+      storefront: 'PlayStation Store',
+      discCount: 1,
+      region: 'PAL',
+      completeness: 'CIB' as const,
+    };
+    expect(staleGameFields('Digital', details)).toEqual(['discCount', 'region', 'completeness']);
+    expect(staleGameFields('Disc', details)).toEqual(['storefront']);
+  });
+});
+
+describe('platformOptions', () => {
+  it('offers the game platforms first and every other platform after', () => {
+    expect(platformOptions([pc, ps5], [switchPlatform, pc, ps5])).toEqual({
+      options: [
+        { value: 'PC (Microsoft Windows)', label: 'PC (Microsoft Windows)' },
+        { value: 'PlayStation 5', label: 'PlayStation 5' },
+      ],
+      more: [{ value: 'Nintendo Switch', label: 'Nintendo Switch' }],
+    });
+  });
+});
+
 describe('shownDetails', () => {
   it('keeps the music fields the medium shows', () => {
     const details = { vinylSize: '7"', speed: '45', catalogNumber: 'R 5084', resolution: '1080p' };
@@ -65,6 +132,17 @@ describe('shownDetails', () => {
     expect(shownDetails('movie', 'Digital file', { fileFormat: 'MKV' })).toEqual({
       fileFormat: 'MKV',
     });
+  });
+
+  it('keeps the game fields the medium shows', () => {
+    const details = { platform: 'PC (Microsoft Windows)', storefront: 'Steam', region: 'PAL' };
+    expect(shownDetails('video_game', 'Digital', details)).toEqual({
+      platform: 'PC (Microsoft Windows)',
+      storefront: 'Steam',
+      edition: undefined,
+      dlcNotes: undefined,
+    });
+    expect(shownDetails('video_game', 'Disc', details)).not.toHaveProperty('storefront');
   });
 });
 

@@ -5,7 +5,7 @@ import { jsonOk, parseInput } from '@/server/http/responses';
 import { CACHE_CONTROL } from '@/server/limits';
 
 /**
- * `GET /api/search?category=&q=&page=&year=&format=&country=&code=`: one page of results from the
+ * `GET /api/search?category=&q=&page=&year=&format=&country=&code=&platform=`: one page of results from the
  * category's provider.
  */
 export const GET = gatewayRoute('search', async (request) => {
@@ -18,6 +18,7 @@ export const GET = gatewayRoute('search', async (request) => {
     format: params.get('format') || undefined,
     country: params.get('country') || undefined,
     code: params.get('code') || undefined,
+    platform: params.get('platform') || undefined,
   });
   const response = await searchService.search(query);
   return jsonOk(searchResponseSchema, response, CACHE_CONTROL.search);

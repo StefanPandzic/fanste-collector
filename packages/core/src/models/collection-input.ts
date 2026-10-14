@@ -6,6 +6,7 @@ import {
   languageCodeSchema,
   movieDetailsShape,
   musicDetailsShape,
+  videoGameDetailsShape,
   tvDetailsShape,
 } from './copy-details';
 import { itemCategorySchema, metadataProviderSchema, ownershipStatusSchema } from './enums';
@@ -109,7 +110,7 @@ const DETAILS_PATCH_SCHEMAS = {
   movie: z.object(patchShape(movieDetailsShape)),
   tv: z.object(patchShape(tvDetailsShape)),
   music: z.object(patchShape(musicDetailsShape)),
-  video_game: loosePatchSchema,
+  video_game: z.object(patchShape(videoGameDetailsShape)),
   board_game: loosePatchSchema,
   funko: loosePatchSchema,
 } satisfies Record<ItemCategory, z.ZodType>;
@@ -183,8 +184,8 @@ const optionValue = z.string().trim().min(1).max(MAX_FORMAT_LENGTH);
 
 /**
  * Filters on copy details (FC-15). A TV copy matches when the show or any of its seasons has the
- * value (resolution, languages). Music has the vinyl size and the conditions (FC-10); game filters
- * come with FC-11.
+ * value (resolution, languages). Music has the vinyl size and the conditions (FC-10), video games
+ * the platform and storefront (FC-11).
  */
 export const collectionDetailsFilterSchema = z.object({
   resolution: anyOf(optionValue),
@@ -195,6 +196,8 @@ export const collectionDetailsFilterSchema = z.object({
   vinylSize: anyOf(optionValue),
   mediaCondition: anyOf(optionValue),
   sleeveCondition: anyOf(optionValue),
+  platform: anyOf(optionValue),
+  storefront: anyOf(optionValue),
 });
 
 /**
@@ -251,6 +254,8 @@ export const COLLECTION_FACETS = [
   'mediaCondition',
   'sleeveCondition',
   'country',
+  'platform',
+  'storefront',
 ] as const;
 export type CollectionFacet = (typeof COLLECTION_FACETS)[number];
 

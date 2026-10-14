@@ -10,6 +10,7 @@ import {
   OWNERSHIP_STATUSES,
   ownAllSeasons,
   ownershipLabel,
+  parseVideoGameExtra,
   prefillDetails,
   providerLabel,
 } from '@fanste/core';
@@ -37,10 +38,11 @@ import {
 import { Skeleton } from '@/components/ui/skeleton';
 import { Textarea } from '@/components/ui/textarea';
 import { CopyDetailsFields } from '@/features/copy-form/copy-details-fields';
-import { showsCopyDetails } from '@/features/copy-form/copy-form';
+import { copyDetailsSummary, showsCopyDetails } from '@/features/copy-form/copy-form';
 import type { CopyFormDetails } from '@/features/copy-form/copy-form';
 import { FormField } from '@/features/copy-form/form-field';
 import { MusicDetailsFields } from '@/features/copy-form/music-details-fields';
+import { VideoGameDetailsFields } from '@/features/copy-form/video-game-details-fields';
 import { ReleaseDetails } from '@/features/item-detail/release-details';
 
 import { initialFormValues, prefillLabel, toAddItemInput } from './add-item-form';
@@ -360,6 +362,16 @@ function AddItemForm({
                 markerOf={markerOf}
                 errors={errors}
               />
+            ) : target.category === 'video_game' ? (
+              <VideoGameDetailsFields
+                format={values.format}
+                details={values.details}
+                gamePlatforms={parseVideoGameExtra(item.extra)?.platforms}
+                onFormatChange={(value) => set('format', value)}
+                onDetailChange={setDetail}
+                markerOf={markerOf}
+                errors={errors}
+              />
             ) : (
               <CopyDetailsFields
                 category={target.category === 'tv' ? 'tv' : 'movie'}
@@ -375,11 +387,8 @@ function AddItemForm({
           </section>
         ) : (
           <p className="text-sm text-muted-foreground">
-            Copy details (
-            {target.category === 'music'
-              ? 'medium, pressing, condition'
-              : 'medium, quality, languages'}
-            ) are for copies you have. Set them when you get it.
+            Copy details ({copyDetailsSummary(target.category)}) are for copies you have. Set them
+            when you get it.
           </p>
         )}
       </div>

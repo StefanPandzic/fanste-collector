@@ -16,7 +16,7 @@ export interface SearchService {
 /** Searches the category's provider, with an in-memory cache in front. */
 export function createSearchService({ registry, cache }: SearchServiceDeps): SearchService {
   return {
-    async search({ category, q, page, year, format, country, code }) {
+    async search({ category, q, page, year, format, country, code, platform }) {
       const adapter = registry.forCategory(category);
       const key = [
         category,
@@ -26,6 +26,7 @@ export function createSearchService({ registry, cache }: SearchServiceDeps): Sea
         format ?? '',
         country?.toLowerCase() ?? '',
         code?.toLowerCase() ?? '',
+        platform ?? '',
       ].join('\u0000');
       const cached = cache.get(key);
       if (cached) return cached;
@@ -37,6 +38,7 @@ export function createSearchService({ registry, cache }: SearchServiceDeps): Sea
         ...(format ? { format } : {}),
         ...(country ? { country } : {}),
         ...(code ? { code } : {}),
+        ...(platform ? { platform } : {}),
       });
       cache.set(key, response);
       return response;

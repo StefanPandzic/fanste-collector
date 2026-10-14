@@ -32,6 +32,8 @@ const DETAIL_PARAMS = {
   vinylSize: 'size',
   mediaCondition: 'media',
   sleeveCondition: 'sleeve',
+  platform: 'platform',
+  storefront: 'store',
 } as const satisfies Record<keyof DetailsFilter, string>;
 
 type RawParams = Record<string, string | string[] | undefined>;

@@ -16,6 +16,8 @@ export interface SearchOptions {
   country?: string;
   /** A barcode or catalog number; with it, `q` may be empty. */
   code?: string;
+  /** Video games only (IGDB, FC-11): an IGDB platform ID. */
+  platform?: number;
 }
 
 /**
