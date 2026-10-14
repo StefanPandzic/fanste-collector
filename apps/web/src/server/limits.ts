@@ -49,7 +49,7 @@ export const PROVIDER_LIMITS: Record<ExternalProvider, ProviderLimits> = {
     maxFetchesPerRequest: 5,
     cacheTtlMs: 30 * DAY_MS,
   },
-  // 4 req/s, at most 8 open requests.
+  // 4 req/s and at most 8 open requests (FC-11); 4 at once leaves room for other instances.
   igdb: {
     ratePerSecond: 4,
     burst: 4,
@@ -75,6 +75,15 @@ export const PROVIDER_LIMITS: Record<ExternalProvider, ProviderLimits> = {
  * moving window can free slots. A 429 pauses for `pauseOn429Ms`; the request itself is retried.
  */
 export const DISCOGS_RATE = { reserve: 3, pauseOn429Ms: 5_000 };
+
+/**
+ * IGDB (FC-11): the Twitch app token is renewed `tokenRefreshMarginMs` before it expires (tokens
+ * last about two months), and the platform list is kept per instance for `platformsTtlMs`.
+ */
+export const IGDB_LIMITS = {
+  tokenRefreshMarginMs: 60 * 60_000,
+  platformsTtlMs: DAY_MS,
+};
 
 /** Retries of a provider request that got HTTP 429 or 503. */
 export const PROVIDER_RETRY = {
@@ -106,5 +115,7 @@ export const SEARCH_CACHE = { maxEntries: 500, ttlMs: 10 * 60_000 };
 export const CACHE_CONTROL = {
   search: 'private, max-age=300',
   item: 'private, max-age=3600',
+  /** The IGDB platform list (FC-11) changes a few times a year. */
+  platforms: 'private, max-age=86400',
   noStore: 'no-store',
 };

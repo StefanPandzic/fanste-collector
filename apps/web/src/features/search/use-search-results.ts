@@ -21,6 +21,8 @@ export interface SearchRequest {
   format?: MusicSearchFormat;
   country?: string;
   code?: string;
+  /** Video games only (FC-11): an IGDB platform ID. */
+  platform?: number;
 }
 
 /**
@@ -39,6 +41,7 @@ export function useSearchResults(request: SearchRequest | null) {
       request?.format ?? null,
       request?.country?.toLowerCase() ?? null,
       request?.code?.toLowerCase() ?? null,
+      request?.platform ?? null,
     ],
     queryFn: ({ pageParam, signal }) => {
       if (!request) throw new Error('No search to run.');

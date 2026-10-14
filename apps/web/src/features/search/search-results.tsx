@@ -15,6 +15,7 @@ import { EmptyState } from '@/components/states/empty-state';
 import { ErrorState } from '@/components/states/error-state';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { useGamePlatforms } from '@/features/games/use-game-platforms';
 
 import { AddItemDialog } from './add-item-dialog';
 import { targetOf } from './add-item-form';
@@ -46,6 +47,8 @@ export function SearchResults({ request, currency, onResultUsed, onAdded }: Sear
   const copies = useCollectionCopies(targets);
   const { quickAdd, isPending } = useQuickAdd({ onAdded });
   const [selected, setSelected] = useState<SearchResult | null>(null);
+  // The name of a platform filter in the "No results" text.
+  const platforms = useGamePlatforms(request.platform !== undefined);
 
   const provider = providerLabel(providerOfCategory(request.category) ?? 'custom');
   const copiesOf = (target: AddTarget | undefined) =>
@@ -95,7 +98,7 @@ export function SearchResults({ request, currency, onResultUsed, onAdded }: Sear
       <EmptyState
         icon={SearchX}
         title="No results"
-        description={`${provider} has no ${categoryLabel(request.category, { plural: true }).toLowerCase()} ${searchDescription(request)}. Check the spelling or try fewer words or filters.`}
+        description={`${provider} has no ${categoryLabel(request.category, { plural: true }).toLowerCase()} ${searchDescription(request, platforms)}. Check the spelling or try fewer words or filters.`}
       />
     );
   }
@@ -113,7 +116,11 @@ export function SearchResults({ request, currency, onResultUsed, onAdded }: Sear
         items={results}
         getKey={(result) => `${result.provider}:${result.externalId}`}
         label="Search results"
-        cardExtraHeight={request.category === 'music' ? CARD_BADGES_HEIGHT : undefined}
+        cardExtraHeight={
+          request.category === 'music' || request.category === 'video_game'
+            ? CARD_BADGES_HEIGHT
+            : undefined
+        }
         renderItem={(result, index) => {
           const target = targetOf(result);
           const owned = copiesOf(target);

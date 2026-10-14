@@ -8,7 +8,9 @@ import { Input } from '@/components/ui/input';
 import {
   Select,
   SelectContent,
+  SelectGroup,
   SelectItem,
+  SelectLabel,
   SelectSeparator,
   SelectTrigger,
   SelectValue,
@@ -33,6 +35,8 @@ interface OptionFieldProps {
   disabled?: boolean;
   /** `false` for a fixed scale (the condition grades): no "Other…" choice. */
   allowOther?: boolean;
+  /** A second, labelled group after `options`, e.g. every other IGDB platform (FC-11). */
+  more?: { label: string; options: readonly CopyOption[] };
 }
 
 /**
@@ -48,8 +52,9 @@ export function OptionField({
   invalid,
   disabled,
   allowOther = true,
+  more,
 }: OptionFieldProps) {
-  const known = options.some((option) => option.value === value);
+  const known = [...options, ...(more?.options ?? [])].some((option) => option.value === value);
   const [other, setOther] = useState(allowOther && value !== '' && !known);
   const selected = other ? OTHER : value === '' ? NONE : value;
 
@@ -72,6 +77,19 @@ export function OptionField({
               {option.label}
             </SelectItem>
           ))}
+          {more && more.options.length > 0 && (
+            <>
+              <SelectSeparator />
+              <SelectGroup>
+                <SelectLabel>{more.label}</SelectLabel>
+                {more.options.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectGroup>
+            </>
+          )}
           {allowOther && (
             <>
               <SelectSeparator />

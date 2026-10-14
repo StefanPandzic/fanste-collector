@@ -19,7 +19,7 @@ describe('toCollectionFacets', () => {
 
   it('drops unknown facets', () => {
     expect(
-      toCollectionFacets([{ facet: 'platform', value: 'PS5', item_count: 2 }]),
-    ).not.toHaveProperty('platform');
+      toCollectionFacets([{ facet: 'designer', value: 'Uwe Rosenberg', item_count: 2 }]),
+    ).not.toHaveProperty('designer');
   });
 });

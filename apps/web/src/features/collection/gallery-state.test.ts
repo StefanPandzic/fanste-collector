@@ -83,6 +83,22 @@ describe('galleryStateUrl', () => {
     );
   });
 
+  it('round-trips the platform and storefront filters', () => {
+    const gamesState: GalleryState = {
+      filter: {
+        category: 'video_game',
+        details: { platform: ['PlayStation 5'], storefront: ['Steam'] },
+      },
+      sort: 'added_desc',
+    };
+    const url = galleryStateUrl(gamesState);
+    expect(url).toContain('platform=PlayStation+5');
+    expect(url).toContain('store=Steam');
+    expect(parseGalleryState(Object.fromEntries(new URLSearchParams(url.split('?')[1])))).toEqual(
+      gamesState,
+    );
+  });
+
   it('round-trips the release country', () => {
     const ukState: GalleryState = {
       filter: { category: 'music', countries: ['UK', 'Yugoslavia'] },

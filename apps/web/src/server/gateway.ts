@@ -13,12 +13,14 @@ import { createGatewayRoute } from './http/handler';
 import { createItemService } from './items';
 import { REFRESH_LIMITS, SEARCH_CACHE, USER_RATE_LIMIT } from './limits';
 import { createDiscogsAdapter } from './providers/discogs/adapter';
+import { createIgdbAdapter } from './providers/igdb/adapter';
 import { createRegistry } from './providers/registry';
 import { createTmdbAdapter } from './providers/tmdb/adapter';
 import { createUserLimiter } from './rate-limit/user-limiter';
 import { createSearchService } from './search';
 
 import type { ItemService } from './items';
+import type { IgdbPlatforms } from './providers/igdb/adapter';
 import type { TmdbMatcher } from './providers/tmdb/adapter';
 import type { SearchResponse } from '@fanste/core';
 
@@ -38,15 +40,26 @@ const discogs =
       })
     : undefined;
 
+const igdb =
+  serverEnv.TWITCH_CLIENT_ID && serverEnv.TWITCH_CLIENT_SECRET
+    ? createIgdbAdapter({
+        clientId: serverEnv.TWITCH_CLIENT_ID,
+        clientSecret: serverEnv.TWITCH_CLIENT_SECRET,
+      })
+    : undefined;
+
 /**
  * The provider adapters. Each integration task registers its adapter here: TMDB (FC-09), Discogs
  * (FC-10), IGDB (FC-11) and BGG (FC-12). A provider without an adapter (not built yet, or its secret
  * isn't set) answers `provider_not_configured` for its categories.
  */
-const registry = createRegistry([tmdb, discogs].filter((adapter) => adapter !== undefined));
+const registry = createRegistry([tmdb, discogs, igdb].filter((adapter) => adapter !== undefined));
 
 /** TMDB title matching for the scanner (FC-23); `undefined` when TMDB isn't configured. */
 export const tmdbMatcher: TmdbMatcher | undefined = tmdb;
+
+/** The IGDB platform list (FC-11); `undefined` when IGDB isn't configured. */
+export const igdbPlatforms: IgdbPlatforms | undefined = igdb;
 
 // Per-instance state, shared by the requests this instance serves.
 export const gatewayRoute = createGatewayRoute({

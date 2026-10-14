@@ -5,6 +5,8 @@ import { useId, useState } from 'react';
 import {
   CONDITION_GRADES,
   FORMATS_BY_CATEGORY,
+  GAME_EDITIONS,
+  GAME_STOREFRONTS,
   HDR_FORMATS,
   ITEM_CATEGORIES,
   languageLabel,
@@ -66,6 +68,7 @@ export function FilterPanel({ filter, facets, tags, onChange }: FilterPanelProps
   const showVideoDetails =
     filter.category === undefined || filter.category === 'movie' || filter.category === 'tv';
   const showMusicDetails = filter.category === undefined || filter.category === 'music';
+  const showGameDetails = filter.category === undefined || filter.category === 'video_game';
 
   function setDetail(key: keyof NonNullable<CollectionFilter['details']>, value: string) {
     onChange(withDetailFilter(filter, key, toggleValue(filter.details?.[key], value)));
@@ -192,6 +195,36 @@ export function FilterPanel({ filter, facets, tags, onChange }: FilterPanelProps
             selected={filter.details?.sleeveCondition}
             onToggle={(value) => setDetail('sleeveCondition', value)}
           />
+        </>
+      )}
+
+      {showGameDetails && (
+        <>
+          <OptionGroup
+            title="Platform"
+            options={filterOptions([], facets?.platform, filter.details?.platform)}
+            selected={filter.details?.platform}
+            onToggle={(value) => setDetail('platform', value)}
+          />
+          <OptionGroup
+            title="Storefront"
+            options={filterOptions(
+              GAME_STOREFRONTS,
+              facets?.storefront,
+              filter.details?.storefront,
+            )}
+            selected={filter.details?.storefront}
+            onToggle={(value) => setDetail('storefront', value)}
+          />
+          {filter.category === 'video_game' && (
+            // Across categories, the movie section's Edition lists the game editions too.
+            <OptionGroup
+              title="Edition"
+              options={filterOptions(GAME_EDITIONS, facets?.edition, filter.details?.edition)}
+              selected={filter.details?.edition}
+              onToggle={(value) => setDetail('edition', value)}
+            />
+          )}
         </>
       )}
     </div>

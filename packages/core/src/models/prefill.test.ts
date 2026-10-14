@@ -48,6 +48,17 @@ const abbeyRoad: NormalizedItem = {
   },
 };
 
+const pc = { id: 6, name: 'PC (Microsoft Windows)', abbreviation: 'PC' };
+const ps5 = { id: 167, name: 'PlayStation 5', abbreviation: 'PS5' };
+
+const eldenRing: NormalizedItem = {
+  provider: 'igdb',
+  externalId: '119133',
+  category: 'video_game',
+  title: 'Elden Ring',
+  extra: { platforms: [pc, ps5] },
+};
+
 const defaults = { format: '4K UHD Blu-ray', details: { resolution: '2160p', hdr: 'HDR10' } };
 
 describe('prefillDetails', () => {
@@ -146,6 +157,33 @@ describe('prefillDetails', () => {
         speed: 'provider',
       },
     });
+  });
+
+  it('preselects the only platform of a game', () => {
+    expect(prefillDetails('video_game', { ...eldenRing, extra: { platforms: [ps5] } })).toEqual({
+      details: { platform: 'PlayStation 5' },
+      choices: {},
+      sources: { platform: 'provider' },
+    });
+  });
+
+  it('offers the platforms of a multi-platform game and drops a remembered one it lacks', () => {
+    const remembered = (platform: string) => ({
+      format: 'Digital',
+      details: { platform, storefront: 'Steam' },
+    });
+    expect(
+      prefillDetails('video_game', eldenRing, { defaults: remembered('Nintendo Switch') }),
+    ).toEqual({
+      format: 'Digital',
+      details: { storefront: 'Steam' },
+      choices: { platforms: [pc, ps5] },
+      sources: { format: 'defaults', storefront: 'defaults' },
+    });
+    expect(
+      prefillDetails('video_game', eldenRing, { defaults: remembered('PC (Microsoft Windows)') })
+        .details,
+    ).toEqual({ platform: 'PC (Microsoft Windows)', storefront: 'Steam' });
   });
 });
 
@@ -260,6 +298,21 @@ describe('copyDefaultsFrom', () => {
         mediaCondition: 'NM',
       }),
     ).toEqual({ format: 'Vinyl', details: {} });
+  });
+
+  it('remembers the platform, storefront and region of a game copy', () => {
+    expect(
+      copyDefaultsFrom('video_game', 'Disc', {
+        platform: 'PlayStation 5',
+        region: 'PAL',
+        edition: 'GOTY',
+        completeness: 'CIB',
+      }),
+    ).toEqual({ format: 'Disc', details: { platform: 'PlayStation 5', region: 'PAL' } });
+    expect(copyDefaultsFrom('video_game', 'Digital', { storefront: 'Steam' })).toEqual({
+      format: 'Digital',
+      details: { storefront: 'Steam' },
+    });
   });
 });
 

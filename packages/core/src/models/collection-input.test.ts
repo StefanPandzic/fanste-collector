@@ -71,6 +71,15 @@ describe('detailsPatchSchemaFor', () => {
       false,
     );
   });
+
+  it('accepts set and removed fields of a video game copy', () => {
+    expect(
+      detailsPatchSchemaFor('video_game').parse({ platform: 'PlayStation 5', storefront: null }),
+    ).toEqual({ platform: 'PlayStation 5', storefront: null });
+    expect(detailsPatchSchemaFor('video_game').safeParse({ completeness: 'Boxed' }).success).toBe(
+      false,
+    );
+  });
 });
 
 describe('overridesPatchSchema', () => {
@@ -136,6 +145,18 @@ describe('collectionFilterSchema', () => {
       countries: ['UK', 'Yugoslavia'],
     });
     expect(COLLECTION_FACETS).toContain('country');
+  });
+
+  it('accepts platform and storefront filters and offers their counts', () => {
+    expect(
+      collectionFilterSchema.parse({
+        details: { platform: ['PlayStation 5', 'PC (Microsoft Windows)'], storefront: ['Steam'] },
+      }),
+    ).toEqual({
+      details: { platform: ['PlayStation 5', 'PC (Microsoft Windows)'], storefront: ['Steam'] },
+    });
+    expect(COLLECTION_FACETS).toContain('platform');
+    expect(COLLECTION_FACETS).toContain('storefront');
   });
 
   it('rejects unknown sources and malformed dates', () => {

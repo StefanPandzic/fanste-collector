@@ -8,6 +8,7 @@ import {
   parseYearInput,
   resultCardData,
   searchDescription,
+  searchPlatformLabel,
   searchRequestOf,
   searchStateUrl,
 } from './search-state';
@@ -31,6 +32,16 @@ const abbeyRoad: SearchResult = {
   detail: 'Vinyl, LP, Album · UK · PCS 7088',
 };
 
+const eldenRing: SearchResult = {
+  provider: 'igdb',
+  externalId: '119133',
+  category: 'video_game',
+  title: 'Elden Ring',
+  subtitle: 'FromSoftware',
+  releaseYear: 2022,
+  detail: 'Series X|S · PS4 · Switch 2 · PC · PS5 · +1',
+};
+
 const matrixReloaded: SearchResult = {
   provider: 'tmdb',
   externalId: 'movie:604',
@@ -43,6 +54,7 @@ describe('isSearchable', () => {
     expect(isSearchable('movie')).toBe(true);
     expect(isSearchable('tv')).toBe(true);
     expect(isSearchable('music')).toBe(true);
+    expect(isSearchable('video_game')).toBe(true);
     expect(isSearchable('funko')).toBe(false);
   });
 });
@@ -85,6 +97,18 @@ describe('parseSearchState', () => {
     });
   });
 
+  it('keeps the game platform only for video games', () => {
+    expect(parseSearchState({ category: 'video_game', q: 'Elden Ring', platform: '167' })).toEqual({
+      category: 'video_game',
+      q: 'Elden Ring',
+      platform: 167,
+    });
+    expect(parseSearchState({ category: 'movie', q: 'Inception', platform: '167' })).toEqual({
+      category: 'movie',
+      q: 'Inception',
+    });
+  });
+
   it('falls back to the default of each invalid or unsearchable value', () => {
     expect(parseSearchState({ category: 'vhs', q: 'Alien' })).toEqual({
       category: 'movie',
@@ -117,6 +141,15 @@ describe('searchStateUrl', () => {
       '/search?category=movie&q=Inception',
     );
   });
+
+  it('writes the game platform only for video games', () => {
+    expect(searchStateUrl({ category: 'video_game', q: 'Elden Ring', platform: 167 })).toBe(
+      '/search?category=video_game&q=Elden+Ring&platform=167',
+    );
+    expect(searchStateUrl({ category: 'movie', q: 'Inception', platform: 167 })).toBe(
+      '/search?category=movie&q=Inception',
+    );
+  });
 });
 
 describe('searchRequestOf', () => {
@@ -131,6 +164,18 @@ describe('searchRequestOf', () => {
         { q: '', country: ' UK ', code: 'EPC 450290 1' },
       ),
     ).toEqual({ category: 'music', q: '', format: 'Vinyl', country: 'UK', code: 'EPC 450290 1' });
+  });
+
+  it('includes the platform only for video games', () => {
+    expect(searchRequestOf({ category: 'video_game', platform: 130 }, { q: 'Zelda' })).toEqual({
+      category: 'video_game',
+      q: 'Zelda',
+      platform: 130,
+    });
+    expect(searchRequestOf({ category: 'movie', platform: 130 }, { q: 'Inception' })).toEqual({
+      category: 'movie',
+      q: 'Inception',
+    });
   });
 
   it('drops the music filters for other categories', () => {
@@ -151,6 +196,19 @@ describe('searchDescription', () => {
     expect(searchDescription({ category: 'music', q: '', code: 'EPC 450290 1' })).toBe(
       'with barcode or catalog number “EPC 450290 1”',
     );
+    expect(searchDescription({ category: 'video_game', q: 'Elden Ring', platform: 167 })).toBe(
+      'matching “Elden Ring” on PS5',
+    );
+  });
+});
+
+describe('searchPlatformLabel', () => {
+  it('shows a popular platform by its label and others by their IGDB name', () => {
+    expect(searchPlatformLabel(167)).toBe('PS5');
+    expect(searchPlatformLabel(41, [{ id: 41, name: 'Wii U', abbreviation: 'WiiU' }])).toBe(
+      'Wii U',
+    );
+    expect(searchPlatformLabel(41)).toBe('the chosen platform');
   });
 });
 
@@ -164,6 +222,18 @@ describe('resultCardData', () => {
       subtitle: 'The Beatles',
       releaseYear: 1969,
       badges: ['Vinyl, LP, Album', 'UK', 'PCS 7088'],
+    });
+  });
+
+  it('shows the developer and the platforms of a game', () => {
+    expect(resultCardData(eldenRing)).toEqual({
+      provider: 'igdb',
+      externalId: '119133',
+      category: 'video_game',
+      title: 'Elden Ring',
+      subtitle: 'FromSoftware',
+      releaseYear: 2022,
+      badges: ['Series X|S', 'PS4', 'Switch 2', 'PC', 'PS5', '+1'],
     });
   });
 

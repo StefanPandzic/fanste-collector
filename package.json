@@ -25,6 +25,7 @@
     "db:drift": "node scripts/db-drift.mjs",
     "db:types": "node scripts/db-types.mjs",
     "fixtures:discogs": "node scripts/record-discogs-fixtures.mjs",
+    "fixtures:igdb": "node scripts/record-igdb-fixtures.mjs",
     "fixtures:tmdb": "node scripts/record-tmdb-fixtures.mjs",
     "prepare": "husky"
   },

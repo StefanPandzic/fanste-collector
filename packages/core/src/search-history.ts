@@ -5,6 +5,7 @@ import {
   MAX_SEARCH_QUERY_LENGTH,
   searchCodeSchema,
   searchCountrySchema,
+  searchPlatformSchema,
 } from './gateway/requests';
 import { itemCategorySchema } from './models/enums';
 import { MUSIC_SEARCH_FORMATS } from './models/formats';
@@ -25,6 +26,8 @@ export const recentSearchFields = z.object({
   format: z.enum(MUSIC_SEARCH_FORMATS).optional(),
   country: searchCountrySchema.optional(),
   code: searchCodeSchema.optional(),
+  /** The game platform filter, an IGDB platform ID (FC-11). */
+  platform: searchPlatformSchema.optional(),
 });
 
 /** A recent search: it has a query, or a music barcode / catalog number. */
@@ -42,7 +45,8 @@ function sameSearch(a: RecentSearch, b: RecentSearch): boolean {
     a.year === b.year &&
     a.format === b.format &&
     lower(a.country) === lower(b.country) &&
-    lower(a.code) === lower(b.code)
+    lower(a.code) === lower(b.code) &&
+    a.platform === b.platform
   );
 }
 

@@ -12,6 +12,7 @@ import {
   MAX_SEARCH_COUNTRY_LENGTH,
   MAX_SEARCH_QUERY_LENGTH,
   MUSIC_SEARCH_FORMATS,
+  POPULAR_GAME_PLATFORMS,
 } from '@fanste/core';
 
 import { CategoryIcon } from '@/components/items/category-icon';
@@ -19,8 +20,16 @@ import { SEARCH_INPUT_ID } from '@/components/search-shortcut';
 import { EmptyState } from '@/components/states/empty-state';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useUser } from '@/features/auth/session-provider';
+import { useGamePlatforms } from '@/features/games/use-game-platforms';
 import { useIsDesktop } from '@/lib/platform';
 import { searchShortcutLabel } from '@/lib/shortcuts';
 import { useDebouncedValue } from '@/lib/use-debounced-value';
@@ -31,6 +40,7 @@ import {
   COUNTRY_SUGGESTIONS,
   isSearchable,
   parseYearInput,
+  searchPlatformLabel,
   searchRequestOf,
   searchStateUrl,
 } from './search-state';
@@ -42,8 +52,14 @@ import type { FormEvent } from 'react';
 /** Quiet time after typing before a search runs. */
 const SEARCH_DEBOUNCE_MS = 300;
 
+/** The "More platforms" select without a platform from it (Radix items can't have an empty value). */
+const NO_OTHER_PLATFORM = '__none__';
+const POPULAR_PLATFORM_IDS: ReadonlySet<number> = new Set(
+  POPULAR_GAME_PLATFORMS.map((platform) => platform.id),
+);
+
 interface SearchPageClientProps {
-  /** From the URL (`?category=&q=&year=&format=&country=&code=`). */
+  /** From the URL (`?category=&q=&year=&format=&country=&code=&platform=`). */
   initialState: SearchState;
   /** The user's default currency, for prices in the add dialog. */
   currency: string;
@@ -67,9 +83,13 @@ export function SearchPageClient({ initialState, currency }: SearchPageClientPro
   const [debounced, flushTyped] = useDebouncedValue(typed, SEARCH_DEBOUNCE_MS);
   const recent = useRecentSearches(user?.id ?? 'signed-out');
 
-  // The music filters are kept while the user looks at another category, but only sent for music.
+  // The music filters (and the game platform) are kept while the user looks at another category,
+  // but only sent for their own.
   const request = searchRequestOf(state, debounced);
   const music = state.category === 'music';
+  const games = state.category === 'video_game';
+  // Every IGDB platform, for "More platforms" and the names in recent searches.
+  const platforms = useGamePlatforms(games);
 
   // The native history API updates the URL without a server round trip (Next.js keeps in sync).
   useEffect(() => {
@@ -80,10 +100,11 @@ export function SearchPageClient({ initialState, currency }: SearchPageClientPro
         category: state.category,
         year: state.year,
         format: state.format,
+        platform: state.platform,
         ...debounced,
       }),
     );
-  }, [state.category, state.year, state.format, debounced]);
+  }, [state.category, state.year, state.format, state.platform, debounced]);
 
   function rememberSearch() {
     if (request) recent.add(request);
@@ -104,6 +125,7 @@ export function SearchPageClient({ initialState, currency }: SearchPageClientPro
       format: entry.format,
       country: entry.country,
       code: entry.code,
+      platform: entry.platform,
     };
     setState(next);
     setYearInput(entry.year?.toString() ?? '');
@@ -252,6 +274,68 @@ export function SearchPageClient({ initialState, currency }: SearchPageClientPro
             />
           </div>
         )}
+        {games && (
+          <div className="flex flex-wrap items-center gap-2">
+            <div role="group" aria-label="Platform" className="flex flex-wrap gap-2">
+              {POPULAR_GAME_PLATFORMS.map((platform) => {
+                const active = state.platform === platform.id;
+                return (
+                  <Button
+                    key={platform.id}
+                    type="button"
+                    size="sm"
+                    variant={active ? 'default' : 'outline'}
+                    aria-pressed={active}
+                    title={platform.name}
+                    onClick={() =>
+                      setState((current) => ({
+                        ...current,
+                        platform: current.platform === platform.id ? undefined : platform.id,
+                      }))
+                    }
+                  >
+                    {platform.label}
+                  </Button>
+                );
+              })}
+            </div>
+            <Select
+              value={
+                state.platform !== undefined && !POPULAR_PLATFORM_IDS.has(state.platform)
+                  ? String(state.platform)
+                  : NO_OTHER_PLATFORM
+              }
+              onValueChange={(value) =>
+                setState((current) => ({
+                  ...current,
+                  platform: value === NO_OTHER_PLATFORM ? undefined : Number(value),
+                }))
+              }
+            >
+              <SelectTrigger size="sm" className="w-52" aria-label="More platforms">
+                <SelectValue placeholder="More platforms…" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={NO_OTHER_PLATFORM}>More platforms…</SelectItem>
+                {state.platform !== undefined &&
+                  !POPULAR_PLATFORM_IDS.has(state.platform) &&
+                  !platforms?.some((platform) => platform.id === state.platform) && (
+                    // The active platform while the list loads (or one IGDB no longer lists).
+                    <SelectItem value={String(state.platform)}>
+                      {searchPlatformLabel(state.platform, platforms)}
+                    </SelectItem>
+                  )}
+                {platforms
+                  ?.filter((platform) => !POPULAR_PLATFORM_IDS.has(platform.id))
+                  .map((platform) => (
+                    <SelectItem key={platform.id} value={String(platform.id)}>
+                      {platform.name}
+                    </SelectItem>
+                  ))}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
       </div>
 
       {request ? (
@@ -281,6 +365,7 @@ export function SearchPageClient({ initialState, currency }: SearchPageClientPro
                   entry.format,
                   entry.country,
                   entry.code,
+                  entry.platform,
                 ].join(':')}
                 className="flex items-center gap-1"
               >
@@ -296,6 +381,8 @@ export function SearchPageClient({ initialState, currency }: SearchPageClientPro
                     {entry.year !== undefined && ` · ${entry.year}`}
                     {entry.format !== undefined && ` · ${entry.format}`}
                     {entry.country !== undefined && ` · ${entry.country}`}
+                    {entry.platform !== undefined &&
+                      ` · ${searchPlatformLabel(entry.platform, platforms)}`}
                     {entry.q && entry.code !== undefined && ` · ${entry.code}`}
                   </span>
                 </Button>

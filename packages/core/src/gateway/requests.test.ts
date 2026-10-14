@@ -9,6 +9,7 @@ import {
   MAX_BATCH_ITEMS,
   matchRequestSchema,
   matchResponseSchema,
+  platformListResponseSchema,
   searchQuerySchema,
 } from './requests';
 
@@ -50,6 +51,21 @@ describe('searchQuerySchema', () => {
     expect(searchQuerySchema.safeParse({ category: 'movie', code: 'EPC 450290 1' }).success).toBe(
       false,
     );
+  });
+
+  it('coerces a game platform from the query string', () => {
+    expect(
+      searchQuerySchema.parse({ category: 'video_game', q: 'Elden Ring', platform: '167' })
+        .platform,
+    ).toBe(167);
+    expect(
+      searchQuerySchema.safeParse({ category: 'video_game', q: 'Elden Ring', platform: '0' })
+        .success,
+    ).toBe(false);
+    expect(
+      searchQuerySchema.safeParse({ category: 'video_game', q: 'Elden Ring', platform: 'PS5' })
+        .success,
+    ).toBe(false);
   });
 
   it('rejects an empty query and unknown categories', () => {
@@ -148,5 +164,16 @@ describe('matchResponseSchema', () => {
       matchResponseSchema.safeParse({ results: [{ candidates: [{ item, confidence: 1.5 }] }] })
         .success,
     ).toBe(false);
+  });
+});
+
+describe('platformListResponseSchema', () => {
+  it('accepts IGDB platforms with and without an abbreviation', () => {
+    const platforms = [
+      { id: 139, name: '1292 Advanced Programmable Video System' },
+      { id: 167, name: 'PlayStation 5', abbreviation: 'PS5' },
+    ];
+    expect(platformListResponseSchema.parse({ platforms })).toEqual({ platforms });
+    expect(platformListResponseSchema.safeParse({ platforms: [{ id: 167 }] }).success).toBe(false);
   });
 });

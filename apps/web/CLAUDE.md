@@ -113,13 +113,14 @@ Supabase Auth with cookie sessions (`@supabase/ssr`). Dashboard setup is in READ
 Route Handlers in `src/app/api/*`; the logic lives in `src/server/` (FC-08). The request/response schemas and
 the error shape are in `@fanste/core` (`gateway/`), and clients call the gateway through `@fanste/api-client`.
 
-| Route                                                             | Does                                                                                                                                                         |
-| ----------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `GET /api/search?category=&q=&page=&year=&format=&country=&code=` | One page from the category's provider (in-memory LRU in front); `format`, `country` and `code` (barcode / catalog no.; `q` may then be empty) are music only |
-| `GET /api/items/:provider/:externalId`                            | Full `NormalizedItem`, cache-first                                                                                                                           |
-| `POST /api/items/:provider/:id/refresh`                           | Reloads one item from its provider, skipping the TTL (FC-19); rate limited by `REFRESH_LIMITS`                                                               |
-| `POST /api/items/batch`                                           | Many items: one cache read, only misses go to providers. Refs it can't load come back in `missing` with a reason: `not_found` or `retry_later`               |
-| `POST /api/match/tmdb`                                            | Scanner matching (FC-23): scored TMDB candidates per title (`server/match.ts`); a title whose search failed comes back `failed`                              |
+| Route                                                                       | Does                                                                                                                                                                                                               |
+| --------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `GET /api/search?category=&q=&page=&year=&format=&country=&code=&platform=` | One page from the category's provider (in-memory LRU in front); `format`, `country` and `code` (barcode / catalog no.; `q` may then be empty) are music only; `platform` (an IGDB platform ID) is video games only |
+| `GET /api/items/:provider/:externalId`                                      | Full `NormalizedItem`, cache-first                                                                                                                                                                                 |
+| `POST /api/items/:provider/:id/refresh`                                     | Reloads one item from its provider, skipping the TTL (FC-19); rate limited by `REFRESH_LIMITS`                                                                                                                     |
+| `POST /api/items/batch`                                                     | Many items: one cache read, only misses go to providers. Refs it can't load come back in `missing` with a reason: `not_found` or `retry_later`                                                                     |
+| `POST /api/match/tmdb`                                                      | Scanner matching (FC-23): scored TMDB candidates per title (`server/match.ts`); a title whose search failed comes back `failed`                                                                                    |
+| `GET /api/platforms/igdb`                                                   | Every IGDB platform for a game copy's platform field (FC-11); cached per instance for a day                                                                                                                        |
 
 - Every route is wrapped in `gatewayRoute()` (`server/gateway.ts`). It authenticates (session cookies, or
   `Authorization: Bearer <jwt>` for a future mobile app; an invalid bearer is a 401), applies the per-user limit,
@@ -142,25 +143,36 @@ the error shape are in `@fanste/core` (`gateway/`), and clients call the gateway
   country · catalog number); `getById` takes `release:<id>` and `master:<id>`. `discogsPauseMs` reads
   `X-Discogs-Ratelimit-Remaining` and pauses the provider's throttle (`providerFetch`'s `pauseAfter`,
   `DISCOGS_RATE` in `limits.ts`) before the minute's quota runs out.
+- **IGDB (FC-11)** is registered only when `TWITCH_CLIENT_ID` and `TWITCH_CLIENT_SECRET` are set. Every
+  query is a POST with an Apicalypse body (`igdb/queries.ts`) and the app token of Twitch's
+  client-credentials flow (`igdb/token.ts`): cached per instance until an hour before it expires,
+  renewed once for concurrent requests, and renewed and retried when IGDB answers 401
+  (`providerFetch`'s `returnStatuses`). Searches leave out DLC, bundles, mods, updates and editions IGDB
+  lists as games of their own (`version_parent`), and put exact title matches first. `igdbPlatforms`
+  in `server/gateway.ts` serves the platform list.
 - Adapter tests replay recorded responses from `__fixtures__/`, never live calls. Re-record them with
-  `pnpm fixtures:tmdb` (needs the token) and `pnpm fixtures:discogs` (works without credentials, but search
-  results then have no cover images).
+  `pnpm fixtures:tmdb` (needs the token), `pnpm fixtures:discogs` (works without credentials, but search
+  results then have no cover images) and `pnpm fixtures:igdb` (needs the Twitch app).
 
 ## Search & add (FC-17)
 
 `/search` is `features/search/`. Its page (Server Component) reads the URL and the user's default currency and
 renders `SearchPageClient`.
 
-- The search (`category`, `q`, `year`, and for music `format`, `country` and the barcode / catalog
-  number `code`) lives in the URL; `searchRequestOf` turns it into the request. The client updates it with `window.history.replaceState`,
+- The search (`category`, `q`, `year`, for music `format`, `country` and the barcode / catalog
+  number `code`, and for video games the IGDB `platform` ID) lives in the URL; `searchRequestOf` turns it into the request. The client updates it with `window.history.replaceState`,
   so typing doesn't make a server round trip. `SEARCHABLE_CATEGORIES` (`search-state.ts`) lists the categories
   whose provider is built; the others show as "Coming soon".
 - Results come from `useSearchResults` (an infinite query over `api.search`; busy providers are retried, and
   `failureCount > 0` while fetching shows the "retrying…" banner). `useCollectionCopies` marks results already
-  in the collection. Music cards show the artist and the pressing (`resultCardData`).
+  in the collection. Music cards show the artist and the pressing, game cards the developer and
+  platforms (`resultCardData`). Game search has one-click buttons for `POPULAR_GAME_PLATFORMS` and a
+  "More platforms" select with the full IGDB list (`useGamePlatforms` in `features/games/`).
 - Quick add (`use-quick-add.ts`) and the "Add with details" dialog both load the full item through
   `providerItemQuery` and prefill with `prefillDetails`. The dialog marks prefilled fields with their source until
-  they change. Music uses `MusicDetailsFields` (FC-10) instead of `CopyDetailsFields`, and the dialog
+  they change. Video games use `VideoGameDetailsFields` (FC-11): the platform offers the game's own
+  platforms, then every IGDB platform (`useGamePlatforms`); storefront, discs, region and completeness
+  show only for the media they apply to. Music uses `MusicDetailsFields` (FC-10) instead of `CopyDetailsFields`, and the dialog
   first shows the pressing (`ReleaseDetails` from `features/item-detail/`: facts, barcode, matrix /
   runout, tracklist) so almost identical releases can be told apart. Form →
   `AddItemInput` conversion is the pure `add-item-form.ts`.
@@ -184,7 +196,8 @@ renders `SearchPageClient`.
 - `FilterPanel` is the sidebar from `lg` up and a `Sheet` below. `filterOptions` hides values no item has,
   unless selected. Add new detail filters there, in `gallery-state.ts` and in the database function.
   The Medium list follows the picked category; music has country, vinyl size and media/sleeve
-  condition (FC-10). The country comes from the cached Discogs data, not the copy.
+  condition (FC-10). The country comes from the cached Discogs data, not the copy. Video games
+  have platform and storefront (FC-11).
   Music cards show the artist (`ItemCardData.subtitle`).
 - Bulk actions (`SelectionBar`) use `useBulkDeleteItems`, `useBulkUpdateItems` and
   `useTagAssignment().assignMany`. Cards link to the item page, `/collection/[id]` (FC-19).
@@ -200,7 +213,8 @@ currency and renders `ItemDetailPageClient`.
   pure converters in `item-detail-view.ts` (`toCopyPatch`, `toDetailsPatch`, `toOverridesPatch`) turn
   the changed fields into patches of the valid ones plus errors. Copy details and overrides go through the
   FC-15 merge functions.
-- The copy-details form pieces (`CopyDetailsFields`, `MusicDetailsFields`, `SeasonPicker`, `OptionField`,
+- The copy-details form pieces (`CopyDetailsFields`, `MusicDetailsFields`, `VideoGameDetailsFields`,
+  `SeasonPicker`, `OptionField`,
   `LanguagePicker`, `FormField`) and their helpers (`copy-form.ts`) live in `features/copy-form/`, shared with the add
   dialog. The seasons editor adds per-season overrides through `SeasonPicker`'s `renderSeasonExtra`.
 - Copy details the scanner read from the file's own headers (FC-23) are marked: `useItemFileDetails`

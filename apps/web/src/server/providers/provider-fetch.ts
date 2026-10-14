@@ -16,6 +16,11 @@ export interface ProviderFetchOptions {
    * (FC-10).
    */
   pauseAfter?: (response: Response) => number | undefined;
+  /**
+   * Failure statuses returned to the caller instead of thrown, e.g. IGDB's `401` for an expired
+   * token, which the adapter answers by getting a new one (FC-11).
+   */
+  returnStatuses?: readonly number[];
 }
 
 // One throttle per provider and server instance, shared by all requests.
@@ -41,7 +46,7 @@ export async function providerFetch(
   provider: ExternalProvider,
   url: URL | string,
   init: RequestInit = {},
-  { retryStatuses = [429, 503], pauseAfter }: ProviderFetchOptions = {},
+  { retryStatuses = [429, 503], pauseAfter, returnStatuses = [] }: ProviderFetchOptions = {},
 ): Promise<Response> {
   const throttle = throttleFor(provider);
   const path = new URL(url).pathname;
@@ -88,6 +93,10 @@ export async function providerFetch(
   const ms = Date.now() - started;
   if (response.ok && !retryStatuses.includes(response.status)) {
     gatewayLog.info('provider.ok', { provider, path, status: response.status, ms });
+    return response;
+  }
+  if (returnStatuses.includes(response.status)) {
+    gatewayLog.warn('provider.returned', { provider, path, status: response.status, ms });
     return response;
   }
 

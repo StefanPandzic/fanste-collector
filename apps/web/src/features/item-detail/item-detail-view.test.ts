@@ -67,6 +67,23 @@ const abbeyRoad: NormalizedItem = {
   },
 };
 
+const eldenRing: NormalizedItem = {
+  provider: 'igdb',
+  externalId: '119133',
+  category: 'video_game',
+  title: 'Elden Ring',
+  subtitle: 'FromSoftware',
+  creators: ['FromSoftware'],
+  extra: {
+    platforms: [
+      { id: 6, name: 'PC (Microsoft Windows)', abbreviation: 'PC' },
+      { id: 167, name: 'PlayStation 5', abbreviation: 'PS5' },
+    ],
+    publishers: ['Bandai Namco Entertainment', 'FromSoftware'],
+    gameType: 'Main Game',
+  },
+};
+
 const copy: CollectionItem = {
   id: '3f6c1e2a-8b4d-4c5e-9f7a-2b3c4d5e6f70',
   userId: '9a8b7c6d-5e4f-4a3b-8c2d-1e0f9a8b7c6d',
@@ -127,6 +144,7 @@ describe('creatorsLabel', () => {
     expect(creatorsLabel('movie')).toBe('Directed by');
     expect(creatorsLabel('tv')).toBe('Created by');
     expect(creatorsLabel('music')).toBe('Artists');
+    expect(creatorsLabel('video_game')).toBe('Developed by');
   });
 });
 
@@ -135,6 +153,10 @@ describe('showsCreators', () => {
     expect(showsCreators(inception)).toBe(true);
     expect(showsCreators(abbeyRoad)).toBe(false);
     expect(showsCreators({ ...abbeyRoad, subtitle: 'Various' })).toBe(true);
+  });
+
+  it('hides the developers of a game when they are its subtitle', () => {
+    expect(showsCreators(eldenRing)).toBe(false);
   });
 });
 
@@ -190,6 +212,17 @@ describe('mediaFacts', () => {
       { label: 'Country', value: 'UK' },
       { label: 'Format', value: 'Vinyl, LP, Album, Stereo' },
     ]);
+  });
+
+  it('lists the platforms, developer and publishers of a game', () => {
+    expect(mediaFacts(eldenRing)).toEqual([
+      { label: 'Platforms', value: 'PC (Microsoft Windows), PlayStation 5' },
+      { label: 'Developer', value: 'FromSoftware' },
+      { label: 'Publishers', value: 'Bandai Namco Entertainment, FromSoftware' },
+    ]);
+    expect(
+      mediaFacts({ ...eldenRing, extra: { ...eldenRing.extra, gameType: 'Remaster' } }),
+    ).toContainEqual({ label: 'Type', value: 'Remaster' });
   });
 
   it('lists the barcodes of a release', () => {
@@ -259,6 +292,7 @@ describe('detailsCategory', () => {
   it('picks the copy-details form of the category', () => {
     expect(detailsCategory('music')).toBe('music');
     expect(detailsCategory('tv')).toBe('tv');
+    expect(detailsCategory('video_game')).toBe('video_game');
     expect(detailsCategory('board_game')).toBe('movie');
   });
 });
@@ -288,6 +322,15 @@ describe('toDetailsPatch', () => {
   it('patches the fields of a music copy', () => {
     expect(toDetailsPatch('music', { mediaCondition: 'VG+', variant: ' ' })).toEqual({
       patch: { mediaCondition: 'VG+', variant: null },
+      errors: {},
+    });
+  });
+
+  it('patches the fields of a video game copy', () => {
+    expect(
+      toDetailsPatch('video_game', { platform: 'PlayStation 5', completeness: 'CIB', region: '' }),
+    ).toEqual({
+      patch: { platform: 'PlayStation 5', completeness: 'CIB', region: null },
       errors: {},
     });
   });

@@ -1,6 +1,14 @@
-import { COPY_DETAIL_STATUSES, musicDetailsShape } from '@fanste/core';
+import { COPY_DETAIL_STATUSES, musicDetailsShape, videoGameDetailsShape } from '@fanste/core';
 
-import type { ItemCategory, MusicDetails, OwnershipStatus, TvDetails } from '@fanste/core';
+import type {
+  CopyOption,
+  GamePlatform,
+  ItemCategory,
+  MusicDetails,
+  OwnershipStatus,
+  TvDetails,
+  VideoGameDetails,
+} from '@fanste/core';
 
 // Form helpers shared by the "Add with details" dialog (FC-17) and the item page (FC-19).
 
@@ -15,6 +23,13 @@ export interface ChangeOptions {
 /** Whether the status is of a copy the user has, whose medium and details the form shows. */
 export function showsCopyDetails(ownership: OwnershipStatus): boolean {
   return COPY_DETAIL_STATUSES.includes(ownership);
+}
+
+/** What a category's copy details are, for the hint shown while they're hidden. */
+export function copyDetailsSummary(category: ItemCategory): string {
+  if (category === 'music') return 'medium, pressing, condition';
+  if (category === 'video_game') return 'medium, platform, storefront';
+  return 'medium, quality, languages';
 }
 
 /** The container (`fileFormat`) only applies to a `Digital file` copy. */
@@ -32,14 +47,66 @@ export function showsVinylDetails(format: string): boolean {
   return format === 'Vinyl';
 }
 
+/** The storefront only applies to a digital game copy (FC-11). */
+export function showsStorefront(format: string): boolean {
+  return format === 'Digital' || format === 'Digital code';
+}
+
+/** The disc count only applies to a game on discs. */
+export function showsGameDiscs(format: string): boolean {
+  return format === 'Disc';
+}
+
+/** The region and completeness only apply to a physical game (a disc or a cartridge). */
+export function showsPhysicalGameDetails(format: string): boolean {
+  return format === 'Disc' || format === 'Cartridge';
+}
+
 /**
- * The copy details a form holds: the movie and TV fields (`TvDetails` adds `seasons`), or the music
- * fields (FC-10). Each category's form only shows and saves its own.
+ * The copy details a form holds: the movie and TV fields (`TvDetails` adds `seasons`), the music
+ * fields (FC-10) or the video game fields (FC-11). Each category's form only shows and saves its own.
  */
-export type CopyFormDetails = TvDetails & MusicDetails;
+export type CopyFormDetails = TvDetails & MusicDetails & VideoGameDetails;
 
 const VINYL_FIELDS = ['vinylSize', 'speed', 'variant'] as const;
 const MUSIC_FIELDS = Object.keys(musicDetailsShape) as (keyof MusicDetails)[];
+const GAME_FIELDS = Object.keys(videoGameDetailsShape) as (keyof VideoGameDetails)[];
+
+/** Whether a game copy in medium `format` shows `field`. */
+function showsGameField(format: string, field: keyof VideoGameDetails): boolean {
+  if (field === 'storefront') return showsStorefront(format);
+  if (field === 'discCount') return showsGameDiscs(format);
+  if (field === 'region' || field === 'completeness') return showsPhysicalGameDetails(format);
+  return true;
+}
+
+/**
+ * The game details a copy still has once its medium is `format` (FC-11): an autosaving form clears
+ * them when the medium changes, so a disc never matches the Steam filter.
+ */
+export function staleGameFields(
+  format: string,
+  details: VideoGameDetails,
+): (keyof VideoGameDetails)[] {
+  return GAME_FIELDS.filter(
+    (field) => details[field] !== undefined && !showsGameField(format, field),
+  );
+}
+
+/** The options of a game's platform field: the game's own platforms, then every other one. */
+export function platformOptions(
+  gamePlatforms: readonly GamePlatform[] | undefined,
+  allPlatforms: readonly GamePlatform[] | undefined,
+): { options: CopyOption[]; more: CopyOption[] } {
+  const toOption = (name: string): CopyOption => ({ value: name, label: name });
+  const own = new Set((gamePlatforms ?? []).map((platform) => platform.name));
+  return {
+    options: [...own].map(toOption),
+    more: (allPlatforms ?? [])
+      .filter((platform) => !own.has(platform.name))
+      .map((platform) => toOption(platform.name)),
+  };
+}
 
 /**
  * The vinyl details a music copy still has once its medium is `format`: an autosaving form clears
@@ -62,6 +129,14 @@ export function shownDetails(
   format: string,
   details: CopyFormDetails,
 ): Record<string, unknown> {
+  if (category === 'video_game') {
+    return Object.fromEntries(
+      GAME_FIELDS.filter((field) => showsGameField(format, field)).map((field) => [
+        field,
+        details[field],
+      ]),
+    );
+  }
   if (category === 'music') {
     return Object.fromEntries(
       MUSIC_FIELDS.filter(
@@ -118,6 +193,7 @@ export const COPY_FIELD_MESSAGES: Readonly<Record<string, string>> = {
   'details.discCount': 'Enter a number of discs from 1 to 99.',
   'details.catalogNumber': 'The catalog number can be at most 100 characters.',
   'details.variant': 'The variant can be at most 100 characters.',
+  'details.dlcNotes': 'DLC notes can be at most 1000 characters.',
   'details.seasons': 'Pick at least one episode for each ticked season.',
 };
 

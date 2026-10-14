@@ -2,6 +2,7 @@ import { z } from 'zod';
 
 import { itemCategorySchema, PROVIDER_CATEGORIES } from '../models/enums';
 import { isValidExternalId } from '../models/external-id';
+import { gamePlatformSchema } from '../models/extras';
 import { MUSIC_SEARCH_FORMATS } from '../models/formats';
 import {
   MAX_RELEASE_YEAR,
@@ -40,6 +41,8 @@ export const MAX_SEARCH_CODE_LENGTH = 60;
 export const searchCountrySchema = z.string().trim().min(1).max(MAX_SEARCH_COUNTRY_LENGTH);
 /** A barcode or catalog number to look a music release up by. */
 export const searchCodeSchema = z.string().trim().min(1).max(MAX_SEARCH_CODE_LENGTH);
+/** An IGDB platform ID a game search is narrowed to (FC-11), e.g. `167` for PlayStation 5. */
+export const searchPlatformSchema = z.int().min(1).max(1_000_000);
 
 /**
  * Whether a search has something to look for: a query, or for music a barcode / catalog number
@@ -57,8 +60,8 @@ export function hasSearchTerm(search: {
  * `GET /api/search?category=&q=&page=&year=&format=&country=&code=`. Coerces `page` and `year`, so
  * it parses query-string values too. `year` narrows the results to that release year where the
  * provider supports it; `format` (a physical medium), `country` (the release country) and `code` (a
- * barcode or catalog number) narrow music (Discogs, FC-10). Providers that can't filter on one ignore
- * it. `q` may be empty for a music search by `code`.
+ * barcode or catalog number) narrow music (Discogs, FC-10); `platform` (an IGDB platform ID) narrows
+ * video games (FC-11). Providers that can't filter on one ignore it. `q` may be empty for a music search by `code`.
  */
 export const searchQuerySchema = z
   .object({
@@ -69,6 +72,7 @@ export const searchQuerySchema = z
     format: z.enum(MUSIC_SEARCH_FORMATS).optional(),
     country: searchCountrySchema.optional(),
     code: searchCodeSchema.optional(),
+    platform: z.coerce.number().pipe(searchPlatformSchema).optional(),
   })
   .refine(hasSearchTerm, { message: 'Enter something to search for.', path: ['q'] });
 /** A search as clients send it; `page` defaults to 1. */
@@ -159,3 +163,10 @@ export const matchResponseSchema = z.object({
   ),
 });
 export type MatchResponse = z.output<typeof matchResponseSchema>;
+
+/**
+ * `GET /api/platforms/igdb` (FC-11): every IGDB platform, sorted by name, for the platform field of
+ * a game copy. The gateway caches it, so clients can keep it for the session.
+ */
+export const platformListResponseSchema = z.object({ platforms: z.array(gamePlatformSchema) });
+export type PlatformListResponse = z.output<typeof platformListResponseSchema>;
