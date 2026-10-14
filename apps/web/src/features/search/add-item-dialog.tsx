@@ -4,16 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
 
 import { useAddItem, useCollectionContext, useCopyDefaults } from '@fanste/collection';
-import {
-  MAX_NOTES_LENGTH,
-  MAX_QUANTITY,
-  OWNERSHIP_STATUSES,
-  ownAllSeasons,
-  ownershipLabel,
-  parseVideoGameExtra,
-  prefillDetails,
-  providerLabel,
-} from '@fanste/core';
+import { ownAllSeasons, parseVideoGameExtra, prefillDetails, providerLabel } from '@fanste/core';
 
 import { CategoryBadge } from '@/components/items/category-badge';
 import { CoverImage } from '@/components/items/cover-image';
@@ -27,20 +18,11 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Textarea } from '@/components/ui/textarea';
 import { CopyDetailsFields } from '@/features/copy-form/copy-details-fields';
+import { CopyFieldsSection } from '@/features/copy-form/copy-fields-section';
 import { copyDetailsSummary, showsCopyDetails } from '@/features/copy-form/copy-form';
 import type { CopyFormDetails } from '@/features/copy-form/copy-form';
-import { FormField } from '@/features/copy-form/form-field';
 import { MusicDetailsFields } from '@/features/copy-form/music-details-fields';
 import { VideoGameDetailsFields } from '@/features/copy-form/video-game-details-fields';
 import { ReleaseDetails } from '@/features/item-detail/release-details';
@@ -51,7 +33,7 @@ import { searchErrorText } from './search-errors';
 
 import type { AddItemFormValues, AddTarget } from './add-item-form';
 import type { ItemCopy } from '@fanste/collection';
-import type { CopyDefaults, NormalizedItem, OwnershipStatus, SearchResult } from '@fanste/core';
+import type { CopyDefaults, NormalizedItem, SearchResult } from '@fanste/core';
 import type { FormEvent } from 'react';
 
 interface AddItemDialogProps {
@@ -263,90 +245,12 @@ function AddItemForm({
           </section>
         )}
 
-        <section className="grid gap-4 sm:grid-cols-2" aria-label="Your copy">
-          <FormField id="add-ownership" label="Status">
-            <Select
-              value={values.ownership}
-              onValueChange={(value) => set('ownership', value as OwnershipStatus)}
-            >
-              <SelectTrigger id="add-ownership" className="w-full">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {OWNERSHIP_STATUSES.map((status) => (
-                  <SelectItem key={status} value={status}>
-                    {ownershipLabel(status)}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </FormField>
-
-          <FormField id="add-quantity" label="Quantity" error={errors.quantity}>
-            <Input
-              id="add-quantity"
-              type="number"
-              inputMode="numeric"
-              min={1}
-              max={MAX_QUANTITY}
-              value={values.quantity}
-              onChange={(event) => set('quantity', event.target.value)}
-              aria-invalid={errors.quantity ? true : undefined}
-            />
-          </FormField>
-
-          <FormField id="add-acquiredAt" label="Acquired on" error={errors.acquiredAt}>
-            <Input
-              id="add-acquiredAt"
-              type="date"
-              value={values.acquiredAt}
-              onChange={(event) => set('acquiredAt', event.target.value)}
-              aria-invalid={errors.acquiredAt ? true : undefined}
-            />
-          </FormField>
-
-          <FormField
-            id="add-purchasePrice"
-            label={`Purchase price (${currency})`}
-            error={errors.purchasePrice}
-          >
-            <Input
-              id="add-purchasePrice"
-              inputMode="decimal"
-              placeholder="0.00"
-              value={values.purchasePrice}
-              onChange={(event) => set('purchasePrice', event.target.value)}
-              aria-invalid={errors.purchasePrice ? true : undefined}
-            />
-          </FormField>
-
-          <FormField
-            id="add-estimatedValue"
-            label={`Estimated value (${currency})`}
-            hint="Per item."
-            error={errors.estimatedValue}
-          >
-            <Input
-              id="add-estimatedValue"
-              inputMode="decimal"
-              placeholder="0.00"
-              value={values.estimatedValue}
-              onChange={(event) => set('estimatedValue', event.target.value)}
-              aria-invalid={errors.estimatedValue ? true : undefined}
-            />
-          </FormField>
-
-          <FormField id="add-notes" label="Notes" error={errors.notes} className="sm:col-span-2">
-            <Textarea
-              id="add-notes"
-              rows={3}
-              maxLength={MAX_NOTES_LENGTH}
-              value={values.notes}
-              onChange={(event) => set('notes', event.target.value)}
-              aria-invalid={errors.notes ? true : undefined}
-            />
-          </FormField>
-        </section>
+        <CopyFieldsSection
+          values={values}
+          errors={errors}
+          currency={currency}
+          onChange={(field, value) => set(field, value as AddItemFormValues[typeof field])}
+        />
 
         {copy ? (
           <section className="flex flex-col gap-4" aria-labelledby="add-copy-details">

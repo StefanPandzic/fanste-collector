@@ -17,6 +17,9 @@ export const collectionKeys = {
   details: (userId: string) => [...collectionKeys.all(userId), 'item'] as const,
   detail: (userId: string, id: string) => [...collectionKeys.details(userId), id] as const,
   tags: (userId: string) => [...collectionKeys.all(userId), 'tags'] as const,
+  /** The user's custom collections (FC-13), in their order. */
+  customCollections: (userId: string) =>
+    [...collectionKeys.all(userId), 'custom-collections'] as const,
   stats: (userId: string) => [...collectionKeys.all(userId), 'stats'] as const,
   /** Filter counts of the gallery; keyed by the filters only (sort and paging don't change them). */
   facets: (userId: string, query: CollectionQuery) =>

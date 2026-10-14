@@ -20,6 +20,7 @@ import {
   parseCount,
 } from '@/features/copy-form/copy-form';
 import type { CopyFormDetails } from '@/features/copy-form/copy-form';
+import { coverNeedsUnoptimized } from '@/lib/custom-images';
 
 import type {
   CollectionItem,
@@ -59,7 +60,7 @@ export interface ItemDetailView {
   original: NormalizedItem | undefined;
   overridden: ReadonlySet<OverridableField>;
   title: string;
-  /** A user-entered cover loads without the image optimizer (FC-15 Notes). */
+  /** A user-entered cover loads without the image optimizer unless it is an upload (FC-13). */
   coverUnoptimized: boolean;
 }
 
@@ -82,7 +83,7 @@ export function toItemDetailView(
     original,
     overridden: new Set(applied?.overridden ?? []),
     title: applied?.item.title ?? overrides.title ?? LOADING_TITLE,
-    coverUnoptimized: overrides.imageUrl !== undefined,
+    coverUnoptimized: coverNeedsUnoptimized(item),
   };
 }
 
@@ -98,6 +99,7 @@ export function formatRuntime(minutes: number): string {
 export function creatorsLabel(category: ItemCategory): string {
   if (category === 'music') return 'Artists';
   if (category === 'video_game') return 'Developed by';
+  if (category === 'custom') return 'Made by';
   return category === 'tv' ? 'Created by' : 'Directed by';
 }
 
@@ -140,9 +142,9 @@ export interface MediaFact {
 }
 
 /**
- * The category's own facts (runtime, seasons, status, label, platforms, ...). Board games and Funko
- * get theirs with FC-12 / FC-13. A record's matrix codes and tracklist are lists of their own
- * (`matrixCodesOf`, `tracklistOf`).
+ * The category's own facts (runtime, seasons, status, label, platforms, ...). Board games get theirs
+ * with FC-12; custom items have none (their fields show in the header). A record's matrix codes and
+ * tracklist are lists of their own (`matrixCodesOf`, `tracklistOf`).
  */
 export function mediaFacts(item: NormalizedItem): MediaFact[] {
   const facts: MediaFact[] = [];
@@ -291,13 +293,11 @@ export function toCopyPatch(
 // ---------------------------------------------------------------------------------------------------
 
 /** Categories whose copy details the item page edits. */
-export type DetailsCategory = 'movie' | 'tv' | 'music' | 'video_game';
+export type DetailsCategory = 'movie' | 'tv' | 'music' | 'video_game' | 'custom';
 
 /** The copy-details form of a category; board games keep the movie form until FC-12. */
 export function detailsCategory(category: ItemCategory): DetailsCategory {
-  return category === 'tv' || category === 'music' || category === 'video_game'
-    ? category
-    : 'movie';
+  return category === 'board_game' ? 'movie' : category;
 }
 
 /**

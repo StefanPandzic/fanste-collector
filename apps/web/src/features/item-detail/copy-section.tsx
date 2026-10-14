@@ -31,6 +31,7 @@ import {
   staleVinylFields,
 } from '@/features/copy-form/copy-form';
 import type { CopyFormDetails } from '@/features/copy-form/copy-form';
+import { CustomDetailsFields } from '@/features/copy-form/custom-details-fields';
 import { FormField } from '@/features/copy-form/form-field';
 import { MusicDetailsFields } from '@/features/copy-form/music-details-fields';
 import { VideoGameDetailsFields } from '@/features/copy-form/video-game-details-fields';
@@ -310,6 +311,17 @@ export function CopySection({ item, metadata, defaultCurrency }: CopySectionProp
           )}
           {category === 'music' ? (
             <MusicDetailsFields
+              idPrefix="item"
+              format={values.format}
+              details={details.values}
+              onFormatChange={(value, options) => copy.set('format', value, options)}
+              onDetailChange={(field, value, options) => details.set(field, value, options)}
+              markerOf={markerOf}
+              errors={detailErrors}
+              disabled={readOnly}
+            />
+          ) : category === 'custom' ? (
+            <CustomDetailsFields
               idPrefix="item"
               format={values.format}
               details={details.values}

@@ -43,6 +43,12 @@ export function matchesQuery(item: CollectionItem, query: CollectionQuery): bool
     return false;
   }
   if (filter.tagIds?.length && !filter.tagIds.some((id) => item.tagIds.includes(id))) return false;
+  if (
+    filter.customCollectionIds?.length &&
+    !(item.customCollectionId && filter.customCollectionIds.includes(item.customCollectionId))
+  ) {
+    return false;
+  }
   if (filter.acquiredFrom && !(item.acquiredAt && item.acquiredAt >= filter.acquiredFrom)) {
     return false;
   }

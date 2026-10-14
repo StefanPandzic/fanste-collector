@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
   copyDetailsSchema,
+  customDetailsSchema,
   detailsSchemaFor,
   formatOwnedEpisodes,
   movieDetailsSchema,
@@ -125,6 +126,14 @@ describe('videoGameDetailsSchema', () => {
   });
 });
 
+describe('customDetailsSchema', () => {
+  it('accepts a condition on the fixed scale, a variant and the box', () => {
+    const details = { condition: 'Near mint', variant: 'Chase', boxed: true };
+    expect(customDetailsSchema.parse(details)).toEqual(details);
+    expect(customDetailsSchema.safeParse({ condition: 'NM' }).success).toBe(false);
+  });
+});
+
 describe('detailsSchemaFor', () => {
   it('returns the schema of the category', () => {
     expect(detailsSchemaFor('movie')).toBe(movieDetailsSchema);
@@ -224,6 +233,15 @@ describe('parseDetails', () => {
         discCount: 0,
       }),
     ).toEqual({ platform: 'Nintendo Switch' });
+  });
+
+  it('keeps the valid fields of a custom item copy', () => {
+    expect(
+      parseDetails('custom', { condition: 'Mint', variant: 'Glow in the dark', boxed: 'yes' }),
+    ).toEqual({
+      condition: 'Mint',
+      variant: 'Glow in the dark',
+    });
   });
 
   it('drops invalid and duplicate seasons of a TV copy', () => {

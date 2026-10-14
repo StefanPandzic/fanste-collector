@@ -11,6 +11,8 @@ export const COLLECTION_ERROR_CODES = [
   'invalid',
   /** RLS or a missing grant rejected the request, e.g. after the session expired. */
   'forbidden',
+  /** A per-user limit was reached, e.g. 50 custom collections (FC-13). */
+  'limit_reached',
   /** The metadata provider is busy or failed; try again later. */
   'provider_unavailable',
   /** No connection to Supabase or the gateway. */
@@ -35,6 +37,7 @@ const MESSAGES: Record<CollectionErrorCode, string> = {
   not_found: 'That item no longer exists.',
   invalid: 'Some of the values are not valid.',
   forbidden: 'You are not allowed to do that. Try signing in again.',
+  limit_reached: 'You have reached the limit for this. Delete something first.',
   provider_unavailable: 'The metadata provider is busy. Try again in a moment.',
   network: 'You seem to be offline. Check your connection and try again.',
   unknown: 'Something went wrong. Try again.',
@@ -55,6 +58,7 @@ const POSTGRES_CODES: Record<string, CollectionErrorCode> = {
   '22003': 'invalid', // numeric_value_out_of_range
   '22023': 'invalid', // invalid_parameter_value (a function refused its arguments)
   '42501': 'forbidden', // insufficient_privilege / RLS
+  '54000': 'limit_reached', // program_limit_exceeded, e.g. the custom collections limit
   PGRST116: 'not_found', // `.single()` matched no row
   PGRST301: 'forbidden', // JWT expired or invalid
 };

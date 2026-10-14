@@ -7,6 +7,7 @@ import {
   recentMonths,
   toCollectionItem,
   toCollectionStats,
+  toCustomCollection,
   toInsertRow,
   toRestoreRow,
   toUpdateRow,
@@ -19,6 +20,7 @@ import type { Tables } from '@fanste/supabase';
 const itemId = '3f6c1e2a-8b4d-4c5e-9f7a-2b3c4d5e6f70';
 const userId = '9a8b7c6d-5e4f-4a3b-8c2d-1e0f9a8b7c6d';
 const tagId = '5b1f0c2e-7d3a-4e8b-9c6f-1a2b3c4d5e6f';
+const funkoId = '3c9a1e2b-7d4f-4a6b-8c1d-2e3f4a5b6c7d';
 const posterUrl = 'https://image.tmdb.org/t/p/w500/9gk7adHYeDvHkCSEqAvQNLV5Uge.jpg';
 
 const viewRow: ItemViewRow = {
@@ -27,6 +29,7 @@ const viewRow: ItemViewRow = {
   category: 'movie',
   provider: 'tmdb',
   external_id: 'movie:27205',
+  custom_collection_id: null,
   format: '4K UHD Blu-ray',
   details: { edition: 'Steelbook' },
   metadata_overrides: {},
@@ -72,6 +75,8 @@ describe('toCollectionItem', () => {
       category: 'movie',
       provider: 'tmdb',
       externalId: 'movie:27205',
+      customCollectionId: null,
+      customData: null,
       format: '4K UHD Blu-ray',
       details: { edition: 'Steelbook' },
       metadataOverrides: {},
@@ -93,9 +98,38 @@ describe('toCollectionItem', () => {
   it('has no metadata when it is not cached yet or the item is custom', () => {
     expect(toCollectionItem({ ...viewRow, metadata_fetched_at: null }).metadata).toBeNull();
     expect(
-      toCollectionItem({ ...viewRow, provider: 'custom', category: 'funko', external_id: null })
+      toCollectionItem({ ...viewRow, provider: 'custom', category: 'custom', external_id: null })
         .metadata,
     ).toBeNull();
+  });
+
+  it('maps a custom item with its own data as metadata', () => {
+    const item = toCollectionItem({
+      ...viewRow,
+      category: 'custom',
+      provider: 'custom',
+      external_id: null,
+      custom_collection_id: funkoId,
+      custom_data: {
+        title: 'Spider-Man',
+        identifier: '#123',
+        subtitle: 'Marvel',
+        releaseYear: 'x',
+      },
+    });
+    expect(item.customCollectionId).toBe(funkoId);
+    expect(item.customData).toEqual({
+      title: 'Spider-Man',
+      identifier: '#123',
+      subtitle: 'Marvel',
+    });
+    expect(item.metadata).toEqual({
+      provider: 'custom',
+      externalId: itemId,
+      category: 'custom',
+      title: 'Spider-Man',
+      subtitle: '#123 · Marvel',
+    });
   });
 });
 
@@ -128,6 +162,8 @@ describe('toRestoreRow', () => {
       category: 'movie',
       provider: 'tmdb',
       external_id: 'movie:27205',
+      custom_data: null,
+      custom_collection_id: null,
       format: '4K UHD Blu-ray',
       details: { edition: 'Steelbook' },
       metadata_overrides: { title: 'Inception (4K)' },
@@ -140,6 +176,30 @@ describe('toRestoreRow', () => {
       notes: null,
       source: 'search',
       created_at: '2026-09-25T14:02:32.123456+00:00',
+    });
+  });
+});
+
+describe('toCustomCollection', () => {
+  it('maps a collection row and falls back to the default icon', () => {
+    const row: Tables<'custom_collections'> = {
+      id: funkoId,
+      user_id: userId,
+      name: 'Funko Pops',
+      description: 'Marvel and Star Wars Pops',
+      icon: 'rocket',
+      sort_order: 2,
+      created_at: '2026-10-14T12:00:00+00:00',
+      updated_at: '2026-10-14T12:00:00+00:00',
+    };
+    expect(toCustomCollection(row)).toEqual({
+      id: funkoId,
+      name: 'Funko Pops',
+      description: 'Marvel and Star Wars Pops',
+      icon: 'shapes',
+      sortOrder: 2,
+      createdAt: '2026-10-14T12:00:00+00:00',
+      updatedAt: '2026-10-14T12:00:00+00:00',
     });
   });
 });
@@ -161,6 +221,7 @@ describe('fromInsertedRow', () => {
       category: 'movie',
       provider: 'tmdb',
       external_id: 'movie:27205',
+      custom_collection_id: null,
       format: '4K UHD Blu-ray',
       format_key: '4k uhd blu-ray',
       details: {},
@@ -198,6 +259,7 @@ describe('toCollectionStats', () => {
           ownership: 'owned',
           currency: 'EUR',
           added_month: null,
+          custom_collection_id: null,
           item_count: 2,
           quantity_total: 3,
           estimated_value_total: 45.5,
@@ -207,6 +269,7 @@ describe('toCollectionStats', () => {
           ownership: 'loaned_out',
           currency: 'USD',
           added_month: null,
+          custom_collection_id: null,
           item_count: 1,
           quantity_total: 1,
           estimated_value_total: 60,
@@ -216,6 +279,7 @@ describe('toCollectionStats', () => {
           ownership: 'wishlist',
           currency: 'EUR',
           added_month: null,
+          custom_collection_id: null,
           item_count: 1,
           quantity_total: 1,
           estimated_value_total: 20,
@@ -225,6 +289,7 @@ describe('toCollectionStats', () => {
           ownership: 'sold',
           currency: 'EUR',
           added_month: null,
+          custom_collection_id: null,
           item_count: 1,
           quantity_total: 1,
           estimated_value_total: 15,
@@ -234,7 +299,7 @@ describe('toCollectionStats', () => {
     );
     expect(stats.totals).toEqual({ items: 5, quantity: 6 });
     expect(stats.byCategory.movie).toEqual({ items: 3, quantity: 4 });
-    expect(stats.byCategory.funko).toEqual({ items: 0, quantity: 0 });
+    expect(stats.byCategory.custom).toEqual({ items: 0, quantity: 0 });
     expect(stats.byOwnership.wishlist).toEqual({ items: 1, quantity: 1 });
     expect(stats.estimatedValue).toEqual([
       { currency: 'USD', total: 60 },
@@ -255,6 +320,7 @@ describe('toCollectionStats', () => {
           ownership: 'owned',
           currency: 'EUR',
           added_month: '2026-10-01',
+          custom_collection_id: null,
           item_count: 2,
           quantity_total: 2,
           estimated_value_total: 0,
@@ -264,6 +330,7 @@ describe('toCollectionStats', () => {
           ownership: 'preordered',
           currency: 'EUR',
           added_month: '2025-11-01',
+          custom_collection_id: null,
           item_count: 1,
           quantity_total: 1,
           estimated_value_total: 0,
@@ -273,6 +340,7 @@ describe('toCollectionStats', () => {
           ownership: 'wishlist',
           currency: 'EUR',
           added_month: '2026-10-01',
+          custom_collection_id: null,
           item_count: 4,
           quantity_total: 4,
           estimated_value_total: 0,
@@ -282,6 +350,7 @@ describe('toCollectionStats', () => {
           ownership: 'owned',
           currency: 'EUR',
           added_month: '2026-11-01',
+          custom_collection_id: null,
           item_count: 5,
           quantity_total: 5,
           estimated_value_total: 0,
@@ -293,6 +362,36 @@ describe('toCollectionStats', () => {
     expect(stats.addedByMonth[0]).toEqual({ month: '2025-11', items: 1 });
     expect(stats.addedByMonth[11]).toEqual({ month: '2026-10', items: 2 });
     expect(stats.addedByMonth[5]).toEqual({ month: '2026-04', items: 0 });
+  });
+
+  it('counts the items of each custom collection, and those the user has', () => {
+    const stats = toCollectionStats(
+      [
+        {
+          category: 'custom',
+          ownership: 'owned',
+          currency: null,
+          added_month: null,
+          custom_collection_id: funkoId,
+          item_count: 3,
+          quantity_total: 4,
+          estimated_value_total: 0,
+        },
+        {
+          category: 'custom',
+          ownership: 'wishlist',
+          currency: null,
+          added_month: null,
+          custom_collection_id: funkoId,
+          item_count: 2,
+          quantity_total: 2,
+          estimated_value_total: 0,
+        },
+      ],
+      CLOCK,
+    );
+    expect(stats.byCustomCollection).toEqual({ [funkoId]: { items: 5, quantity: 6 } });
+    expect(stats.inCollectionByCustomCollection).toEqual({ [funkoId]: { items: 3, quantity: 4 } });
   });
 });
 

@@ -60,8 +60,8 @@ describe('toMetadataCacheRow', () => {
       toMetadataCacheRow({
         provider: 'custom',
         externalId: '6f1c2a8e-3b4d-4e5f-9a7b-1c2d3e4f5a6b',
-        category: 'funko',
-        title: 'Funko Pop! Walter White',
+        category: 'custom',
+        title: 'Walter White #1162',
       }),
     ).toThrow(/not stored in the metadata cache/);
   });

@@ -1,7 +1,13 @@
-import { COPY_DETAIL_STATUSES, musicDetailsShape, videoGameDetailsShape } from '@fanste/core';
+import {
+  COPY_DETAIL_STATUSES,
+  customDetailsShape,
+  musicDetailsShape,
+  videoGameDetailsShape,
+} from '@fanste/core';
 
 import type {
   CopyOption,
+  CustomDetails,
   GamePlatform,
   ItemCategory,
   MusicDetails,
@@ -29,6 +35,7 @@ export function showsCopyDetails(ownership: OwnershipStatus): boolean {
 export function copyDetailsSummary(category: ItemCategory): string {
   if (category === 'music') return 'medium, pressing, condition';
   if (category === 'video_game') return 'medium, platform, storefront';
+  if (category === 'custom') return 'medium, condition, variant';
   return 'medium, quality, languages';
 }
 
@@ -64,13 +71,15 @@ export function showsPhysicalGameDetails(format: string): boolean {
 
 /**
  * The copy details a form holds: the movie and TV fields (`TvDetails` adds `seasons`), the music
- * fields (FC-10) or the video game fields (FC-11). Each category's form only shows and saves its own.
+ * fields (FC-10), the video game fields (FC-11) or a custom item's (FC-13). Each category's form only
+ * shows and saves its own.
  */
-export type CopyFormDetails = TvDetails & MusicDetails & VideoGameDetails;
+export type CopyFormDetails = TvDetails & MusicDetails & VideoGameDetails & CustomDetails;
 
 const VINYL_FIELDS = ['vinylSize', 'speed', 'variant'] as const;
 const MUSIC_FIELDS = Object.keys(musicDetailsShape) as (keyof MusicDetails)[];
 const GAME_FIELDS = Object.keys(videoGameDetailsShape) as (keyof VideoGameDetails)[];
+const CUSTOM_FIELDS = Object.keys(customDetailsShape) as (keyof CustomDetails)[];
 
 /** Whether a game copy in medium `format` shows `field`. */
 function showsGameField(format: string, field: keyof VideoGameDetails): boolean {
@@ -136,6 +145,9 @@ export function shownDetails(
         details[field],
       ]),
     );
+  }
+  if (category === 'custom') {
+    return Object.fromEntries(CUSTOM_FIELDS.map((field) => [field, details[field]]));
   }
   if (category === 'music') {
     return Object.fromEntries(

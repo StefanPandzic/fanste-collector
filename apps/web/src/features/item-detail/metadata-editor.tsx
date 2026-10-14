@@ -2,13 +2,19 @@
 
 import { RotateCcw } from 'lucide-react';
 
-import { useResetOverrides, useUpdateOverrides } from '@fanste/collection';
+import {
+  removeCustomImage,
+  useCollectionContext,
+  useResetOverrides,
+  useUpdateOverrides,
+} from '@fanste/collection';
 import { MAX_OVERRIDE_DESCRIPTION_LENGTH, MAX_OVERRIDE_TITLE_LENGTH } from '@fanste/core';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { FormField } from '@/features/copy-form/form-field';
+import { ImageField } from '@/features/custom-item/image-field';
 
 import { EditedMarker } from './edited-marker';
 import { originalValueText, overrideFieldValues, toOverridesPatch } from './item-detail-view';
@@ -28,8 +34,8 @@ const FIELDS: readonly {
   { field: 'releaseYear', label: 'Year' },
   {
     field: 'imageUrl',
-    label: 'Cover image URL',
-    hint: 'An https:// address of an image. Uploading an image comes later.',
+    label: 'Cover image',
+    hint: 'Upload an image, or paste an https:// address.',
   },
   { field: 'genres', label: 'Genres', hint: 'Separate them with commas.' },
   { field: 'creators', label: 'Creators', hint: 'Separate the names with commas.' },
@@ -47,18 +53,40 @@ interface MetadataEditorProps {
  * emptying it, or typing the provider's value, goes back to the original.
  */
 export function MetadataEditor({ item, view, onDone }: MetadataEditorProps) {
+  const { client, userId } = useCollectionContext();
   const updateOverrides = useUpdateOverrides();
   const resetOverrides = useResetOverrides();
   const form = useAutosave<OverrideFieldValues>(
     overrideFieldValues(view.display),
     (changes, onSettled) => {
       const { patch, errors } = toOverridesPatch(changes, view.original);
-      if (Object.keys(patch).length > 0)
-        updateOverrides.mutateAsync({ id: item.id, patch }).then(onSettled, onSettled);
-      else onSettled();
+      if (Object.keys(patch).length > 0) {
+        const replaced = patch.imageUrl !== undefined ? item.metadataOverrides.imageUrl : undefined;
+        updateOverrides.mutateAsync({ id: item.id, patch }).then(() => {
+          onSettled();
+          if (replaced !== patch.imageUrl) freeCover(replaced);
+        }, onSettled);
+      } else {
+        onSettled();
+      }
       return errors;
     },
   );
+
+  /** Deletes an uploaded cover the item no longer uses (best effort; pasted URLs are skipped). */
+  function freeCover(url: string | undefined) {
+    if (url) void removeCustomImage(client, userId, url);
+  }
+
+  /** Resets one field or all of them; a custom cover that was an upload is deleted afterwards. */
+  function reset(field?: OverridableField) {
+    const cover =
+      field === undefined || field === 'imageUrl' ? item.metadataOverrides.imageUrl : undefined;
+    resetOverrides.mutateAsync({ id: item.id, field }).then(
+      () => freeCover(cover),
+      () => undefined,
+    );
+  }
 
   return (
     <section className="flex flex-col gap-4" aria-labelledby="item-edit-metadata">
@@ -72,7 +100,7 @@ export function MetadataEditor({ item, view, onDone }: MetadataEditorProps) {
             variant="outline"
             size="sm"
             disabled={view.overridden.size === 0}
-            onClick={() => resetOverrides.mutate({ id: item.id })}
+            onClick={() => reset()}
           >
             <RotateCcw aria-hidden />
             Reset all
@@ -109,11 +137,18 @@ export function MetadataEditor({ item, view, onDone }: MetadataEditorProps) {
               <FormField id={id} label={label} hint={hint} error={form.errors[field]}>
                 {multiline ? (
                   <Textarea rows={6} maxLength={MAX_OVERRIDE_DESCRIPTION_LENGTH} {...control} />
+                ) : field === 'imageUrl' ? (
+                  <ImageField
+                    id={id}
+                    value={form.values.imageUrl}
+                    onChange={(value, options) => form.set('imageUrl', value, options)}
+                    onBlur={form.flush}
+                    invalid={form.errors.imageUrl !== undefined}
+                  />
                 ) : (
                   <Input
-                    maxLength={field === 'imageUrl' ? 2048 : MAX_OVERRIDE_TITLE_LENGTH}
+                    maxLength={MAX_OVERRIDE_TITLE_LENGTH}
                     inputMode={field === 'releaseYear' ? 'numeric' : undefined}
-                    type={field === 'imageUrl' ? 'url' : 'text'}
                     {...control}
                   />
                 )}
@@ -123,7 +158,7 @@ export function MetadataEditor({ item, view, onDone }: MetadataEditorProps) {
                   <EditedMarker
                     field={label.toLowerCase()}
                     hint={originalValueText(field, view.original, item.provider)}
-                    onReset={() => resetOverrides.mutate({ id: item.id, field })}
+                    onReset={() => reset(field)}
                   />
                 </div>
               )}

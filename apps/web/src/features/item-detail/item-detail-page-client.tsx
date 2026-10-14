@@ -19,6 +19,7 @@ import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { Skeleton } from '@/components/ui/skeleton';
 import { TooltipProvider } from '@/components/ui/tooltip';
+import { CustomItemEditor } from '@/features/custom-item/custom-item-editor';
 import type { AddTarget } from '@/features/search/add-item-form';
 import { providerItemQuery } from '@/features/search/item-query';
 
@@ -160,7 +161,9 @@ function ItemDetail({ item, currency, onDeleted }: ItemDetailProps) {
         </div>
 
         <div className="flex min-w-0 flex-col gap-6">
-          {editing ? (
+          {editing && item.provider === 'custom' ? (
+            <CustomItemEditor key={item.id} item={item} onDone={() => setEditing(false)} />
+          ) : editing ? (
             <MetadataEditor
               key={item.id}
               item={item}

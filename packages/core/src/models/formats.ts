@@ -47,15 +47,17 @@ export const POPULAR_GAME_PLATFORMS = [
   { id: 130, name: 'Nintendo Switch', label: 'Switch' },
 ] as const;
 
-/**
- * Media offered per category. The other lists are filled in by their provider tasks: board games
- * FC-12, Funko FC-13.
- */
+/** Media offered for the items of custom collections (FC-13). */
+export const CUSTOM_FORMATS = ['Physical', 'Digital'] as const;
+
+export type CustomFormat = (typeof CUSTOM_FORMATS)[number];
+
+/** Media offered per category. Board games get their list with FC-12. */
 export const FORMATS_BY_CATEGORY: Record<ItemCategory, readonly string[]> = {
   movie: MOVIE_TV_FORMATS,
   tv: MOVIE_TV_FORMATS,
   music: MUSIC_FORMATS,
   video_game: VIDEO_GAME_FORMATS,
   board_game: [],
-  funko: [],
+  custom: CUSTOM_FORMATS,
 };

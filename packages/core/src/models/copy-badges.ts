@@ -47,6 +47,7 @@ export function copyBadges(
 ): string[] {
   if (category === 'music') return musicBadges(format, details);
   if (category === 'video_game') return videoGameBadges(format, details, extra);
+  if (category === 'custom') return customBadges(format, details);
   if (category !== 'movie' && category !== 'tv') return format ? [format] : [];
   const copy = parseDetails(category, details);
   const badges: string[] = [];
@@ -113,5 +114,19 @@ function videoGameBadges(format: string | null, details: unknown, extra: unknown
   if (copy.discCount !== undefined && copy.discCount > 1) badges.push(`${copy.discCount} discs`);
   if (copy.edition && copy.edition !== 'Standard') badges.push(copy.edition);
   if (copy.completeness) badges.push(copy.completeness);
+  return badges;
+}
+
+/**
+ * A custom item's copy (FC-13): `Digital` (physical is the usual case), variant, condition, and
+ * whether it has its box, e.g. `Chase · Mint · Boxed`.
+ */
+function customBadges(format: string | null, details: unknown): string[] {
+  const copy = parseDetails('custom', details);
+  const badges: string[] = [];
+  if (format && format !== 'Physical') badges.push(format);
+  if (copy.variant) badges.push(copy.variant);
+  if (copy.condition) badges.push(copy.condition);
+  if (copy.boxed !== undefined) badges.push(copy.boxed ? 'Boxed' : 'Loose');
   return badges;
 }

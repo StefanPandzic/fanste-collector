@@ -10,6 +10,8 @@ const inception: CollectionItem = {
   category: 'movie',
   provider: 'tmdb',
   externalId: 'movie:27205',
+  customCollectionId: null,
+  customData: null,
   format: '4K UHD Blu-ray',
   details: { edition: 'Steelbook' },
   metadataOverrides: {},
@@ -76,6 +78,29 @@ describe('toGalleryItem', () => {
     expect(record.country).toBe('UK');
     expect(toGalleryItem(inception).card).not.toHaveProperty('subtitle');
     expect(toGalleryItem(inception)).not.toHaveProperty('country');
+  });
+
+  it('shows the number and series of a custom item', () => {
+    const item = toGalleryItem({
+      ...inception,
+      category: 'custom',
+      provider: 'custom',
+      externalId: null,
+      customCollectionId: '3c9a1e2b-7d4f-4a6b-8c1d-2e3f4a5b6c7d',
+      customData: { title: 'Spider-Man', identifier: '#123', subtitle: 'Marvel' },
+      format: 'Physical',
+      details: { condition: 'Mint' },
+      metadata: {
+        provider: 'custom',
+        externalId: inception.id,
+        category: 'custom',
+        title: 'Spider-Man',
+        subtitle: '#123 · Marvel',
+      },
+    });
+    expect(item.card.title).toBe('Spider-Man');
+    expect(item.card.subtitle).toBe('#123 · Marvel');
+    expect(item.card.badges).toEqual(['Mint']);
   });
 
   it('applies the overrides and leaves a custom cover unoptimized', () => {

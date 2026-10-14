@@ -10,12 +10,15 @@ export const ITEM_CATEGORIES = [
   'music',
   'video_game',
   'board_game',
-  'funko',
+  'custom',
 ] as const;
 export type ItemCategory = (typeof ITEM_CATEGORIES)[number];
 export const itemCategorySchema = z.enum(ITEM_CATEGORIES);
 
-/** `custom` marks items the user enters by hand (Funko Pops, anything a provider lacks, FC-13). */
+/**
+ * `custom` marks items the user enters by hand: the items of the user's custom collections (category
+ * `custom`, FC-13), and items of an integrated category that its provider lacks ("Add manually").
+ */
 export const METADATA_PROVIDERS = ['tmdb', 'discogs', 'igdb', 'bgg', 'custom'] as const;
 export type MetadataProvider = (typeof METADATA_PROVIDERS)[number];
 export const metadataProviderSchema = z.enum(METADATA_PROVIDERS);
@@ -44,7 +47,7 @@ export const PROVIDER_CATEGORIES = {
   bgg: ['board_game'],
 } as const satisfies Record<ExternalProvider, readonly ItemCategory[]>;
 
-/** The external provider that serves `category`, or `undefined` when none does (Funko Pops). */
+/** The external provider that serves `category`, or `undefined` when none does (`custom`). */
 export function providerOfCategory(category: ItemCategory): ExternalProvider | undefined {
   return (Object.keys(PROVIDER_CATEGORIES) as ExternalProvider[]).find((provider) =>
     (PROVIDER_CATEGORIES[provider] as readonly ItemCategory[]).includes(category),

@@ -107,7 +107,7 @@ Status legend: `TODO` · `IN PROGRESS` · `DONE` · `BLOCKED`
 | FC-10 | [Discogs integration (Physical Music)](phase-2-api-data/10-discogs-integration.md) | FC-08 | IN PROGRESS |
 | FC-11 | [IGDB integration (Video Games)](phase-2-api-data/11-igdb-integration.md) | FC-08 | IN PROGRESS |
 | FC-12 | [BoardGameGeek integration + XML parser](phase-2-api-data/12-bgg-integration.md) | FC-08 | TODO |
-| FC-13 | [Custom collections](phase-2-api-data/13-custom-collections.md) | FC-05, FC-07, FC-14, FC-15 | TODO |
+| FC-13 | [Custom collections](phase-2-api-data/13-custom-collections.md) | FC-05, FC-07, FC-14, FC-15 | IN PROGRESS |
 | FC-14 | [Collection data layer & realtime sync](phase-2-api-data/14-collection-data-layer.md) | FC-06, FC-07 | DONE |
 | FC-15 | [Item details & manual overrides](phase-2-api-data/15-item-details-overrides.md) | FC-05, FC-07, FC-14 | DONE |
 

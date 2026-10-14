@@ -2,17 +2,24 @@
 
 import { useMemo } from 'react';
 
-import { CollectionError, collectionErrorMessage, useCollectionStats } from '@fanste/collection';
+import {
+  CollectionError,
+  collectionErrorMessage,
+  useCollectionStats,
+  useCustomCollections,
+} from '@fanste/collection';
 
 import { ErrorState } from '@/components/states/error-state';
 import { Skeleton } from '@/components/ui/skeleton';
 
 import { CategoryCards } from './category-cards';
+import { CustomCollectionsCard } from './custom-collections-card';
 import { AddedPerMonthChart, ValueByCategoryChart } from './dashboard-charts';
 import { DashboardOnboarding } from './dashboard-onboarding';
 import {
   categoryCards,
   categoryValues,
+  customCollectionRows,
   isEmptyCollection,
   monthBars,
   valueSummary,
@@ -60,6 +67,7 @@ export function DashboardPageClient({ currency }: DashboardPageClientProps) {
 }
 
 function Overview({ stats, currency }: { stats: CollectionStats; currency: string }) {
+  const collections = useCustomCollections();
   const view = useMemo(() => {
     const value = valueSummary(stats, currency);
     return {
@@ -67,8 +75,9 @@ function Overview({ stats, currency }: { stats: CollectionStats; currency: strin
       cards: categoryCards(stats),
       months: monthBars(stats.addedByMonth),
       values: categoryValues(stats, currency),
+      collections: customCollectionRows(stats, collections.data ?? []),
     };
-  }, [stats, currency]);
+  }, [stats, currency, collections.data]);
 
   return (
     <>
@@ -78,6 +87,7 @@ function Overview({ stats, currency }: { stats: CollectionStats; currency: strin
           Categories
         </h2>
         <CategoryCards cards={view.cards} />
+        <CustomCollectionsCard rows={view.collections} />
       </section>
       <RecentlyAdded />
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
@@ -100,8 +110,8 @@ function DashboardSkeleton() {
           <Skeleton key={index} className="h-24 rounded-xl" />
         ))}
       </div>
-      <div className="grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-6">
-        {Array.from({ length: 6 }, (_, index) => (
+      <div className="grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-5">
+        {Array.from({ length: 5 }, (_, index) => (
           <Skeleton key={index} className="h-18 rounded-xl" />
         ))}
       </div>

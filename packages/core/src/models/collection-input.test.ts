@@ -1,10 +1,12 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  addCustomItemInputSchema,
   addItemInputSchema,
   collectionFilterSchema,
   COLLECTION_FACETS,
   collectionQuerySchema,
+  customItemDataPatchSchema,
   detailsPatchSchemaFor,
   overridesPatchSchema,
   tagInputSchema,
@@ -12,6 +14,7 @@ import {
 } from './collection-input';
 
 const inception = { category: 'movie', provider: 'tmdb', externalId: 'movie:27205' };
+const funkoCollectionId = '3c9a1e2b-7d4f-4a6b-8c1d-2e3f4a5b6c7d';
 
 describe('addItemInputSchema', () => {
   it('accepts a provider item and trims the format', () => {
@@ -26,7 +29,7 @@ describe('addItemInputSchema', () => {
     expect(addItemInputSchema.safeParse({ ...inception, category: 'music' }).success).toBe(false);
     expect(addItemInputSchema.safeParse({ ...inception, externalId: '27205' }).success).toBe(false);
     expect(
-      addItemInputSchema.safeParse({ category: 'funko', provider: 'custom', externalId: 'pop-1' })
+      addItemInputSchema.safeParse({ category: 'custom', provider: 'custom', externalId: 'pop-1' })
         .success,
     ).toBe(false);
   });
@@ -38,6 +41,69 @@ describe('addItemInputSchema', () => {
     const result = addItemInputSchema.safeParse({ ...inception, details: { discCount: 0 } });
     expect(result.success).toBe(false);
     expect(result.error?.issues[0]?.path).toEqual(['details', 'discCount']);
+  });
+});
+
+describe('addCustomItemInputSchema', () => {
+  it('accepts an item of a custom collection and checks its details', () => {
+    expect(
+      addCustomItemInputSchema.parse({
+        category: 'custom',
+        customCollectionId: funkoCollectionId,
+        customData: { title: ' Spider-Man ', identifier: '#123' },
+        format: 'Physical',
+        details: { condition: 'Mint', boxed: true },
+      }),
+    ).toEqual({
+      category: 'custom',
+      customCollectionId: funkoCollectionId,
+      customData: { title: 'Spider-Man', identifier: '#123' },
+      format: 'Physical',
+      details: { condition: 'Mint', boxed: true },
+    });
+    expect(
+      addCustomItemInputSchema.safeParse({
+        category: 'custom',
+        customCollectionId: funkoCollectionId,
+        customData: { title: 'Spider-Man' },
+        details: { condition: 'NM' },
+      }).success,
+    ).toBe(false);
+  });
+
+  it('accepts a hand-entered item of an integrated category without a collection', () => {
+    expect(
+      addCustomItemInputSchema.parse({ category: 'movie', customData: { title: 'Home video' } }),
+    ).toEqual({ category: 'movie', customData: { title: 'Home video' } });
+  });
+
+  it('requires a collection exactly for the custom category', () => {
+    const missing = addCustomItemInputSchema.safeParse({
+      category: 'custom',
+      customData: { title: 'Spider-Man' },
+    });
+    expect(missing.success).toBe(false);
+    expect(missing.error?.issues[0]?.path).toEqual(['customCollectionId']);
+    expect(
+      addCustomItemInputSchema.safeParse({
+        category: 'movie',
+        customCollectionId: funkoCollectionId,
+        customData: { title: 'Home video' },
+      }).success,
+    ).toBe(false);
+  });
+});
+
+describe('customItemDataPatchSchema', () => {
+  it('accepts set fields and null removals', () => {
+    expect(customItemDataPatchSchema.parse({ title: ' Iron Man ', subtitle: null })).toEqual({
+      title: 'Iron Man',
+      subtitle: null,
+    });
+  });
+
+  it('rejects removing the title', () => {
+    expect(customItemDataPatchSchema.safeParse({ title: null }).success).toBe(false);
   });
 });
 
@@ -157,6 +223,16 @@ describe('collectionFilterSchema', () => {
     });
     expect(COLLECTION_FACETS).toContain('platform');
     expect(COLLECTION_FACETS).toContain('storefront');
+  });
+
+  it('accepts custom collection IDs and offers their counts', () => {
+    expect(collectionFilterSchema.parse({ customCollectionIds: [funkoCollectionId] })).toEqual({
+      customCollectionIds: [funkoCollectionId],
+    });
+    expect(collectionFilterSchema.safeParse({ customCollectionIds: ['funko'] }).success).toBe(
+      false,
+    );
+    expect(COLLECTION_FACETS).toContain('customCollection');
   });
 
   it('rejects unknown sources and malformed dates', () => {

@@ -93,6 +93,13 @@ describe('copyBadges', () => {
     ]);
   });
 
+  it('lists Digital, the variant, condition and box of a custom item copy', () => {
+    expect(
+      copyBadges('custom', 'Physical', { variant: 'Chase', condition: 'Mint', boxed: true }),
+    ).toEqual(['Chase', 'Mint', 'Boxed']);
+    expect(copyBadges('custom', 'Digital', { boxed: false })).toEqual(['Digital', 'Loose']);
+  });
+
   it('shows only the format for other categories', () => {
     expect(copyBadges('board_game', 'Box', {})).toEqual(['Box']);
     expect(copyBadges('board_game', null, {})).toEqual([]);

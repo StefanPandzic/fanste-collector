@@ -2,9 +2,10 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-Fanste Collector is a collection tracker (movies/TV, music, video games, board games, Funko Pops) that aggregates
-metadata from TMDB, Discogs, IGDB and BoardGameGeek. Supabase stores only external IDs and ownership data; rich
-metadata is fetched on demand. v1 targets web + desktop (Windows, macOS). `README.md` holds the setup guide and
+Fanste Collector is a collection tracker (movies/TV, music, video games, board games, and custom collections the
+user creates for anything else) that aggregates metadata from TMDB, Discogs, IGDB and BoardGameGeek. Supabase stores
+only external IDs and ownership data; rich metadata is fetched on demand. Hand-entered items keep their own fields
+in `custom_data`. v1 targets web + desktop (Windows, macOS). `README.md` holds the setup guide and
 `tasks/README.md` holds the v1 plan, tech stack and task index.
 
 ## Where to look
@@ -85,7 +86,9 @@ inside packages (the `@/*` alias is for apps only). `export` is still an empty s
 `core` holds constants, the bridge types, the auth/profile zod schemas, the normalized item model (with the
 category/ownership display metadata, `CATEGORY_META`, and provider names, `providerLabel`), the copy details (typed for movies, TV, music and video games; `prefill.ts` suggests them from TMDB, the
 Discogs release (FC-10), the IGDB game's platforms (FC-11) and the scanner) and metadata overrides (`copy-details.ts`, `metadata-overrides.ts`), the gallery badges
-(`copy-badges.ts`), the recent-searches list logic (`search-history.ts`), the API gateway contracts (`gateway/`)
+(`copy-badges.ts`), the custom collections (FC-13: `custom-collection.ts` with the icon list,
+`custom-item.ts` with the `custom_data` schema and `customItemToNormalized`, and `custom-images.ts` with the
+`custom-images` bucket limits and URL helpers), the recent-searches list logic (`search-history.ts`), the API gateway contracts (`gateway/`)
 and the scanner logic (`scanner/`: path keys, sidecar subtitle languages, the incremental re-scan plan,
 the filename parser `parseMediaFilename`, and `media-info.ts`: the shape of `scanned_files.media_info` and
 `toCopyDetails`, which merges a file's headers and name into FC-15 copy details; FC-23's matching:
@@ -115,7 +118,12 @@ TanStack Query (peer dependencies), so a future mobile app can reuse it:
   `bulkDelete`, `bulkUpdateItems`, `restoreItem` (the undo of a delete), the tag functions
   (`bulkAssignTag`), `getStats` (the `collection_stats(time_zone)` RPC: every dashboard number,
   including the copies added per month, in one call), `getFacets` and `findCopies` (the user's
-  copies of given provider items, e.g. "In collection" on search results). `listScannedFiles`,
+  copies of given provider items, e.g. "In collection" on search results). FC-13's custom collections:
+  `custom-collections.ts` (list, create, update, delete, `reorderCustomCollections`), `custom-items.ts`
+  (`addCustomItem`, no gateway call; `updateCustomItemData` through the `merge_item_custom_data` RPC),
+  `moveItemsToCollection`, and `custom-images.ts` (`uploadCustomImage` / `removeCustomImage` in the public
+  `custom-images` bucket; each app compresses to WebP first, the web app in `lib/compress-image.ts`).
+  `restoreItem` restores hand-entered items with their `custom_data` and collection. `listScannedFiles`,
   `upsertScannedFiles` (which also writes the parsed title/year) and `markScannedFilesRemoved` hold the
   desktop scanner's `scanned_files` rows (FC-21); `saveScannedFileMediaInfo` stores what the desktop app
   read from the files' headers (FC-22). FC-23's `scan-matching.ts` adds and fills the scanner's copies

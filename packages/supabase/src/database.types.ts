@@ -54,6 +54,7 @@ export type Database = {
           category: Database['public']['Enums']['item_category'];
           created_at: string;
           currency: string | null;
+          custom_collection_id: string | null;
           custom_data: Json | null;
           details: Json;
           estimated_value: number | null;
@@ -77,6 +78,7 @@ export type Database = {
           category: Database['public']['Enums']['item_category'];
           created_at?: string;
           currency?: string | null;
+          custom_collection_id?: string | null;
           custom_data?: Json | null;
           details?: Json;
           estimated_value?: number | null;
@@ -100,6 +102,7 @@ export type Database = {
           category?: Database['public']['Enums']['item_category'];
           created_at?: string;
           currency?: string | null;
+          custom_collection_id?: string | null;
           custom_data?: Json | null;
           details?: Json;
           estimated_value?: number | null;
@@ -115,6 +118,47 @@ export type Database = {
           purchase_price?: number | null;
           quantity?: number;
           source?: string;
+          updated_at?: string;
+          user_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'collection_items_custom_collection_fkey';
+            columns: ['custom_collection_id', 'user_id'];
+            isOneToOne: false;
+            referencedRelation: 'custom_collections';
+            referencedColumns: ['id', 'user_id'];
+          },
+        ];
+      };
+      custom_collections: {
+        Row: {
+          created_at: string;
+          description: string | null;
+          icon: string;
+          id: string;
+          name: string;
+          sort_order: number;
+          updated_at: string;
+          user_id: string;
+        };
+        Insert: {
+          created_at?: string;
+          description?: string | null;
+          icon?: string;
+          id?: string;
+          name: string;
+          sort_order?: number;
+          updated_at?: string;
+          user_id?: string;
+        };
+        Update: {
+          created_at?: string;
+          description?: string | null;
+          icon?: string;
+          id?: string;
+          name?: string;
+          sort_order?: number;
           updated_at?: string;
           user_id?: string;
         };
@@ -290,6 +334,7 @@ export type Database = {
           category: Database['public']['Enums']['item_category'] | null;
           created_at: string | null;
           currency: string | null;
+          custom_collection_id: string | null;
           custom_data: Json | null;
           details: Json | null;
           estimated_value: number | null;
@@ -316,7 +361,15 @@ export type Database = {
           updated_at: string | null;
           user_id: string | null;
         };
-        Relationships: [];
+        Relationships: [
+          {
+            foreignKeyName: 'collection_items_custom_collection_fkey';
+            columns: ['custom_collection_id', 'user_id'];
+            isOneToOne: false;
+            referencedRelation: 'custom_collections';
+            referencedColumns: ['id', 'user_id'];
+          },
+        ];
       };
     };
     Functions: {
@@ -343,6 +396,7 @@ export type Database = {
           p_acquired_at: string;
           p_category: Database['public']['Enums']['item_category'];
           p_country: string;
+          p_custom_collection_id: string;
           p_details: Json;
           p_filter: Json;
           p_format: string;
@@ -359,6 +413,7 @@ export type Database = {
           p_acquired_at: string;
           p_category: Database['public']['Enums']['item_category'];
           p_country: string;
+          p_custom_collection_id: string;
           p_details: Json;
           p_filter: Json;
           p_format: string;
@@ -377,6 +432,7 @@ export type Database = {
           category: Database['public']['Enums']['item_category'] | null;
           created_at: string | null;
           currency: string | null;
+          custom_collection_id: string | null;
           custom_data: Json | null;
           details: Json | null;
           estimated_value: number | null;
@@ -416,11 +472,16 @@ export type Database = {
           added_month: string;
           category: Database['public']['Enums']['item_category'];
           currency: string;
+          custom_collection_id: string;
           estimated_value_total: number;
           item_count: number;
           ownership: Database['public']['Enums']['ownership_status'];
           quantity_total: number;
         }[];
+      };
+      merge_item_custom_data: {
+        Args: { p_id: string; p_patch: Json };
+        Returns: string[];
       };
       merge_item_details: {
         Args: {
@@ -441,6 +502,10 @@ export type Database = {
       relink_scanned_files: {
         Args: { p_ids: string[]; p_item_id?: string; p_status: string };
         Returns: Json;
+      };
+      reorder_custom_collections: {
+        Args: { p_ids: string[] };
+        Returns: undefined;
       };
       set_copy_defaults: {
         Args: {
@@ -481,7 +546,7 @@ export type Database = {
       set_scanner_settings: { Args: { p_settings: Json }; Returns: undefined };
     };
     Enums: {
-      item_category: 'movie' | 'tv' | 'music' | 'video_game' | 'board_game' | 'funko';
+      item_category: 'movie' | 'tv' | 'music' | 'video_game' | 'board_game' | 'custom';
       metadata_provider: 'tmdb' | 'discogs' | 'igdb' | 'bgg' | 'custom';
       ownership_status: 'owned' | 'wishlist' | 'preordered' | 'loaned_out' | 'sold';
     };
@@ -605,7 +670,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      item_category: ['movie', 'tv', 'music', 'video_game', 'board_game', 'funko'],
+      item_category: ['movie', 'tv', 'music', 'video_game', 'board_game', 'custom'],
       metadata_provider: ['tmdb', 'discogs', 'igdb', 'bgg', 'custom'],
       ownership_status: ['owned', 'wishlist', 'preordered', 'loaned_out', 'sold'],
     },

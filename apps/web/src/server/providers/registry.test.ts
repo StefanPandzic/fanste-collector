@@ -17,7 +17,7 @@ describe('providerForCategory', () => {
     expect(providerForCategory('tv')).toBe('tmdb');
     expect(providerForCategory('music')).toBe('discogs');
     expect(providerForCategory('board_game')).toBe('bgg');
-    expect(providerForCategory('funko')).toBeUndefined();
+    expect(providerForCategory('custom')).toBeUndefined();
   });
 });
 
@@ -30,7 +30,7 @@ describe('createRegistry', () => {
 
   it('rejects categories without a provider and providers without an adapter', () => {
     const registry = createRegistry([tmdbAdapter]);
-    expect(() => registry.forCategory('funko')).toThrow(
+    expect(() => registry.forCategory('custom')).toThrow(
       expect.objectContaining({ code: 'unsupported_category' }),
     );
     expect(() => registry.forCategory('music')).toThrow(

@@ -14,6 +14,8 @@ import {
   useBulkUpdateItems,
   useCollectionFacets,
   useCollectionPages,
+  useCustomCollections,
+  useMoveItemsToCollection,
   useTagAssignment,
   useTags,
 } from '@fanste/collection';
@@ -26,6 +28,7 @@ import {
 } from '@fanste/core';
 
 import { CategoryIcon } from '@/components/items/category-icon';
+import { CollectionIcon } from '@/components/items/collection-icon';
 import { CARD_BADGES_HEIGHT } from '@/components/items/grid-layout';
 import { ItemCard } from '@/components/items/item-card';
 import { ItemGridSkeleton } from '@/components/items/item-card-skeleton';
@@ -58,7 +61,7 @@ import { useDebouncedValue } from '@/lib/use-debounced-value';
 import { FilterPanel } from './filter-panel';
 import { toGalleryItem } from './gallery-items';
 import { GalleryList } from './gallery-list';
-import { activeFilterCount, galleryStateUrl } from './gallery-state';
+import { activeFilterCount, galleryStateUrl, toggleValue } from './gallery-state';
 import { SelectionBar } from './selection-bar';
 import { useGalleryView } from './view-mode';
 
@@ -68,10 +71,12 @@ import type {
   CollectionFilter,
   CollectionQuery,
   CollectionSort,
+  CustomCollection,
   ItemCategory,
   OwnershipStatus,
 } from '@fanste/core';
 import type { Route } from 'next';
+import type { ReactNode } from 'react';
 
 /** Quiet time after typing before the search runs. */
 const SEARCH_DEBOUNCE_MS = 300;
@@ -95,9 +100,22 @@ const ALL_CATEGORIES = 'all';
 
 const hrefOf = (id: string) => `/collection/${id}` as Route;
 
+/** A gallery limited to part of the collection, on its own page, e.g. a custom collection (FC-13). */
+export interface GalleryScope {
+  /** Applied on top of the user's filters, and not kept in the URL. */
+  filter: CollectionFilter;
+  /** The page the gallery is on; its URL keeps the user's filters. */
+  path: string;
+  /** Replaces the gallery's heading. */
+  header: ReactNode;
+  /** Shown when the scope has no items at all. */
+  empty: ReactNode;
+}
+
 interface CollectionPageClientProps {
   /** From the URL. */
   initialState: GalleryState;
+  scope?: GalleryScope;
 }
 
 /**
@@ -105,7 +123,7 @@ interface CollectionPageClientProps {
  * compact list, and act on several at once. The database does the filtering and counting; the
  * filters are kept in the URL, so a view can be bookmarked.
  */
-export function CollectionPageClient({ initialState }: CollectionPageClientProps) {
+export function CollectionPageClient({ initialState, scope }: CollectionPageClientProps) {
   const user = useUser();
   const [view, setView] = useGalleryView(user?.id ?? 'signed-out');
   const [filter, setFilterState] = useState<CollectionFilter>(initialState.filter);
@@ -114,9 +132,10 @@ export function CollectionPageClient({ initialState }: CollectionPageClientProps
   const [search] = useDebouncedValue(searchInput.trim(), SEARCH_DEBOUNCE_MS);
   const [filtersOpen, setFiltersOpen] = useState(false);
 
-  const activeFilter: CollectionFilter = { ...filter, search: search || undefined };
-  if (!search) delete activeFilter.search;
-  const url = galleryStateUrl({ filter: activeFilter, sort });
+  const userFilter: CollectionFilter = { ...filter, search: search || undefined };
+  if (!search) delete userFilter.search;
+  const activeFilter: CollectionFilter = { ...userFilter, ...scope?.filter };
+  const url = galleryStateUrl({ filter: userFilter, sort }, scope?.path);
 
   // The native history API updates the URL without a server round trip (Next.js keeps in sync).
   useEffect(() => {
@@ -134,7 +153,9 @@ export function CollectionPageClient({ initialState }: CollectionPageClientProps
   const tags = useTags();
   const bulkDelete = useBulkDeleteItems();
   const bulkUpdate = useBulkUpdateItems();
+  const moveItems = useMoveItemsToCollection();
   const { assignMany } = useTagAssignment();
+  const collections = useCustomCollections();
 
   const items = pages.items.map(toGalleryItem);
   const loadedIds = items.map((item) => item.id).filter((id) => !isOptimisticId(id));
@@ -143,7 +164,22 @@ export function CollectionPageClient({ initialState }: CollectionPageClientProps
     selection.url === url ? loadedIds.filter((id) => selection.ids.has(id)) : [],
   );
   const filterCount = activeFilterCount(filter);
-  const anyFilter = filterCount > 0 || filter.category !== undefined || Boolean(search);
+  const anyFilter =
+    filterCount > 0 ||
+    filter.category !== undefined ||
+    Boolean(filter.customCollectionIds?.length) ||
+    Boolean(search);
+  // "Move to collection" applies to custom items only (FC-13).
+  const selectedItems = pages.items.filter((item) => selected.has(item.id));
+  const movable =
+    selectedItems.length > 0 && selectedItems.every((item) => item.category === 'custom');
+  // When every selected item is in one collection, that one isn't a target.
+  const sources = new Set(selectedItems.map((item) => item.customCollectionId));
+  const moveTargets = movable
+    ? (collections.data ?? []).filter(
+        (collection) => sources.size !== 1 || !sources.has(collection.id),
+      )
+    : undefined;
 
   /** Applies a filter change the schema accepts, so an invalid value never reaches the queries. */
   function setFilter(next: CollectionFilter) {
@@ -183,6 +219,15 @@ export function CollectionPageClient({ initialState }: CollectionPageClientProps
     );
   }
 
+  function moveTo(collection: CustomCollection) {
+    const ids = [...selected];
+    clearSelection();
+    moveItems.mutate(
+      { ids, collectionId: collection.id },
+      { onSuccess: (count) => toast.success(`Moved ${itemCount(count)} to “${collection.name}”`) },
+    );
+  }
+
   function addTag(tagId: string) {
     const name = tags.data?.find((tag) => tag.id === tagId)?.name ?? 'the tag';
     assignMany.mutate(
@@ -197,26 +242,46 @@ export function CollectionPageClient({ initialState }: CollectionPageClientProps
 
   return (
     <div className="flex flex-col gap-6">
-      <header className="flex flex-wrap items-end justify-between gap-2">
-        <div className="flex flex-col gap-1">
-          <h1 className="text-2xl font-semibold tracking-tight">Collection</h1>
-          <p className="text-muted-foreground" role="status">
-            {pages.total === undefined
-              ? 'Everything you own, in one gallery.'
-              : `${itemCount(pages.total)}${anyFilter ? ' match' : ''}`}
-          </p>
-        </div>
-      </header>
+      {scope ? (
+        scope.header
+      ) : (
+        <header className="flex flex-wrap items-end justify-between gap-2">
+          <div className="flex flex-col gap-1">
+            <h1 className="text-2xl font-semibold tracking-tight">Collection</h1>
+            <p className="text-muted-foreground" role="status">
+              {pages.total === undefined
+                ? 'Everything you own, in one gallery.'
+                : `${itemCount(pages.total)}${anyFilter ? ' match' : ''}`}
+            </p>
+          </div>
+        </header>
+      )}
 
-      <CategoryTabs
-        category={filter.category}
-        counts={facets.data?.category}
-        onChange={(category) => {
-          const next = { ...filter, category };
-          if (!category) delete next.category;
-          setFilter(next);
-        }}
-      />
+      {!scope && (
+        <CategoryTabs
+          category={filter.category}
+          counts={facets.data?.category}
+          onChange={(category) => {
+            const next = { ...filter, category };
+            if (!category) delete next.category;
+            // The collection chips belong to the "Custom" tab.
+            if (category !== 'custom') delete next.customCollectionIds;
+            setFilter(next);
+          }}
+        />
+      )}
+      {!scope && filter.category === 'custom' && (
+        <CollectionChips
+          collections={collections.data ?? []}
+          selected={filter.customCollectionIds}
+          counts={facets.data?.customCollection}
+          onChange={(customCollectionIds) => {
+            const next = { ...filter, customCollectionIds };
+            if (!customCollectionIds) delete next.customCollectionIds;
+            setFilter(next);
+          }}
+        />
+      )}
 
       <div className="flex flex-wrap items-center gap-2">
         <div className="relative min-w-48 flex-1">
@@ -293,6 +358,7 @@ export function CollectionPageClient({ initialState }: CollectionPageClientProps
             view={view}
             selected={selected}
             anyFilter={anyFilter}
+            empty={scope?.empty}
             onToggle={toggle}
             onClearFilters={clearFilters}
             onLoadMore={() => setPaging({ url, count: pageCount + 1 })}
@@ -307,6 +373,8 @@ export function CollectionPageClient({ initialState }: CollectionPageClientProps
               onDelete={deleteSelected}
               onSetOwnership={setOwnership}
               onAddTag={addTag}
+              moveTargets={moveTargets}
+              onMove={moveTo}
             />
           )}
         </section>
@@ -371,6 +439,39 @@ function CategoryTabs({ category, counts, onChange }: CategoryTabsProps) {
   );
 }
 
+interface CollectionChipsProps {
+  collections: readonly CustomCollection[];
+  selected: readonly string[] | undefined;
+  counts: Readonly<Record<string, number>> | undefined;
+  onChange: (ids: string[] | undefined) => void;
+}
+
+/** The "Custom" tab's sub-filter (FC-13): one chip per custom collection, with its count. */
+function CollectionChips({ collections, selected, counts, onChange }: CollectionChipsProps) {
+  if (collections.length === 0) return null;
+  return (
+    <div role="group" aria-label="Custom collection" className="flex flex-wrap gap-2">
+      {collections.map((collection) => {
+        const active = selected?.includes(collection.id) ?? false;
+        return (
+          <Button
+            key={collection.id}
+            type="button"
+            size="sm"
+            variant={active ? 'default' : 'outline'}
+            aria-pressed={active}
+            onClick={() => onChange(toggleValue(selected, collection.id))}
+          >
+            <CollectionIcon icon={collection.icon} />
+            {collection.name}
+            {counts && <Count value={counts[collection.id] ?? 0} />}
+          </Button>
+        );
+      })}
+    </div>
+  );
+}
+
 function Count({ value }: { value: number }) {
   return <span className="text-caption text-muted-foreground tabular-nums">{value}</span>;
 }
@@ -381,6 +482,8 @@ interface ResultsProps {
   view: 'grid' | 'list';
   selected: ReadonlySet<string>;
   anyFilter: boolean;
+  /** Shown instead of the default when there are no items at all. */
+  empty?: ReactNode;
   onToggle: (id: string) => void;
   onClearFilters: () => void;
   onLoadMore: () => void;
@@ -392,6 +495,7 @@ function Results({
   view,
   selected,
   anyFilter,
+  empty,
   onToggle,
   onClearFilters,
   onLoadMore,
@@ -423,16 +527,18 @@ function Results({
         }
       />
     ) : (
-      <EmptyState
-        icon={PackageOpen}
-        title="Your collection is empty"
-        description="Find movies and TV shows and add them in one click."
-        action={
-          <Button asChild>
-            <Link href="/search">Search to add items</Link>
-          </Button>
-        }
-      />
+      (empty ?? (
+        <EmptyState
+          icon={PackageOpen}
+          title="Your collection is empty"
+          description="Find movies and TV shows and add them in one click."
+          action={
+            <Button asChild>
+              <Link href="/search">Search to add items</Link>
+            </Button>
+          }
+        />
+      ))
     );
   }
 

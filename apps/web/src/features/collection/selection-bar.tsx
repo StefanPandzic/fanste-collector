@@ -1,10 +1,11 @@
 'use client';
 
-import { ChevronDown, Tag as TagIcon, Trash2, X } from 'lucide-react';
+import { ChevronDown, FolderInput, Tag as TagIcon, Trash2, X } from 'lucide-react';
 import { useState } from 'react';
 
 import { OWNERSHIP_STATUSES, ownershipLabel } from '@fanste/core';
 
+import { CollectionIcon } from '@/components/items/collection-icon';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -24,7 +25,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 
-import type { OwnershipStatus, Tag } from '@fanste/core';
+import type { CustomCollection, OwnershipStatus, Tag } from '@fanste/core';
 
 interface SelectionBarProps {
   count: number;
@@ -36,6 +37,9 @@ interface SelectionBarProps {
   onDelete: () => void;
   onSetOwnership: (status: OwnershipStatus) => void;
   onAddTag: (tagId: string) => void;
+  /** Custom collections the selection can move to (FC-13); hidden unless every item is custom. */
+  moveTargets?: readonly CustomCollection[];
+  onMove?: (collection: CustomCollection) => void;
 }
 
 function items(count: number): string {
@@ -52,6 +56,8 @@ export function SelectionBar({
   onDelete,
   onSetOwnership,
   onAddTag,
+  moveTargets,
+  onMove,
 }: SelectionBarProps) {
   const [confirming, setConfirming] = useState(false);
 
@@ -119,6 +125,26 @@ export function SelectionBar({
           )}
         </DropdownMenuContent>
       </DropdownMenu>
+
+      {moveTargets && moveTargets.length > 0 && onMove && (
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="outline" size="sm">
+              <FolderInput aria-hidden />
+              Move to
+              <ChevronDown aria-hidden />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="max-h-72">
+            {moveTargets.map((collection) => (
+              <DropdownMenuItem key={collection.id} onSelect={() => onMove(collection)}>
+                <CollectionIcon icon={collection.icon} />
+                {collection.name}
+              </DropdownMenuItem>
+            ))}
+          </DropdownMenuContent>
+        </DropdownMenu>
+      )}
 
       <Button variant="destructive" size="sm" onClick={() => setConfirming(true)}>
         <Trash2 aria-hidden />

@@ -30,7 +30,7 @@ describe('targetOf', () => {
 
   it('returns undefined for a custom item', () => {
     expect(
-      targetOf({ provider: 'custom', externalId: 'funko-1', category: 'funko', title: 'Batman' }),
+      targetOf({ provider: 'custom', externalId: 'pop-1', category: 'custom', title: 'Batman' }),
     ).toBeUndefined();
   });
 });

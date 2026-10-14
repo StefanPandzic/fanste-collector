@@ -10,7 +10,7 @@ const PLACEHOLDER_COLORS: Record<CategoryAccent, string> = {
   music: '#a05b11',
   'video-game': '#0a7e3a',
   'board-game': '#006eb8',
-  funko: '#b82989',
+  custom: '#3b7479',
 };
 
 function placeholderSvg(color: string): string {

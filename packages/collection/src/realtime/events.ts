@@ -1,18 +1,29 @@
 import { z } from 'zod';
 
-/** Tables whose changes the FC-05 triggers broadcast to `user:<id>`. */
-export const BROADCAST_TABLES = ['collection_items', 'collection_item_tags'] as const;
+/** Tables whose changes the FC-05 / FC-13 triggers broadcast to `user:<id>`. */
+export const BROADCAST_TABLES = [
+  'collection_items',
+  'collection_item_tags',
+  'custom_collections',
+] as const;
 export type BroadcastTable = (typeof BROADCAST_TABLES)[number];
 
 export type ChangeOperation = 'INSERT' | 'UPDATE' | 'DELETE';
 
 /** One row change, reduced to what the query cache needs. */
-export interface CollectionChange {
-  table: BroadcastTable;
-  operation: ChangeOperation;
-  /** The collection item that changed (for tag links, the linked item). */
-  itemId: string;
-}
+export type CollectionChange =
+  | {
+      table: 'collection_items' | 'collection_item_tags';
+      operation: ChangeOperation;
+      /** The collection item that changed (for tag links, the linked item). */
+      itemId: string;
+    }
+  | {
+      /** A custom collection was created, renamed, reordered or deleted (FC-13). */
+      table: 'custom_collections';
+      operation: ChangeOperation;
+      collectionId: string;
+    };
 
 const rowSchema = z.object({ id: z.string().optional(), item_id: z.string().optional() }).nullish();
 
@@ -30,6 +41,9 @@ export function parseCollectionChange(payload: unknown): CollectionChange | unde
   if (!parsed.success) return undefined;
   const { table, operation, record, old_record: oldRecord } = parsed.data;
   const row = record ?? oldRecord;
+  if (table === 'custom_collections') {
+    return row?.id ? { table, operation, collectionId: row.id } : undefined;
+  }
   const itemId = table === 'collection_items' ? row?.id : row?.item_id;
   return itemId ? { table, operation, itemId } : undefined;
 }

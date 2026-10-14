@@ -1,14 +1,19 @@
 import {
   COPY_DETAIL_STATUSES,
+  customItemToNormalized,
   fromMetadataCacheRow,
   ITEM_CATEGORIES,
   OWNERSHIP_STATUSES,
+  parseCollectionIcon,
+  parseCustomItemData,
   parseOverrides,
 } from '@fanste/core';
 
 import type {
   addItemInputSchema,
   CollectionItem,
+  CustomCollection,
+  CustomItemData,
   ItemCategory,
   ItemSource,
   Json,
@@ -33,12 +38,18 @@ export const ITEM_VIEW_SELECT = '*, collection_item_tags(tag_id)';
  * underlying table guarantees the identity and copy columns, so missing ones only default.
  */
 export function toCollectionItem(row: ItemViewRow): CollectionItem {
+  const id = row.id ?? '';
+  const category = row.category ?? 'movie';
+  const provider = row.provider ?? 'custom';
+  const customData = provider === 'custom' ? parseCustomItemData(row.custom_data) : null;
   return {
-    id: row.id ?? '',
+    id,
     userId: row.user_id ?? '',
-    category: row.category ?? 'movie',
-    provider: row.provider ?? 'custom',
+    category,
+    provider,
     externalId: row.external_id,
+    customCollectionId: row.custom_collection_id,
+    customData,
     format: row.format,
     details: asRecord(row.details),
     metadataOverrides: parseOverrides(row.metadata_overrides),
@@ -53,13 +64,22 @@ export function toCollectionItem(row: ItemViewRow): CollectionItem {
     createdAt: row.created_at ?? '',
     updatedAt: row.updated_at ?? '',
     tagIds: (row.collection_item_tags ?? []).map((link) => link.tag_id),
-    metadata: providerMetadata(row),
+    metadata:
+      provider === 'custom' ? customMetadata(id, category, customData) : providerMetadata(row),
   };
+}
+
+/** A hand-entered item's own data as its metadata (FC-13), or `null` if it has no valid title. */
+function customMetadata(
+  id: string,
+  category: ItemCategory,
+  customData: CustomItemData | null,
+): NormalizedItem | null {
+  return customData ? customItemToNormalized({ id, category, customData }) : null;
 }
 
 /** The cached provider metadata of a row (without overrides), or `null` if it isn't cached yet. */
 function providerMetadata(row: ItemViewRow): NormalizedItem | null {
-  // Custom items keep their data in `custom_data`; normalizing it on read is FC-13.
   if (row.provider === 'custom' || row.provider === null) return null;
   if (row.metadata_fetched_at === null || row.provider_title === null) return null;
   if (row.external_id === null || row.category === null) return null;
@@ -99,8 +119,8 @@ export function toInsertRow(input: ParsedAddItem): TablesInsert<'collection_item
 
 /**
  * The `collection_items` insert that puts a deleted copy back as it was (undo of a delete): the same
- * ID, copy fields, details, overrides and `created_at`. Custom items also need their `custom_data`,
- * which `CollectionItem` doesn't carry yet (FC-13).
+ * ID, copy fields, details, overrides and `created_at`, and a hand-entered item's own data and
+ * collection (FC-13).
  */
 export function toRestoreRow(item: CollectionItem): TablesInsert<'collection_items'> {
   return {
@@ -108,6 +128,8 @@ export function toRestoreRow(item: CollectionItem): TablesInsert<'collection_ite
     category: item.category,
     provider: item.provider,
     external_id: item.externalId,
+    custom_data: item.customData,
+    custom_collection_id: item.customCollectionId,
     format: item.format,
     details: item.details as Json,
     metadata_overrides: item.metadataOverrides,
@@ -159,11 +181,24 @@ export function fromInsertedRow(
     metadata_payload: null,
     collection_item_tags: [],
   });
-  return { ...item, metadata };
+  // A hand-entered item's metadata is its own data, which the row already has.
+  return item.provider === 'custom' ? item : { ...item, metadata };
 }
 
 export function toTag(row: Tables<'tags'>): Tag {
   return { id: row.id, name: row.name, color: row.color };
+}
+
+export function toCustomCollection(row: Tables<'custom_collections'>): CustomCollection {
+  return {
+    id: row.id,
+    name: row.name,
+    description: row.description,
+    icon: parseCollectionIcon(row.icon),
+    sortOrder: row.sort_order,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  };
 }
 
 /** Counts of copies and units. */
@@ -213,6 +248,13 @@ export interface CollectionStats {
    * oldest first, months without additions included.
    */
   addedByMonth: MonthCount[];
+  /**
+   * Every item of each custom collection (FC-13), whatever its status, by collection ID: what
+   * deleting the collection deletes. Collections without items are missing.
+   */
+  byCustomCollection: Record<string, ItemCounts>;
+  /** The items the user has (`VALUED_STATUSES`) per custom collection, for the dashboard. */
+  inCollectionByCustomCollection: Record<string, ItemCounts>;
 }
 
 /**
@@ -225,6 +267,8 @@ export interface StatsRow {
   currency: string | null;
   /** First day of the month the item was added (`YYYY-MM-DD`). */
   added_month: string | null;
+  /** The custom collection of `custom` items (FC-13), else null. */
+  custom_collection_id: string | null;
   item_count: number;
   quantity_total: number;
   estimated_value_total: number;
@@ -280,6 +324,8 @@ export function toCollectionStats(rows: readonly StatsRow[], clock: StatsClock):
     estimatedValue: [],
     valueByCategory: perCategory(() => []),
     addedByMonth: [],
+    byCustomCollection: {},
+    inCollectionByCustomCollection: {},
   };
   const values = new Map<string | null, number>();
   const categoryValues = perCategory(() => new Map<string | null, number>());
@@ -295,6 +341,11 @@ export function toCollectionStats(rows: readonly StatsRow[], clock: StatsClock):
       stats.byOwnership[row.ownership],
     ];
     if (held) counted.push(stats.inCollection, stats.inCollectionByCategory[row.category]);
+    if (row.custom_collection_id !== null) {
+      const id = row.custom_collection_id;
+      counted.push((stats.byCustomCollection[id] ??= empty()));
+      if (held) counted.push((stats.inCollectionByCustomCollection[id] ??= empty()));
+    }
     for (const counts of counted) {
       counts.items += items;
       counts.quantity += quantity;

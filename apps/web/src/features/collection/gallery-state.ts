@@ -19,6 +19,7 @@ const LIST_PARAMS = {
   tagIds: 'tag',
   sources: 'source',
   countries: 'country',
+  customCollectionIds: 'collection',
 } as const satisfies Partial<Record<keyof CollectionFilter, string>>;
 
 type DetailsFilter = NonNullable<CollectionFilter['details']>;
@@ -95,8 +96,11 @@ export function parseGalleryState(params: RawParams): GalleryState {
   };
 }
 
-/** The URL of a gallery state, e.g. `/collection?category=movie&format=DVD&sort=title_asc`. */
-export function galleryStateUrl({ filter, sort }: GalleryState): string {
+/**
+ * The URL of a gallery state, e.g. `/collection?category=movie&format=DVD&sort=title_asc`. `path` is
+ * the page the gallery is on, e.g. a custom collection's (FC-13).
+ */
+export function galleryStateUrl({ filter, sort }: GalleryState, path = '/collection'): string {
   const params = new URLSearchParams();
   if (filter.category) params.set('category', filter.category);
   for (const [key, param] of Object.entries(LIST_PARAMS) as [keyof typeof LIST_PARAMS, string][]) {
@@ -110,17 +114,17 @@ export function galleryStateUrl({ filter, sort }: GalleryState): string {
   if (filter.search?.trim()) params.set('q', filter.search.trim());
   if (sort !== DEFAULT_SORT) params.set('sort', sort);
   const query = params.toString();
-  return query ? `/collection?${query}` : '/collection';
+  return query ? `${path}?${query}` : path;
 }
 
 /**
- * How many filters are on, for the "Filters (3)" button. The category tabs and the search box are
- * on the page itself, so they don't count.
+ * How many filters are on, for the "Filters (3)" button. The category tabs, the custom collection
+ * chips and the search box are on the page itself, so they don't count.
  */
 export function activeFilterCount(filter: CollectionFilter): number {
   let count = 0;
   for (const key of Object.keys(LIST_PARAMS) as (keyof typeof LIST_PARAMS)[]) {
-    if (filter[key]?.length) count += 1;
+    if (key !== 'customCollectionIds' && filter[key]?.length) count += 1;
   }
   if (filter.acquiredFrom || filter.acquiredTo) count += 1;
   for (const key of Object.keys(DETAIL_PARAMS) as (keyof DetailsFilter)[]) {

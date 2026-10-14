@@ -3,7 +3,7 @@ import {
   Disc3,
   Film,
   Gamepad2,
-  ToyBrick,
+  Shapes,
   Tv,
   type LucideIcon,
   type LucideProps,
@@ -20,7 +20,7 @@ const ICONS: Record<CategoryIconName, LucideIcon> = {
   'disc-3': Disc3,
   'gamepad-2': Gamepad2,
   dices: Dices,
-  'toy-brick': ToyBrick,
+  shapes: Shapes,
 };
 
 interface CategoryIconProps extends LucideProps {

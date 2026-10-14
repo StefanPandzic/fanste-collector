@@ -1,10 +1,11 @@
 import { CATEGORY_META, COPY_DETAIL_STATUSES, ITEM_CATEGORIES } from '@fanste/core';
 
 import { DEFAULT_SORT, galleryStateUrl } from '@/features/collection/gallery-state';
+import { collectionHref } from '@/features/custom-collections/collection-view';
 import { isSearchable } from '@/features/search/search-state';
 
 import type { CollectionStats, MonthCount, ValueTotal } from '@fanste/collection';
-import type { ItemCategory } from '@fanste/core';
+import type { CustomCollection, CustomCollectionIcon, ItemCategory } from '@fanste/core';
 import type { Route } from 'next';
 
 /** The estimated value: the total in the default currency, and totals in other currencies apart. */
@@ -36,9 +37,12 @@ export interface CategoryCardView {
   available: boolean;
 }
 
-/** One card per category, in the order of `ITEM_CATEGORIES`. */
+/**
+ * One card per integrated category, in the order of `ITEM_CATEGORIES`. Custom collections have a
+ * card of their own (`customCollectionRows`).
+ */
 export function categoryCards(stats: CollectionStats): CategoryCardView[] {
-  return ITEM_CATEGORIES.map((category) => {
+  return ITEM_CATEGORIES.filter((category) => category !== 'custom').map((category) => {
     const count = stats.inCollectionByCategory[category].items;
     return {
       category,
@@ -49,6 +53,36 @@ export function categoryCards(stats: CollectionStats): CategoryCardView[] {
         sort: DEFAULT_SORT,
       }) as Route,
       available: isSearchable(category) || count > 0,
+    };
+  });
+}
+
+/** A custom collection on the dashboard's "Custom collections" card (FC-13). */
+export interface CustomCollectionRowView {
+  id: string;
+  name: string;
+  icon: CustomCollectionIcon;
+  /** Items the user has in the collection (owned, pre-ordered, loaned out). */
+  items: number;
+  /** Their quantities added up: several copies of one item count each. */
+  copies: number;
+  href: Route;
+}
+
+/** Every custom collection in the user's order, with what the user has in it. */
+export function customCollectionRows(
+  stats: CollectionStats,
+  collections: readonly CustomCollection[],
+): CustomCollectionRowView[] {
+  return collections.map((collection) => {
+    const counts = stats.inCollectionByCustomCollection[collection.id];
+    return {
+      id: collection.id,
+      name: collection.name,
+      icon: collection.icon,
+      items: counts?.items ?? 0,
+      copies: counts?.quantity ?? 0,
+      href: collectionHref(collection.id),
     };
   });
 }

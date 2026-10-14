@@ -4,13 +4,13 @@ import type { ItemCategory, MetadataProvider, OwnershipStatus } from './enums';
  * Icon names from the Lucide set (https://lucide.dev). Core stays free of React, so each app maps
  * the name to its own component (`lucide-react` on web, `lucide-react-native` on mobile).
  */
-export type CategoryIconName = 'film' | 'tv' | 'disc-3' | 'gamepad-2' | 'dices' | 'toy-brick';
+export type CategoryIconName = 'film' | 'tv' | 'disc-3' | 'gamepad-2' | 'dices' | 'shapes';
 
 /**
  * Suffix of the category's color tokens in the shared Tailwind theme (`--category-<accent>`,
  * `bg-category-<accent>`). Kebab-case, because the CSS names are.
  */
-export type CategoryAccent = 'movie' | 'tv' | 'music' | 'video-game' | 'board-game' | 'funko';
+export type CategoryAccent = 'movie' | 'tv' | 'music' | 'video-game' | 'board-game' | 'custom';
 
 export interface CategoryMeta {
   /** Singular, e.g. `Video Game`. */
@@ -60,11 +60,13 @@ export const CATEGORY_META = {
     accent: 'board-game',
     coverShape: 'square',
   },
-  funko: {
-    label: 'Funko Pop',
-    pluralLabel: 'Funko Pops',
-    icon: 'toy-brick',
-    accent: 'funko',
+  // The user's own collections (FC-13). Each collection has its own name and icon
+  // (`CustomCollection`); this is the category they all share.
+  custom: {
+    label: 'Custom',
+    pluralLabel: 'Custom collections',
+    icon: 'shapes',
+    accent: 'custom',
     coverShape: 'square',
   },
 } as const satisfies Record<ItemCategory, CategoryMeta>;

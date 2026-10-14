@@ -1,6 +1,6 @@
 // Suggested values for the copy-details fields (FC-15). The fields are free text, so the UI offers
 // these lists and also accepts an "Other" value, except for the condition grades, which are a fixed
-// scale. Board games and Funko get their lists with FC-12 / FC-13.
+// scale. Board games get their lists with FC-12.
 
 /** A suggested value and how the UI shows it. */
 export interface CopyOption {
@@ -124,6 +124,23 @@ export const CONDITION_GRADES = [
   { value: 'F', label: 'Fair (F)' },
   { value: 'P', label: 'Poor (P)' },
 ] as const satisfies readonly CopyOption[];
+
+/**
+ * Condition of an item of a custom collection (FC-13), a fixed scale that fits any object (toys,
+ * LEGO sets, coins, ...). The value is stored as it is shown.
+ */
+export const CUSTOM_CONDITION_VALUES = [
+  'Mint',
+  'Near mint',
+  'Very good',
+  'Good',
+  'Fair',
+  'Poor',
+] as const;
+
+export type CustomCondition = (typeof CUSTOM_CONDITION_VALUES)[number];
+
+export const CUSTOM_CONDITIONS = plain(CUSTOM_CONDITION_VALUES);
 
 /** Sleeve grades: the media grades, plus Discogs' "Generic" and "No Cover". */
 export const SLEEVE_GRADES = [
