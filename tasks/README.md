@@ -140,6 +140,7 @@ Status legend: `TODO` · `IN PROGRESS` · `DONE` · `BLOCKED`
 | FC-31 | [Connect your Discogs account (OAuth + collection sync)](phase-5-post-v1/31-discogs-account-connect.md) | FC-10, FC-14 | TODO |
 | FC-32 | [Scanner: music libraries (digital audio files)](phase-5-post-v1/32-scanner-music.md) | FC-10, FC-21–FC-24 | TODO |
 | FC-33 | [Steam library sync (import owned games)](phase-5-post-v1/33-steam-library-sync.md) | FC-11, FC-14, FC-24 | TODO |
+| FC-34 | [Events collection (concerts, festivals, parties)](phase-5-post-v1/34-event-collection.md) | FC-13, FC-14, FC-15, FC-18–FC-20 | TODO |
 
 ---
 
