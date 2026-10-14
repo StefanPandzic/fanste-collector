@@ -1,6 +1,6 @@
 # Fanste Collector — v1.0 Task Plan
 
-Fanste Collector is a cross-platform collection tracker for **Movies, TV, Music, Video Games, Board Games and Funko Pops**.
+Fanste Collector is a cross-platform collection tracker for **Movies, TV, Music, Video Games and Board Games**, plus custom collections the user creates for anything else (Funko Pops, LEGO, comics, …).
 It acts as an API aggregator: users search external metadata providers (TMDB, Discogs, IGDB, BoardGameGeek), add items
 to their collection, and the app stores only **external IDs + user ownership data** in Supabase, while rich metadata is
 fetched (and lightly cached) on demand.
@@ -64,7 +64,7 @@ fanste-collector/
 **In scope**
 - Web app (modern browsers) and desktop app (Windows, macOS)
 - Email/password + Google sign-in, instant sync between browser and desktop via Supabase Realtime (SRS §3.1)
-- Categories: Movies & TV (TMDB), Physical Music (Discogs), Video Games (IGDB), Board Games (BGG), Funko Pops (manual entry)
+- Categories: Movies & TV (TMDB), Physical Music (Discogs), Video Games (IGDB), Board Games (BGG), and any number of user-created custom collections with basic fields (manual entry)
 - Unified search, add to collection, ownership/format/tags/value/acquisition date
 - Data is filled automatically from the APIs (and the scanner), but users can edit it by hand: per-copy details such as movie resolution/edition/discs or game platform/medium/storefront (Steam, …), plus overrides of API fields like title or cover (FC-15)
 - Dashboard, gallery, filtering, item detail
@@ -78,7 +78,7 @@ fanste-collector/
 - Publishing to Google Play and the Apple App Store
 - Apple sign-in (optional, only if an Apple Developer account is available — see FC-06)
 - Spotify / digital music (listed in the SRS but not in its roadmap; needs its own OAuth flow)
-- Automatic Funko metadata (no official public API)
+- Automatic metadata for custom collections (e.g. a Funko database; no official public API) and user-defined fields per collection
 - Barcode scanning, price tracking, public/shared collections, offline mode
 - RAWG fallback for games (optional stretch inside FC-11)
 
@@ -107,7 +107,7 @@ Status legend: `TODO` · `IN PROGRESS` · `DONE` · `BLOCKED`
 | FC-10 | [Discogs integration (Physical Music)](phase-2-api-data/10-discogs-integration.md) | FC-08 | IN PROGRESS |
 | FC-11 | [IGDB integration (Video Games)](phase-2-api-data/11-igdb-integration.md) | FC-08 | IN PROGRESS |
 | FC-12 | [BoardGameGeek integration + XML parser](phase-2-api-data/12-bgg-integration.md) | FC-08 | TODO |
-| FC-13 | [Funko Pops / custom items](phase-2-api-data/13-funko-custom-items.md) | FC-05, FC-07 | TODO |
+| FC-13 | [Custom collections](phase-2-api-data/13-custom-collections.md) | FC-05, FC-07, FC-14, FC-15 | TODO |
 | FC-14 | [Collection data layer & realtime sync](phase-2-api-data/14-collection-data-layer.md) | FC-06, FC-07 | DONE |
 | FC-15 | [Item details & manual overrides](phase-2-api-data/15-item-details-overrides.md) | FC-05, FC-07, FC-14 | DONE |
 

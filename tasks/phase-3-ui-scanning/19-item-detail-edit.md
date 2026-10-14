@@ -7,7 +7,7 @@ A detail view that combines rich provider metadata (fetched on the fly) with the
 user edit it.
 
 Movies & TV ship first. The sections and copy-details fields of the other categories moved to their provider
-tasks (FC-10 music, FC-11 video games, FC-12 board games, FC-13 Funko).
+tasks (FC-10 music, FC-11 video games, FC-12 board games, FC-13 custom collections).
 
 ## Subtasks
 - [x] Detail page / modal: large cover, title, subtitle, year, description, genres, creators
@@ -16,7 +16,7 @@ tasks (FC-10 music, FC-11 video games, FC-12 board games, FC-13 Funko).
   - [ ] *(Moved to FC-10)* Music: label, catalog number, country, tracklist
   - [ ] *(Moved to FC-11)* Video game: platforms, developer
   - [ ] *(Moved to FC-12)* Board game: players, playtime, age, weight
-  - [ ] *(Moved to FC-13)* Funko: series, number, variant, exclusive
+  - [ ] *(Moved to FC-13)* Custom collections: title, number, year, maker, condition, photo
 - [x] "My copy" section: format (medium), ownership, quantity, acquired date, purchase price, estimated value, currency, tags, notes — inline editing with validation
 - [x] Category-specific copy details (FC-15), editable: movie resolution / HDR / audio channels / file format / audio and subtitle languages / edition / discs / region
   - [ ] *(Moved to FC-11)* game platform / storefront / discs / edition / completeness

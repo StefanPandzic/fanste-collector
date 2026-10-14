@@ -21,4 +21,4 @@ Landing screen after sign-in that gives an overview of the whole collection acro
 - The RPC is `collection_stats(p_time_zone)` (FC-14's function, extended), not `get_collection_stats`.
 - Counts are the copies the user has (owned, preordered, loaned out); wishlist has its own tile.
 - The value is shown in the default currency; other currencies are listed apart, not converted.
-- Category cards for Music, Video Games, Board Games and Funko show "Coming soon" until FC-10–FC-13.
+- Category cards for Music, Video Games and Board Games show "Coming soon" until FC-10–FC-12 (custom collections get their own card in FC-13).

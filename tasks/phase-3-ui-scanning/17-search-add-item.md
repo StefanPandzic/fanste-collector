@@ -7,7 +7,7 @@ One search experience across all categories: pick a category, type a query, see 
 and add an item to the collection in one or two clicks — no manual data entry (SRS §1).
 
 Movies & TV ship first (TMDB). The other categories show in the selector as "Coming soon"; their search and add
-parts moved to their provider tasks (FC-10 music, FC-11 video games, FC-12 board games, FC-13 Funko / manual items).
+parts moved to their provider tasks (FC-10 music, FC-11 video games, FC-12 board games, FC-13 custom collections / manual items).
 
 ## Subtasks
 - [x] Search page / screen with a category selector (segmented control / tabs) and a debounced input (300 ms)
