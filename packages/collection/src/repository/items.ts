@@ -201,17 +201,14 @@ export async function deleteItem(client: FansteSupabaseClient, id: string): Prom
 
 /**
  * Puts a deleted copy back as it was, with the same ID and the tags that still exist (undo of a
- * delete; the tags are best effort). Fails with `duplicate` when the user added the same item in
- * the same medium meanwhile.
+ * delete; the tags are best effort). A hand-entered item gets its own data and collection back
+ * (FC-13). Fails with `duplicate` when the user added the same item in the same medium meanwhile,
+ * and with `not_found` when the item's custom collection was deleted meanwhile.
  */
 export async function restoreItem(
   client: FansteSupabaseClient,
   item: CollectionItem,
 ): Promise<CollectionItem> {
-  if (item.provider === 'custom') {
-    // Restoring needs the item's `custom_data`, which comes with custom items (FC-13).
-    throw new CollectionError('invalid', 'Custom items cannot be restored yet.');
-  }
   const { error } = await client.from('collection_items').insert(toRestoreRow(item));
   if (error) throw toCollectionError(error);
 
@@ -296,4 +293,31 @@ export async function bulkUpdateItems(
     updated += data.length;
   }
   return updated;
+}
+
+/**
+ * Moves items to another of the user's custom collections (FC-13); returns how many moved. Only
+ * `custom` items move: ids of other items, and unknown ids, are skipped. A collection that isn't the
+ * user's fails with `not_found` (the foreign key).
+ */
+export async function moveItemsToCollection(
+  client: FansteSupabaseClient,
+  ids: readonly string[],
+  collectionId: string,
+): Promise<number> {
+  if (!z.uuid().safeParse(collectionId).success) {
+    throw new CollectionError('invalid', 'Invalid collection id.');
+  }
+  let moved = 0;
+  for (const chunk of idChunks(ids)) {
+    const { data, error } = await client
+      .from('collection_items')
+      .update({ custom_collection_id: collectionId })
+      .in('id', chunk)
+      .eq('category', 'custom')
+      .select('id');
+    if (error) throw toCollectionError(error);
+    moved += data.length;
+  }
+  return moved;
 }

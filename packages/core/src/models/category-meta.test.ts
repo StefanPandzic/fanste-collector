@@ -26,7 +26,7 @@ describe('categoryLabel', () => {
 
   it('returns the plural label when asked', () => {
     expect(categoryLabel('video_game', { plural: true })).toBe('Video Games');
-    expect(categoryLabel('funko', { plural: true })).toBe('Funko Pops');
+    expect(categoryLabel('custom', { plural: true })).toBe('Custom collections');
   });
 });
 

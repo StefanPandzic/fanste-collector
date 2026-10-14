@@ -11,8 +11,8 @@ describe('providerOfCategory', () => {
     expect(providerOfCategory('board_game')).toBe('bgg');
   });
 
-  it('returns undefined for Funko Pops', () => {
-    expect(providerOfCategory('funko')).toBeUndefined();
+  it('returns undefined for custom collections', () => {
+    expect(providerOfCategory('custom')).toBeUndefined();
   });
 });
 
@@ -32,7 +32,7 @@ describe('providerSupportsCategory', () => {
   });
 
   it('allows any category for custom items', () => {
-    expect(providerSupportsCategory('custom', 'funko')).toBe(true);
+    expect(providerSupportsCategory('custom', 'custom')).toBe(true);
     expect(providerSupportsCategory('custom', 'movie')).toBe(true);
   });
 });

@@ -17,7 +17,7 @@ const geistMono = Geist_Mono({ subsets: ['latin'], variable: '--font-mono-app' }
 export const metadata: Metadata = {
   title: { default: APP_NAME, template: `%s · ${APP_NAME}` },
   description:
-    'Track your movies, TV, music, video games, board games and Funko Pops in one place.',
+    'Track your movies, TV, music, video games, board games and your own collections in one place.',
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { CollectionError } from '../errors';
-import { bulkUpdateItems, restoreItem, toFilterJson } from './items';
+import { bulkUpdateItems, moveItemsToCollection, restoreItem, toFilterJson } from './items';
 import { toRestoreRow } from './mappers';
 
 import type { CollectionItem } from '@fanste/core';
@@ -12,6 +12,7 @@ const matrixId = '7c2d4e6f-1a3b-4c5d-8e9f-0a1b2c3d4e5f';
 
 function createFakeClient() {
   const updates: { row: Record<string, unknown>; ids: string[] }[] = [];
+  const filters: [string, unknown][] = [];
   const client = {
     from: () => {
       const update = { row: {} as Record<string, unknown>, ids: [] as string[] };
@@ -24,6 +25,10 @@ function createFakeClient() {
           update.ids = ids;
           return builder;
         },
+        eq: (column: string, value: unknown) => {
+          filters.push([column, value]);
+          return builder;
+        },
         select: () => {
           updates.push(update);
           return Promise.resolve({ data: update.ids.map((id) => ({ id })), error: null });
@@ -32,9 +37,10 @@ function createFakeClient() {
       return builder;
     },
   } as unknown as FansteSupabaseClient;
-  return { client, updates };
+  return { client, updates, filters };
 }
 
+const funkoId = '3c9a1e2b-7d4f-4a6b-8c1d-2e3f4a5b6c7d';
 const steelbookTagId = '5b1f0c2e-7d3a-4e8b-9c6f-1a2b3c4d5e6f';
 const deletedTagId = '8d2e1f3a-4b5c-4d6e-9f0a-1b2c3d4e5f60';
 
@@ -44,6 +50,8 @@ const inception: CollectionItem = {
   category: 'movie',
   provider: 'tmdb',
   externalId: 'movie:27205',
+  customCollectionId: null,
+  customData: null,
   format: '4K UHD Blu-ray',
   details: { edition: 'Steelbook' },
   metadataOverrides: {},
@@ -154,6 +162,27 @@ describe('bulkUpdateItems', () => {
   });
 });
 
+describe('moveItemsToCollection', () => {
+  it('moves only custom items to the collection', async () => {
+    const { client, updates, filters } = createFakeClient();
+    expect(await moveItemsToCollection(client, [inceptionId, matrixId], funkoId)).toBe(2);
+    expect(updates).toEqual([
+      { row: { custom_collection_id: funkoId }, ids: [inceptionId, matrixId] },
+    ]);
+    expect(filters).toEqual([['category', 'custom']]);
+  });
+
+  it('rejects an invalid collection id', async () => {
+    const { client, updates } = createFakeClient();
+    const error: unknown = await moveItemsToCollection(client, [inceptionId], 'funko').catch(
+      (caught: unknown) => caught,
+    );
+    expect(error).toBeInstanceOf(CollectionError);
+    expect(error).toHaveProperty('code', 'invalid');
+    expect(updates).toEqual([]);
+  });
+});
+
 describe('restoreItem', () => {
   it('inserts the copy again, re-links its existing tags and returns it', async () => {
     const { client, writes } = createRestoreClient([steelbookTagId]);
@@ -166,16 +195,23 @@ describe('restoreItem', () => {
     expect(restored.tagIds).toEqual([steelbookTagId]);
   });
 
-  it('rejects a custom item', async () => {
+  it('restores a custom item with its own data and collection', async () => {
     const { client, writes } = createRestoreClient([]);
-    const error: unknown = await restoreItem(client, {
+    const spiderMan: CollectionItem = {
       ...inception,
+      category: 'custom',
       provider: 'custom',
-      category: 'funko',
       externalId: null,
-    }).catch((caught: unknown) => caught);
-    expect(error).toBeInstanceOf(CollectionError);
-    expect(error).toHaveProperty('code', 'invalid');
-    expect(writes).toEqual([]);
+      customCollectionId: funkoId,
+      customData: { title: 'Spider-Man', identifier: '#123' },
+      tagIds: [],
+    };
+    await restoreItem(client, spiderMan);
+    expect(writes[0]).toEqual({ table: 'collection_items', rows: toRestoreRow(spiderMan) });
+    expect(writes[0]?.rows).toHaveProperty('custom_data', {
+      title: 'Spider-Man',
+      identifier: '#123',
+    });
+    expect(writes[0]?.rows).toHaveProperty('custom_collection_id', funkoId);
   });
 });

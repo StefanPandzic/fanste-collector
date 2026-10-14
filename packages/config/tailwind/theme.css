@@ -63,8 +63,8 @@
   --category-video-game-foreground: oklch(0.985 0 0);
   --category-board-game: oklch(0.52 0.15 245);
   --category-board-game-foreground: oklch(0.985 0 0);
-  --category-funko: oklch(0.54 0.2 345);
-  --category-funko-foreground: oklch(0.985 0 0);
+  --category-custom: oklch(0.52 0.06 205);
+  --category-custom-foreground: oklch(0.985 0 0);
 
   --shadow-card: 0 1px 2px 0 oklch(0 0 0 / 6%), 0 1px 3px 0 oklch(0 0 0 / 8%);
   --shadow-card-hover: 0 4px 8px -2px oklch(0 0 0 / 10%), 0 12px 24px -6px oklch(0 0 0 / 14%);
@@ -107,8 +107,8 @@
   --category-video-game-foreground: oklch(0.2 0.04 150);
   --category-board-game: oklch(0.76 0.12 245);
   --category-board-game-foreground: oklch(0.2 0.04 245);
-  --category-funko: oklch(0.76 0.15 345);
-  --category-funko-foreground: oklch(0.2 0.05 345);
+  --category-custom: oklch(0.78 0.06 205);
+  --category-custom-foreground: oklch(0.2 0.03 205);
 
   --shadow-card: 0 1px 2px 0 oklch(0 0 0 / 30%);
   --shadow-card-hover: 0 4px 8px -2px oklch(0 0 0 / 40%), 0 12px 24px -6px oklch(0 0 0 / 50%);
@@ -151,8 +151,8 @@
   --color-category-video-game-foreground: var(--category-video-game-foreground);
   --color-category-board-game: var(--category-board-game);
   --color-category-board-game-foreground: var(--category-board-game-foreground);
-  --color-category-funko: var(--category-funko);
-  --color-category-funko-foreground: var(--category-funko-foreground);
+  --color-category-custom: var(--category-custom);
+  --color-category-custom-foreground: var(--category-custom-foreground);
 
   --shadow-card: var(--shadow-card);
   --shadow-card-hover: var(--shadow-card-hover);

@@ -19,6 +19,6 @@ describe('isValidExternalId', () => {
   });
 
   it('rejects every ID for custom items', () => {
-    expect(isValidExternalId('custom', 'funko', '123')).toBe(false);
+    expect(isValidExternalId('custom', 'custom', '123')).toBe(false);
   });
 });

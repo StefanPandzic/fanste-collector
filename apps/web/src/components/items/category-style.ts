@@ -39,10 +39,10 @@ const ACCENT_CLASSES: Record<CategoryAccent, AccentClasses> = {
     fallback: 'from-category-board-game/30 to-category-board-game/5 text-category-board-game',
     solid: 'bg-category-board-game',
   },
-  funko: {
-    soft: 'bg-category-funko/10 text-category-funko',
-    fallback: 'from-category-funko/30 to-category-funko/5 text-category-funko',
-    solid: 'bg-category-funko',
+  custom: {
+    soft: 'bg-category-custom/10 text-category-custom',
+    fallback: 'from-category-custom/30 to-category-custom/5 text-category-custom',
+    solid: 'bg-category-custom',
   },
 };
 

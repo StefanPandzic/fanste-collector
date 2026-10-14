@@ -1,4 +1,7 @@
 export * from './copies';
+export * from './custom-collections';
+export * from './custom-images';
+export * from './custom-items';
 export * from './details';
 export * from './facets';
 export * from './items';

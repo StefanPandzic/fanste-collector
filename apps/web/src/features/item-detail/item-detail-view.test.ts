@@ -90,6 +90,8 @@ const copy: CollectionItem = {
   category: 'movie',
   provider: 'tmdb',
   externalId: 'movie:27205',
+  customCollectionId: null,
+  customData: null,
   format: '4K UHD Blu-ray',
   details: {},
   metadataOverrides: {},

@@ -28,6 +28,8 @@ const inception: CollectionItem = {
   category: 'movie',
   provider: 'tmdb',
   externalId: 'movie:27205',
+  customCollectionId: null,
+  customData: null,
   format: '4K UHD Blu-ray',
   details: {},
   metadataOverrides: {},
@@ -76,6 +78,24 @@ describe('matchesQuery', () => {
     expect(matchesQuery(inception, { ownership: ['wishlist'] })).toBe(false);
     expect(matchesQuery(matrix, { tagIds: [tagId] })).toBe(false);
     expect(matchesQuery(inception, { search: 'matrix' })).toBe(false);
+  });
+
+  it('matches only items of the filtered custom collections', () => {
+    const funkoId = '3c9a1e2b-7d4f-4a6b-8c1d-2e3f4a5b6c7d';
+    const spiderMan: CollectionItem = {
+      ...inception,
+      category: 'custom',
+      provider: 'custom',
+      externalId: null,
+      customCollectionId: funkoId,
+      customData: { title: 'Spider-Man' },
+      metadata: null,
+    };
+    expect(matchesQuery(spiderMan, { customCollectionIds: [funkoId] })).toBe(true);
+    expect(
+      matchesQuery(spiderMan, { customCollectionIds: ['8e7d6c5b-4a39-4281-9706-f5e4d3c2b1a0'] }),
+    ).toBe(false);
+    expect(matchesQuery(inception, { customCollectionIds: [funkoId] })).toBe(false);
   });
 
   it('applies the media, source, acquisition date and copy-details filters', () => {

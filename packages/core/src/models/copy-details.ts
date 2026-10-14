@@ -1,6 +1,11 @@
 import { z } from 'zod';
 
-import { CONDITION_GRADES, GAME_COMPLETENESS, SLEEVE_GRADES } from './copy-options';
+import {
+  CONDITION_GRADES,
+  CUSTOM_CONDITION_VALUES,
+  GAME_COMPLETENESS,
+  SLEEVE_GRADES,
+} from './copy-options';
 import { ITEM_CATEGORIES } from './enums';
 import { jsonByteLength, parseFields } from './lenient';
 
@@ -11,8 +16,8 @@ import type { TvExtra } from './extras';
 // `collection_items.details` next to the `format` column. Every field is optional. Option fields are
 // free text (the lists in `copy-options.ts` are suggestions), so "Other" values fit.
 //
-// Movies, TV, music and video games are typed. The other categories keep a loose record until their
-// provider tasks type it: board games FC-12, Funko FC-13.
+// Movies, TV, music, video games and the items of custom collections are typed. Board games keep a
+// loose record until FC-12 types it.
 
 /** Longest value of an option field such as `edition` or `digitalStore`. */
 export const MAX_OPTION_LENGTH = 100;
@@ -156,6 +161,19 @@ export const videoGameDetailsShape = {
   dlcNotes: z.string().trim().min(1).max(MAX_DLC_NOTES_LENGTH).optional(),
 };
 
+/**
+ * Fields of a copy of an item in a custom collection (FC-13), generic enough for any object. With the
+ * `format` (`Physical` / `Digital`), ownership, prices, notes and tags every copy has.
+ */
+export const customDetailsShape = {
+  /** `CUSTOM_CONDITIONS`, a fixed scale. */
+  condition: z.enum(CUSTOM_CONDITION_VALUES).optional(),
+  /** Edition, variant or color, e.g. `Glow in the dark` or `Chase`. */
+  variant: optionText.optional(),
+  /** Whether the copy has its box or packaging. */
+  boxed: z.boolean().optional(),
+};
+
 function withSizeLimit<T extends z.ZodType>(schema: T) {
   return schema.refine(
     (value) => jsonByteLength(value) <= MAX_DETAILS_BYTES,
@@ -167,6 +185,7 @@ export const movieDetailsSchema = withSizeLimit(z.object(movieDetailsShape));
 export const tvDetailsSchema = withSizeLimit(z.object(tvDetailsShape));
 export const musicDetailsSchema = withSizeLimit(z.object(musicDetailsShape));
 export const videoGameDetailsSchema = withSizeLimit(z.object(videoGameDetailsShape));
+export const customDetailsSchema = withSizeLimit(z.object(customDetailsShape));
 /** Details of a category that isn't typed yet. */
 export const looseDetailsSchema = withSizeLimit(z.record(z.string(), z.unknown()));
 
@@ -174,6 +193,7 @@ export type MovieDetails = z.output<typeof movieDetailsSchema>;
 export type TvDetails = z.output<typeof tvDetailsSchema>;
 export type MusicDetails = z.output<typeof musicDetailsSchema>;
 export type VideoGameDetails = z.output<typeof videoGameDetailsSchema>;
+export type CustomDetails = z.output<typeof customDetailsSchema>;
 export type LooseDetails = z.output<typeof looseDetailsSchema>;
 
 /** The `details` type of each category. */
@@ -183,7 +203,7 @@ export interface DetailsByCategory {
   music: MusicDetails;
   video_game: VideoGameDetails;
   board_game: LooseDetails;
-  funko: LooseDetails;
+  custom: CustomDetails;
 }
 
 const DETAILS_SCHEMAS = {
@@ -192,7 +212,7 @@ const DETAILS_SCHEMAS = {
   music: musicDetailsSchema,
   video_game: videoGameDetailsSchema,
   board_game: looseDetailsSchema,
-  funko: looseDetailsSchema,
+  custom: customDetailsSchema,
 } satisfies Record<ItemCategory, z.ZodType>;
 
 /** The strict schema of a category's `details`, for validating user input. */
@@ -203,7 +223,11 @@ export function detailsSchemaFor<C extends ItemCategory>(category: C): (typeof D
 const medium = optionText.nullable().optional();
 const untypedCategories = ITEM_CATEGORIES.filter(
   (category) =>
-    category !== 'movie' && category !== 'tv' && category !== 'music' && category !== 'video_game',
+    category !== 'movie' &&
+    category !== 'tv' &&
+    category !== 'music' &&
+    category !== 'video_game' &&
+    category !== 'custom',
 );
 
 /**
@@ -215,6 +239,7 @@ export const copyDetailsSchema = z.discriminatedUnion('category', [
   z.object({ category: z.literal('tv'), format: medium, details: tvDetailsSchema }),
   z.object({ category: z.literal('music'), format: medium, details: musicDetailsSchema }),
   z.object({ category: z.literal('video_game'), format: medium, details: videoGameDetailsSchema }),
+  z.object({ category: z.literal('custom'), format: medium, details: customDetailsSchema }),
   z.object({ category: z.enum(untypedCategories), format: medium, details: looseDetailsSchema }),
 ]);
 
@@ -231,6 +256,7 @@ export function parseDetails<C extends ItemCategory>(
   if (category === 'movie') return parseFields(movieDetailsShape, value);
   if (category === 'music') return parseFields(musicDetailsShape, value);
   if (category === 'video_game') return parseFields(videoGameDetailsShape, value);
+  if (category === 'custom') return parseFields(customDetailsShape, value);
   if (category === 'tv') {
     const details: TvDetails = parseFields(movieDetailsShape, value);
     const list = (value as { seasons?: unknown } | null)?.seasons;

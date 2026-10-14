@@ -1,6 +1,7 @@
 # Fanste Collector
 
-A cross-platform collection tracker for **Movies, TV, Music, Video Games, Board Games and Funko Pops**.
+A cross-platform collection tracker for **Movies, TV, Music, Video Games and Board Games**, plus your own
+custom collections for anything else (Funko Pops, LEGO, comics, coins, …).
 
 Fanste Collector aggregates metadata from external providers (TMDB, Discogs, IGDB, BoardGameGeek). Users search, add
 items to their collection and record what they own. Only external IDs and ownership data are stored in Supabase;
@@ -155,6 +156,7 @@ The database is an index, not a media host: it stores provider + external ID and
 | `tags`                  | The user's tags                                                                     | own rows                        |
 | `collection_item_tags`  | Item ↔ tag links; composite keys keep both sides within one user                    | own rows                        |
 | `scanned_files`         | Desktop scanner state per device and file path                                      | own rows                        |
+| `custom_collections`    | The user's own collections (name, icon, order); at most 50 per user                 | own rows                        |
 | `collection_items_view` | Items with display values (`metadata_overrides` → `metadata_cache` → `custom_data`) | own rows (security invoker)     |
 
 - `anon` has no privileges on any of them.
@@ -164,13 +166,16 @@ The database is an index, not a media host: it stores provider + external ID and
   - IGDB and BGG: the plain number.
 - One copy per user, external item and format (compared case- and space-insensitively): the same title as DVD
   and 4K is two rows.
-- **Realtime:** changes to `collection_items` and `collection_item_tags` are broadcast to the owner's private topic
+- **Custom collections:** their items have `category = 'custom'`, `provider = 'custom'` and a
+  `custom_collection_id`; their fields are in `custom_data`. Deleting a collection deletes its items.
+- **Realtime:** changes to `collection_items`, `collection_item_tags` and `custom_collections` are broadcast to the owner's private topic
   `user:<user id>`, and only that user may join it. Postgres Changes isn't used, because it doesn't apply RLS to
   DELETE events. In both projects, turn off **Realtime → Settings → Allow public access**, so only private channels
   can be joined.
 - **Storage:** the public `avatars` bucket holds profile pictures as `<user id>/<uuid>.<ext>` (PNG, JPEG or WebP,
-  up to 2 MB). Each user can list, upload and delete only inside their own folder; the files are served by public
-  URL.
+  up to 2 MB). The public `custom-images` bucket holds photos of hand-entered items and uploaded covers as
+  `<user id>/<uuid>.webp` (up to 1 MB, compressed in the browser). In both, each user can list, upload and delete
+  only inside their own folder; the files are served by public, unguessable URLs.
 - The drift check compares only the `public` schema. The `realtime.messages` and Storage policies are covered by
   `pnpm test:rls`.
 

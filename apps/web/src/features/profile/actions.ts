@@ -3,7 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 
-import { profileSchema } from '@fanste/core';
+import { CUSTOM_IMAGES_BUCKET, profileSchema } from '@fanste/core';
 
 import { formFields, invalidFields } from '@/features/auth/form-state';
 import type { FormState } from '@/features/auth/form-state';
@@ -90,7 +90,8 @@ export async function removeAvatar(): Promise<FormState> {
 
 /**
  * Deletes the signed-in user's account. Their profile, collection, tags and scanner data go with it
- * (`on delete cascade`); avatar files are deleted first, since Storage objects can't cascade.
+ * (`on delete cascade`); avatar files and item photos (FC-13) are deleted first, since Storage
+ * objects can't cascade.
  */
 export async function deleteAccount(_state: FormState, formData: FormData): Promise<FormState> {
   const user = await currentUserOrSignIn();
@@ -103,6 +104,7 @@ export async function deleteAccount(_state: FormState, formData: FormData): Prom
     // the form, so a user can only delete themselves.
     const admin = createSupabaseServiceClient();
     await removeAvatarFiles(admin, user.id);
+    await removeCustomImageFiles(admin, user.id);
     const { error } = await admin.auth.admin.deleteUser(user.id);
     if (error) throw error;
   } catch (error) {
@@ -133,4 +135,36 @@ async function removeAvatarFiles(
 
   const { error: removeError } = await bucket.remove(paths);
   if (removeError) console.error('[profile] Deleting old avatar files failed', removeError.message);
+}
+
+/** Files listed per request while deleting a user's item photos. */
+const LIST_PAGE = 1000;
+/** Upper bound of listing requests, so a misbehaving listing can't keep the action running. */
+const MAX_LIST_PAGES = 50;
+
+/**
+ * Deletes every item photo and uploaded cover of the user (`custom-images/<user id>/`, FC-13). The
+ * app only writes files directly in that folder (`newCustomImagePath`), so sub-folders are skipped.
+ * Failures are logged, not fatal: an orphaned file only costs storage.
+ */
+async function removeCustomImageFiles(supabase: FansteSupabaseClient, userId: string) {
+  const bucket = supabase.storage.from(CUSTOM_IMAGES_BUCKET);
+  const paths: string[] = [];
+  for (let page = 0; page < MAX_LIST_PAGES; page++) {
+    const { data: entries, error } = await bucket.list(userId, {
+      limit: LIST_PAGE,
+      offset: page * LIST_PAGE,
+    });
+    if (error) {
+      console.error('[profile] Listing item photos failed', error.message);
+      break;
+    }
+    // Folders are listed with a null `id`.
+    for (const entry of entries) if (entry.id !== null) paths.push(`${userId}/${entry.name}`);
+    if (entries.length < LIST_PAGE) break;
+  }
+  for (let start = 0; start < paths.length; start += LIST_PAGE) {
+    const { error } = await bucket.remove(paths.slice(start, start + LIST_PAGE));
+    if (error) console.error('[profile] Deleting item photos failed', error.message);
+  }
 }

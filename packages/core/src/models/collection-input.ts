@@ -2,6 +2,7 @@ import { z } from 'zod';
 
 import { ITEM_SOURCES } from './collection-item';
 import {
+  customDetailsShape,
   detailsSchemaFor,
   languageCodeSchema,
   movieDetailsShape,
@@ -9,6 +10,7 @@ import {
   videoGameDetailsShape,
   tvDetailsShape,
 } from './copy-details';
+import { customItemDataSchema, customItemDataShape } from './custom-item';
 import { itemCategorySchema, metadataProviderSchema, ownershipStatusSchema } from './enums';
 import { metadataOverridesShape } from './metadata-overrides';
 import { checkProviderIdentity } from './normalized-item';
@@ -57,8 +59,24 @@ const copyFields = z.object({
   notes: optionalText(MAX_NOTES_LENGTH),
 });
 
+/** Checks `details` against the schema of the input's category and replaces it with the result. */
+function parseInputDetails<T extends { category: ItemCategory; details?: Record<string, unknown> }>(
+  input: T,
+  ctx: z.core.$RefinementCtx,
+): T {
+  if (input.details === undefined) return input;
+  const result = detailsSchemaFor(input.category).safeParse(input.details);
+  if (!result.success) {
+    for (const issue of result.error.issues) {
+      ctx.addIssue({ ...issue, path: ['details', ...issue.path] });
+    }
+    return z.NEVER;
+  }
+  return { ...input, details: result.data };
+}
+
 /**
- * A new copy of a provider item. Custom items (`provider: 'custom'`) get their own input in FC-13.
+ * A new copy of a provider item. Hand-entered items have their own input (`addCustomItemInputSchema`).
  * `details` is checked against the category's schema (`detailsSchemaFor`); suggest its values with
  * `prefillDetails`.
  */
@@ -72,19 +90,41 @@ export const addItemInputSchema = copyFields
     source: z.enum(ITEM_SOURCES).optional(),
   })
   .superRefine(checkProviderIdentity)
-  .transform((input, ctx) => {
-    if (input.details === undefined) return input;
-    const result = detailsSchemaFor(input.category).safeParse(input.details);
-    if (!result.success) {
-      for (const issue of result.error.issues) {
-        ctx.addIssue({ ...issue, path: ['details', ...issue.path] });
-      }
-      return z.NEVER;
-    }
-    return { ...input, details: result.data };
-  });
+  .transform(parseInputDetails);
 
 export type AddItemInput = z.input<typeof addItemInputSchema>;
+
+/**
+ * A new hand-entered item (FC-13), stored with `provider = 'custom'`: an item of a custom collection
+ * (`category: 'custom'` and its `customCollectionId`), or an item of an integrated category that its
+ * provider lacks ("Can't find it? Add manually"), which has no collection. Like every custom item,
+ * the row is the item and its one copy at once.
+ */
+export const addCustomItemInputSchema = copyFields
+  .partial()
+  .extend({
+    category: itemCategorySchema,
+    customCollectionId: z.uuid().nullable().optional(),
+    customData: customItemDataSchema,
+    details: z.record(z.string(), z.unknown()).optional(),
+  })
+  .superRefine((input, ctx) => {
+    const inCollection =
+      input.customCollectionId !== undefined && input.customCollectionId !== null;
+    if ((input.category === 'custom') !== inCollection) {
+      ctx.addIssue({
+        code: 'custom',
+        message:
+          input.category === 'custom'
+            ? 'Pick the collection the item belongs to.'
+            : 'Only items of the "custom" category belong to a collection.',
+        path: ['customCollectionId'],
+      });
+    }
+  })
+  .transform(parseInputDetails);
+
+export type AddCustomItemInput = z.input<typeof addCustomItemInputSchema>;
 
 /**
  * Changes to a copy. Copy details and metadata overrides are edited with their own functions, which
@@ -112,7 +152,7 @@ const DETAILS_PATCH_SCHEMAS = {
   music: z.object(patchShape(musicDetailsShape)),
   video_game: z.object(patchShape(videoGameDetailsShape)),
   board_game: loosePatchSchema,
-  funko: loosePatchSchema,
+  custom: z.object(patchShape(customDetailsShape)),
 } satisfies Record<ItemCategory, z.ZodType>;
 
 /**
@@ -134,6 +174,17 @@ export type DetailsPatch<C extends ItemCategory = ItemCategory> = z.input<
 export const overridesPatchSchema = z.object(patchShape(metadataOverridesShape));
 
 export type OverridesPatch = z.input<typeof overridesPatchSchema>;
+
+/**
+ * Changes to a hand-entered item's `custom_data` (FC-13): present fields are set, `null` fields
+ * removed, others kept. The title can be changed but not removed.
+ */
+export const customItemDataPatchSchema = z.object({
+  ...patchShape(customItemDataShape),
+  title: customItemDataShape.title.optional(),
+});
+
+export type CustomItemDataPatch = z.input<typeof customItemDataPatchSchema>;
 
 /** A user's tag. `color` is a hex color like `#3b82f6`. */
 export const tagInputSchema = z.object({
@@ -219,6 +270,8 @@ export const collectionFilterSchema = z.object({
   search: z.string().trim().max(200).optional(),
   /** A record's release country from the Discogs data, e.g. `UK` (FC-10), matched exactly. */
   countries: anyOf(z.string().trim().min(1).max(MAX_COUNTRY_LENGTH)),
+  /** The custom collections an item belongs to (FC-13); items of other categories never match. */
+  customCollectionIds: anyOf(z.uuid()),
   details: collectionDetailsFilterSchema.optional(),
 });
 
@@ -256,6 +309,7 @@ export const COLLECTION_FACETS = [
   'country',
   'platform',
   'storefront',
+  'customCollection',
 ] as const;
 export type CollectionFacet = (typeof COLLECTION_FACETS)[number];
 

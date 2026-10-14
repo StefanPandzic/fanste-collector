@@ -103,7 +103,7 @@ describe('itemRefSchema', () => {
 
   it('rejects invalid external IDs and the custom provider', () => {
     expect(itemRefSchema.safeParse({ provider: 'tmdb', externalId: '603' }).success).toBe(false);
-    expect(itemRefSchema.safeParse({ provider: 'custom', externalId: 'funko-1' }).success).toBe(
+    expect(itemRefSchema.safeParse({ provider: 'custom', externalId: 'pop-1' }).success).toBe(
       false,
     );
   });

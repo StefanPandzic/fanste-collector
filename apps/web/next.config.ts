@@ -30,8 +30,27 @@ function loadRootEnvFiles() {
 loadRootEnvFiles();
 
 // Fail fast on malformed values instead of on first use.
-parseEnv(clientEnvSchema, process.env, 'client');
+const clientEnv = parseEnv(clientEnvSchema, process.env, 'client');
 parseEnv(serverEnvSchema, process.env, 'server');
+
+/**
+ * Photos and covers users upload (FC-13) live in the Supabase project's public `custom-images`
+ * bucket. Only that bucket's path is allowed, never the whole host: other user-entered URLs load
+ * without the optimizer (`isUploadedImageUrl`).
+ */
+function customImagesPattern() {
+  const url = clientEnv.NEXT_PUBLIC_SUPABASE_URL;
+  if (!url) return [];
+  const { protocol, hostname, port } = new URL(url);
+  return [
+    {
+      protocol: protocol.slice(0, -1) as 'http' | 'https',
+      hostname,
+      port,
+      pathname: '/storage/v1/object/public/custom-images/**',
+    },
+  ];
+}
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
@@ -49,6 +68,7 @@ const nextConfig: NextConfig = {
       { protocol: 'https', hostname: 'i.discogs.com' },
       { protocol: 'https', hostname: 'images.igdb.com', pathname: '/igdb/image/upload/**' },
       { protocol: 'https', hostname: 'cf.geekdo-images.com' },
+      ...customImagesPattern(),
     ],
   },
 };

@@ -12,7 +12,7 @@ export interface ProviderRegistry {
   forProvider(provider: ExternalProvider): ProviderAdapter;
 }
 
-/** The external provider of each category; categories without one (Funko Pops) are missing. */
+/** The external provider of each category; categories without one (`custom`) are missing. */
 export function providerForCategory(category: ItemCategory): ExternalProvider | undefined {
   return EXTERNAL_PROVIDERS.find((provider) =>
     (PROVIDER_CATEGORIES[provider] as readonly ItemCategory[]).includes(category),

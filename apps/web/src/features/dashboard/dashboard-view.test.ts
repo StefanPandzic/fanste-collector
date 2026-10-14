@@ -3,14 +3,33 @@ import { describe, expect, it } from 'vitest';
 import {
   categoryCards,
   categoryValues,
+  customCollectionRows,
   isEmptyCollection,
   monthBars,
   valueSummary,
 } from './dashboard-view';
 
 import type { CollectionStats, ItemCounts } from '@fanste/collection';
+import type { CustomCollection } from '@fanste/core';
 
 const none: ItemCounts = { items: 0, quantity: 0 };
+
+const funko: CustomCollection = {
+  id: '3c9a1e2b-7d4f-4a6b-8c1d-2e3f4a5b6c7d',
+  name: 'Funko Pops',
+  description: null,
+  icon: 'box',
+  sortOrder: 0,
+  createdAt: '2026-10-14T12:00:00+00:00',
+  updatedAt: '2026-10-14T12:00:00+00:00',
+};
+const lego: CustomCollection = {
+  ...funko,
+  id: '8e7d6c5b-4a39-4281-9706-f5e4d3c2b1a0',
+  name: 'LEGO Sets',
+  icon: 'toy-brick',
+  sortOrder: 1,
+};
 
 const stats: CollectionStats = {
   totals: { items: 6, quantity: 7 },
@@ -20,7 +39,7 @@ const stats: CollectionStats = {
     music: { items: 2, quantity: 2 },
     video_game: none,
     board_game: none,
-    funko: none,
+    custom: none,
   },
   byOwnership: {
     owned: { items: 3, quantity: 4 },
@@ -36,7 +55,7 @@ const stats: CollectionStats = {
     music: none,
     video_game: none,
     board_game: none,
-    funko: none,
+    custom: none,
   },
   estimatedValue: [
     { currency: 'USD', total: 60 },
@@ -51,12 +70,14 @@ const stats: CollectionStats = {
     music: [],
     video_game: [],
     board_game: [],
-    funko: [],
+    custom: [],
   },
   addedByMonth: [
     { month: '2026-09', items: 1 },
     { month: '2026-10', items: 4 },
   ],
+  byCustomCollection: {},
+  inCollectionByCustomCollection: {},
 };
 
 describe('valueSummary', () => {
@@ -81,7 +102,6 @@ describe('categoryCards', () => {
       'music',
       'video_game',
       'board_game',
-      'funko',
     ]);
     expect(cards[0]).toEqual({
       category: 'movie',
@@ -94,8 +114,36 @@ describe('categoryCards', () => {
 
   it('marks categories without a provider or items as coming soon', () => {
     const cards = categoryCards(stats);
-    expect(cards.find((card) => card.category === 'funko')?.available).toBe(false);
+    expect(cards.find((card) => card.category === 'board_game')?.available).toBe(false);
     expect(cards.find((card) => card.category === 'tv')?.available).toBe(true);
+  });
+});
+
+describe('customCollectionRows', () => {
+  it('lists the collections in order with what the user has in them', () => {
+    expect(
+      customCollectionRows(
+        { ...stats, inCollectionByCustomCollection: { [funko.id]: { items: 12, quantity: 14 } } },
+        [funko, lego],
+      ),
+    ).toEqual([
+      {
+        id: funko.id,
+        name: 'Funko Pops',
+        icon: 'box',
+        items: 12,
+        copies: 14,
+        href: `/collections/${funko.id}`,
+      },
+      {
+        id: lego.id,
+        name: 'LEGO Sets',
+        icon: 'toy-brick',
+        items: 0,
+        copies: 0,
+        href: `/collections/${lego.id}`,
+      },
+    ]);
   });
 });
 

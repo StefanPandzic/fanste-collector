@@ -1,5 +1,6 @@
 import { z } from 'zod';
 
+import { customItemDataSchema } from './custom-item';
 import { itemCategorySchema, metadataProviderSchema, ownershipStatusSchema } from './enums';
 import { metadataOverridesSchema } from './metadata-overrides';
 import { normalizedItemSchema } from './normalized-item';
@@ -25,6 +26,13 @@ export const collectionItemSchema = z.object({
   provider: metadataProviderSchema,
   /** `null` for custom items. */
   externalId: z.string().nullable(),
+  /** The custom collection of a `custom` item (FC-13); `null` for every other item. */
+  customCollectionId: z.uuid().nullable(),
+  /**
+   * What the user typed about a hand-entered item (`provider: 'custom'`, FC-13); `null` for provider
+   * items. `metadata` holds it normalized.
+   */
+  customData: customItemDataSchema.nullable(),
   /** Medium, e.g. `4K UHD Blu-ray` (see `FORMATS_BY_CATEGORY`). Free text, so "Other" fits too. */
   format: z.string().nullable(),
   /**
@@ -52,8 +60,9 @@ export const collectionItemSchema = z.object({
   /** IDs of the user's tags on this copy (`collection_item_tags`). */
   tagIds: z.array(z.uuid()),
   /**
-   * Provider metadata (or the custom item's own data, FC-13), without the user's overrides. `null`
-   * while it isn't cached yet: fetch it through the gateway's batch endpoint (FC-14).
+   * Provider metadata (or a custom item's own data, normalized with `customItemToNormalized`), without
+   * the user's overrides. `null` while a provider item's metadata isn't cached yet: fetch it through
+   * the gateway's batch endpoint (FC-14).
    */
   metadata: normalizedItemSchema.nullable(),
 });

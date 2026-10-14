@@ -2,6 +2,8 @@ import Link from 'next/link';
 
 import { APP_NAME } from '@fanste/core';
 
+import { SidebarCollections } from '@/features/custom-collections/sidebar-collections';
+
 import { MobileNav } from './mobile-nav';
 import { NavLinks } from './nav-links';
 import { ThemeToggle } from './theme-toggle';
@@ -28,6 +30,7 @@ export function AppShell({ profileName, avatarUrl, children }: AppShellProps) {
           {APP_NAME}
         </Link>
         <NavLinks />
+        <SidebarCollections />
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col">

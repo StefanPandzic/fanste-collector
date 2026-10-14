@@ -143,7 +143,8 @@ export const videoGameExtraSchema = z.object({
 
 export type VideoGameExtra = z.output<typeof videoGameExtraSchema>;
 
-// Not defined yet: BoardGameExtra: FC-12. FunkoExtra: FC-13.
+// Not defined yet: BoardGameExtra: FC-12. Hand-entered items have no extra; their fields are in
+// `custom_data` (FC-13).
 
 export function parseMovieExtra(extra: unknown): MovieExtra | undefined {
   const result = movieExtraSchema.safeParse(extra);

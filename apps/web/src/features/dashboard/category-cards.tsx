@@ -12,7 +12,7 @@ const CARD =
 /** A card per category with its item count; built categories link to the filtered gallery. */
 export function CategoryCards({ cards }: { cards: readonly CategoryCardView[] }) {
   return (
-    <ul className="grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-6">
+    <ul className="grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-5">
       {cards.map((card) => {
         const body = (
           <>

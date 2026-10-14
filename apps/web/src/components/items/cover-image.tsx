@@ -35,8 +35,8 @@ interface CoverImageProps {
 
 /**
  * Cover art in a 2:3 frame. Shows a tinted blur while loading and the category's artwork when there
- * is no cover or it fails to load. Square art (albums, board games, Funko boxes) is fitted, not
- * cropped.
+ * is no cover or it fails to load. Square art (albums, board games, photos of custom items) is
+ * fitted, not cropped.
  */
 export function CoverImage({
   src,

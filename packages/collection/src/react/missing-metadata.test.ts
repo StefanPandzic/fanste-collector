@@ -11,6 +11,8 @@ const base: CollectionItem = {
   category: 'movie',
   provider: 'tmdb',
   externalId: 'movie:603',
+  customCollectionId: null,
+  customData: null,
   format: null,
   details: {},
   metadataOverrides: {},
@@ -50,7 +52,7 @@ describe('missingMetadataRefs', () => {
           title: 'Inception',
         },
       },
-      { ...base, category: 'funko', provider: 'custom', externalId: null },
+      { ...base, category: 'custom', provider: 'custom', externalId: null },
     ];
     expect(missingMetadataRefs(items, new Set())).toEqual([
       { provider: 'discogs', externalId: 'release:249504' },

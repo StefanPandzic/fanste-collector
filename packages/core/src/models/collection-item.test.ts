@@ -8,6 +8,8 @@ const row = {
   category: 'movie',
   provider: 'tmdb',
   externalId: 'movie:27205',
+  customCollectionId: null,
+  customData: null,
   format: '4K UHD Blu-ray',
   details: { edition: 'Steelbook' },
   metadataOverrides: {},

@@ -34,7 +34,12 @@ export function useCollectionRealtime(): void {
         // Tags themselves aren't broadcast, but a new link may use a tag made on another device.
         void queryClient.invalidateQueries({ queryKey: collectionKeys.tags(userId) });
       }
-      const ids = new Set(changes.map((change) => change.itemId));
+      if (changes.some((change) => change.table === 'custom_collections')) {
+        void queryClient.invalidateQueries({ queryKey: collectionKeys.customCollections(userId) });
+      }
+      const ids = new Set(
+        changes.flatMap((change) => (change.table === 'custom_collections' ? [] : [change.itemId])),
+      );
       if (ids.size > MAX_DETAIL_INVALIDATIONS) {
         void queryClient.invalidateQueries({ queryKey: collectionKeys.details(userId) });
         return;

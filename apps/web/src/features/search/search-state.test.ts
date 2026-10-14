@@ -55,7 +55,7 @@ describe('isSearchable', () => {
     expect(isSearchable('tv')).toBe(true);
     expect(isSearchable('music')).toBe(true);
     expect(isSearchable('video_game')).toBe(true);
-    expect(isSearchable('funko')).toBe(false);
+    expect(isSearchable('custom')).toBe(false);
   });
 });
 
@@ -115,7 +115,7 @@ describe('parseSearchState', () => {
       q: 'Alien',
     });
     expect(parseSearchState({})).toEqual(DEFAULT_SEARCH_STATE);
-    expect(parseSearchState({ category: 'funko', q: 'Batman' })).toEqual({
+    expect(parseSearchState({ category: 'custom', q: 'Batman' })).toEqual({
       category: 'movie',
       q: 'Batman',
     });

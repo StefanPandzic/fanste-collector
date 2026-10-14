@@ -101,7 +101,7 @@ export function DesignShowcase() {
           {SAMPLE_ITEMS.map((item) => (
             <ItemCard key={item.id} item={item} onSelect={() => toast(`Selected ${item.title}`)} />
           ))}
-          <ItemCard item={{ title: 'Not clickable', category: 'funko' }} />
+          <ItemCard item={{ title: 'Not clickable', category: 'custom' }} />
           <ItemCard
             item={{
               title: 'With copy badges',

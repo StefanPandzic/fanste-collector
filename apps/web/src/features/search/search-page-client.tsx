@@ -29,6 +29,7 @@ import {
 } from '@/components/ui/select';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useUser } from '@/features/auth/session-provider';
+import { CustomItemDialog } from '@/features/custom-item/custom-item-dialog';
 import { useGamePlatforms } from '@/features/games/use-game-platforms';
 import { useIsDesktop } from '@/lib/platform';
 import { searchShortcutLabel } from '@/lib/shortcuts';
@@ -48,6 +49,12 @@ import {
 import type { SearchState } from './search-state';
 import type { ItemCategory, RecentSearch } from '@fanste/core';
 import type { FormEvent } from 'react';
+
+/**
+ * The category tabs: every category with a provider. Custom collections have none; their items
+ * are added on the collection's page (FC-13).
+ */
+const SEARCH_TABS = ITEM_CATEGORIES.filter((category) => category !== 'custom');
 
 /** Quiet time after typing before a search runs. */
 const SEARCH_DEBOUNCE_MS = 300;
@@ -74,6 +81,7 @@ export function SearchPageClient({ initialState, currency }: SearchPageClientPro
   const user = useUser();
   const isDesktop = useIsDesktop();
   const [state, setState] = useState(initialState);
+  const [addingManually, setAddingManually] = useState(false);
   const [yearInput, setYearInput] = useState(initialState.year?.toString() ?? '');
   // The typed text fields settle together, so a search runs once the user stops typing.
   const typed = useMemo(
@@ -157,7 +165,7 @@ export function SearchPageClient({ initialState, currency }: SearchPageClientPro
           className="max-w-full overflow-x-auto"
         >
           <TabsList aria-label="Category">
-            {ITEM_CATEGORIES.map((category) => {
+            {SEARCH_TABS.map((category) => {
               const enabled = isSearchable(category);
               return (
                 <TabsTrigger
@@ -405,6 +413,20 @@ export function SearchPageClient({ initialState, currency }: SearchPageClientPro
           description="Type a title. Results come with their cover art, and one click adds them to your collection."
         />
       )}
+
+      <p className="text-center text-sm text-muted-foreground">
+        Can&apos;t find it?{' '}
+        <Button variant="link" className="h-auto p-0" onClick={() => setAddingManually(true)}>
+          Add {categoryLabel(state.category).toLowerCase()} manually
+        </Button>
+      </p>
+      <CustomItemDialog
+        target={addingManually ? { category: state.category, customCollectionId: null } : null}
+        title={`Add ${categoryLabel(state.category).toLowerCase()} manually`}
+        description="For something the provider doesn't have. Only the title is required."
+        currency={currency}
+        onClose={() => setAddingManually(false)}
+      />
     </div>
   );
 }

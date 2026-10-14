@@ -28,6 +28,7 @@ const PERMISSION_DENIED = '42501'; // missing grant, or a row rejected by an RLS
 const FOREIGN_KEY_VIOLATION = '23503';
 const UNIQUE_VIOLATION = '23505';
 const CHECK_VIOLATION = '23514';
+const PROGRAM_LIMIT_EXCEEDED = '54000';
 
 const USER_TABLES = [
   'profiles',
@@ -35,6 +36,7 @@ const USER_TABLES = [
   'tags',
   'collection_item_tags',
   'scanned_files',
+  'custom_collections',
 ] as const;
 
 interface TestUser {
@@ -321,7 +323,7 @@ describe('Row Level Security (dev Supabase project)', () => {
       if (tag.error) throw tag.error;
       const item = await userB.client
         .from('collection_items')
-        .insert({ category: 'funko', provider: 'custom', custom_data: { title: 'Mine' } })
+        .insert({ category: 'movie', provider: 'custom', custom_data: { title: 'Mine' } })
         .select('id')
         .single();
       if (item.error) throw item.error;
@@ -374,10 +376,10 @@ describe('Row Level Security (dev Supabase project)', () => {
     });
 
     it('allow several custom items', async () => {
-      const custom = { category: 'funko', provider: 'custom', format: 'Physical' } as const;
+      const custom = { category: 'movie', provider: 'custom', format: 'Physical' } as const;
       const { error } = await userA.client.from('collection_items').insert([
-        { ...custom, custom_data: { title: 'Funko A' } },
-        { ...custom, custom_data: { title: 'Funko B' } },
+        { ...custom, custom_data: { title: 'Manual A' } },
+        { ...custom, custom_data: { title: 'Manual B' } },
       ]);
       expect(error).toBeNull();
     });
@@ -399,7 +401,7 @@ describe('Row Level Security (dev Supabase project)', () => {
     it('go back to review when their item is deleted', async () => {
       const item = await userA.client
         .from('collection_items')
-        .insert({ category: 'funko', provider: 'custom', custom_data: { title: 'Unlinked' } })
+        .insert({ category: 'movie', provider: 'custom', custom_data: { title: 'Unlinked' } })
         .select('id')
         .single();
       if (item.error) throw item.error;
@@ -463,7 +465,7 @@ describe('Row Level Security (dev Supabase project)', () => {
 
         const item = await userA.client
           .from('collection_items')
-          .insert({ category: 'funko', provider: 'custom', custom_data: { title: 'Realtime' } })
+          .insert({ category: 'movie', provider: 'custom', custom_data: { title: 'Realtime' } })
           .select('id')
           .single();
         if (item.error) throw item.error;
@@ -493,6 +495,241 @@ describe('Row Level Security (dev Supabase project)', () => {
     it("does not let a user join another user's topic", async () => {
       const { status } = await joinTopic(userB.client, `user:${userA.id}`);
       expect(status).toMatch(/^CHANNEL_ERROR/);
+    });
+  });
+
+  describe('custom collections (FC-13)', () => {
+    let collectionId: string;
+
+    beforeAll(async () => {
+      const { data, error } = await userA.client
+        .from('custom_collections')
+        .insert({ name: 'Funko Pops', icon: 'toy-brick' })
+        .select('id')
+        .single();
+      if (error) throw error;
+      collectionId = data.id;
+    });
+
+    /** Adds an item of user A's collection and returns its id. */
+    async function addCustomItem(title: string, collection = collectionId): Promise<string> {
+      const { data, error } = await userA.client
+        .from('collection_items')
+        .insert({
+          category: 'custom',
+          provider: 'custom',
+          custom_collection_id: collection,
+          custom_data: { title },
+        })
+        .select('id')
+        .single();
+      if (error) throw error;
+      return data.id;
+    }
+
+    it('are only visible to their owner', async () => {
+      const own = await userA.client.from('custom_collections').select('id');
+      expect(own.data?.map((row) => row.id)).toContain(collectionId);
+      const other = await userB.client.from('custom_collections').select('id');
+      expect(other.data).toEqual([]);
+    });
+
+    it('cannot be renamed or deleted by another user', async () => {
+      const renamed = await userB.client
+        .from('custom_collections')
+        .update({ name: 'Mine now' })
+        .eq('id', collectionId)
+        .select('id');
+      expect(renamed.data).toEqual([]);
+      const deleted = await userB.client
+        .from('custom_collections')
+        .delete()
+        .eq('id', collectionId)
+        .select('id');
+      expect(deleted.data).toEqual([]);
+      const { data } = await admin
+        .from('custom_collections')
+        .select('name')
+        .eq('id', collectionId)
+        .single();
+      expect(data?.name).toBe('Funko Pops');
+    });
+
+    it('cannot be reordered by another user', async () => {
+      await userB.client.rpc('reorder_custom_collections', { p_ids: [collectionId] });
+      const { data } = await admin
+        .from('custom_collections')
+        .select('sort_order')
+        .eq('id', collectionId)
+        .single();
+      expect(data?.sort_order).toBe(0);
+    });
+
+    it('have names unique per user, ignoring case', async () => {
+      const { error } = await userA.client
+        .from('custom_collections')
+        .insert({ name: 'funko pops' });
+      expect(error?.code).toBe(UNIQUE_VIOLATION);
+      const other = await userB.client.from('custom_collections').insert({ name: 'Funko Pops' });
+      expect(other.error).toBeNull();
+    });
+
+    it('are limited to 50 per user', async () => {
+      const { data: existing } = await userB.client.from('custom_collections').select('id');
+      const missing = 50 - (existing?.length ?? 0);
+      const fill = await userB.client
+        .from('custom_collections')
+        .insert(Array.from({ length: missing }, (_, index) => ({ name: `Limit ${index}` })));
+      expect(fill.error).toBeNull();
+      const { error } = await userB.client.from('custom_collections').insert({ name: 'One more' });
+      expect(error?.code).toBe(PROGRAM_LIMIT_EXCEEDED);
+      await admin.from('custom_collections').delete().eq('user_id', userB.id);
+    });
+
+    it("keep another user's items out", async () => {
+      const { error } = await userB.client.from('collection_items').insert({
+        category: 'custom',
+        provider: 'custom',
+        custom_collection_id: collectionId,
+        custom_data: { title: 'Sneaky' },
+      });
+      expect(error?.code).toBe(FOREIGN_KEY_VIOLATION);
+    });
+
+    it('hold exactly the custom items', async () => {
+      const noCollection = await userA.client.from('collection_items').insert({
+        category: 'custom',
+        provider: 'custom',
+        custom_data: { title: 'Lost' },
+      });
+      expect(noCollection.error?.code).toBe(CHECK_VIOLATION);
+      const wrongCategory = await userA.client.from('collection_items').insert({
+        category: 'movie',
+        provider: 'custom',
+        custom_collection_id: collectionId,
+        custom_data: { title: 'Not custom' },
+      });
+      expect(wrongCategory.error?.code).toBe(CHECK_VIOLATION);
+      const withProvider = await userA.client.from('collection_items').insert({
+        category: 'custom',
+        provider: 'tmdb',
+        external_id: testMovieId(),
+        custom_collection_id: collectionId,
+      });
+      expect(withProvider.error?.code).toBe(CHECK_VIOLATION);
+    });
+
+    it('can be filtered by collection, with counts', async () => {
+      await addCustomItem('Batman #01');
+      const filter = { category: 'custom', customCollectionIds: [collectionId] };
+      const items = await userA.client.rpc('collection_items_filtered', { p_filter: filter });
+      expect(items.error).toBeNull();
+      expect(items.data?.every((row) => row.custom_collection_id === collectionId)).toBe(true);
+      const facets = await userA.client.rpc('collection_facets', { p_filter: filter });
+      const count = facets.data?.find(
+        (row) => row.facet === 'customCollection' && row.value === collectionId,
+      )?.item_count;
+      expect(count).toBe(items.data?.length);
+    });
+
+    it("merge item data only into the user's own custom items, keeping the title", async () => {
+      const id = await addCustomItem('Spider-Man #03');
+      const merged = await userA.client.rpc('merge_item_custom_data', {
+        p_id: id,
+        p_patch: { identifier: '#03', subtitle: null },
+      });
+      expect(merged.data).toEqual([id]);
+      const noTitle = await userA.client.rpc('merge_item_custom_data', {
+        p_id: id,
+        p_patch: { title: null },
+      });
+      expect(noTitle.data).toEqual([]);
+      const other = await userB.client.rpc('merge_item_custom_data', {
+        p_id: id,
+        p_patch: { title: 'Hijacked' },
+      });
+      expect(other.data).toEqual([]);
+      const { data } = await admin
+        .from('collection_items')
+        .select('custom_data')
+        .eq('id', id)
+        .single();
+      expect(data?.custom_data).toEqual({ title: 'Spider-Man #03', identifier: '#03' });
+    });
+
+    it('delete their items with them', async () => {
+      const { data: other, error } = await userA.client
+        .from('custom_collections')
+        .insert({ name: 'LEGO' })
+        .select('id')
+        .single();
+      if (error) throw error;
+      const id = await addCustomItem('Millennium Falcon', other.id);
+      await userA.client.from('custom_collections').delete().eq('id', other.id);
+      const { count } = await admin
+        .from('collection_items')
+        .select('*', { count: 'exact', head: true })
+        .eq('id', id);
+      expect(count).toBe(0);
+    });
+  });
+
+  describe('custom-images storage (FC-13)', () => {
+    const webp = new Blob([new Uint8Array([0x52, 0x49, 0x46, 0x46])], { type: 'image/webp' });
+    const imagePath = (userId: string) => `${userId}/${randomUUID()}.webp`;
+    const bucket = (client: FansteSupabaseClient) => client.storage.from('custom-images');
+
+    afterAll(async () => {
+      // Storage objects don't cascade with the user, so remove the test files explicitly.
+      for (const user of [userA, userB]) {
+        if (!user) continue;
+        const { data } = await bucket(admin).list(user.id);
+        if (data?.length) await bucket(admin).remove(data.map((file) => `${user.id}/${file.name}`));
+      }
+    });
+
+    it('lets a user upload into their own folder', async () => {
+      const { error } = await bucket(userA.client).upload(imagePath(userA.id), webp, {
+        contentType: webp.type,
+      });
+      expect(error).toBeNull();
+    });
+
+    it("blocks uploads into another user's folder, and anonymous ones", async () => {
+      const other = await bucket(userB.client).upload(imagePath(userA.id), webp, {
+        contentType: webp.type,
+      });
+      expect(other.error).not.toBeNull();
+      const anonymous = await bucket(anon).upload(imagePath(userA.id), webp, {
+        contentType: webp.type,
+      });
+      expect(anonymous.error).not.toBeNull();
+    });
+
+    it("hides another user's files and keeps them from being deleted", async () => {
+      const path = imagePath(userA.id);
+      const { error } = await bucket(userA.client).upload(path, webp, { contentType: webp.type });
+      expect(error).toBeNull();
+
+      const listed = await bucket(userB.client).list(userA.id);
+      expect(listed.data ?? []).toEqual([]);
+
+      await bucket(userB.client).remove([path]);
+      const remaining = await bucket(admin).list(userA.id);
+      expect(remaining.data?.map((file) => file.name)).toContain(path.split('/')[1]);
+    });
+
+    it('rejects files that are not images, and files over 1 MB', async () => {
+      const text = new Blob(['not an image'], { type: 'text/plain' });
+      const notImage = await bucket(userA.client).upload(`${userA.id}/${randomUUID()}.txt`, text, {
+        contentType: text.type,
+      });
+      expect(notImage.error).not.toBeNull();
+      const large = new Blob([new Uint8Array(1024 * 1024 + 1)], { type: 'image/webp' });
+      const tooLarge = await bucket(userA.client).upload(imagePath(userA.id), large, {
+        contentType: large.type,
+      });
+      expect(tooLarge.error).not.toBeNull();
     });
   });
 
@@ -561,8 +798,9 @@ describe('Row Level Security (dev Supabase project)', () => {
         admin.from('tags').select('*', head).eq('user_id', userA.id),
         admin.from('collection_item_tags').select('*', head).eq('user_id', userA.id),
         admin.from('scanned_files').select('*', head).eq('user_id', userA.id),
+        admin.from('custom_collections').select('*', head).eq('user_id', userA.id),
       ]);
-      expect(counts.map(({ count }) => count)).toEqual([0, 0, 0, 0, 0]);
+      expect(counts.map(({ count }) => count)).toEqual([0, 0, 0, 0, 0, 0]);
     });
   });
 });

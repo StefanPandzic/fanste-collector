@@ -12,7 +12,7 @@ export const API_ERROR_CODES = [
   'bad_request',
   /** The provider has no item with that ID (404). */
   'not_found',
-  /** The category has no metadata provider, e.g. Funko Pops (400). */
+  /** The category has no metadata provider, e.g. `custom` (400). */
   'unsupported_category',
   /** The provider failed or kept rate-limiting us after retries (502). */
   'provider_error',

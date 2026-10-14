@@ -1,6 +1,7 @@
 import { applyOverrides, copyBadges, ITEM_SOURCES, parseMusicExtra } from '@fanste/core';
 
 import type { ItemCardData } from '@/components/items/item-card';
+import { coverNeedsUnoptimized } from '@/lib/custom-images';
 
 import type { CollectionItem, ItemSource } from '@fanste/core';
 
@@ -31,15 +32,17 @@ export function toGalleryItem(item: CollectionItem): GalleryItem {
     card: {
       title: display?.title ?? overrides.title ?? LOADING_TITLE,
       category: item.category,
-      // A record is known by its artist; a movie's or show's subtitle (network) stays off the card.
-      ...(item.category === 'music' && (display?.subtitle ?? overrides.subtitle)
+      // A record is known by its artist, a custom item by its number and series; a movie's or show's
+      // subtitle (network) stays off the card.
+      ...((item.category === 'music' || item.category === 'custom') &&
+      (display?.subtitle ?? overrides.subtitle)
         ? { subtitle: display?.subtitle ?? overrides.subtitle }
         : {}),
       releaseYear: display?.releaseYear ?? overrides.releaseYear,
       imageUrl: display?.imageUrl ?? overrides.imageUrl,
       thumbnailUrl: display?.thumbnailUrl ?? overrides.imageUrl,
       ownership: item.ownership,
-      coverUnoptimized: overrides.imageUrl !== undefined,
+      coverUnoptimized: coverNeedsUnoptimized(item),
       badges: copyBadges(item.category, item.format, item.details, item.metadata?.extra),
     },
     subtitle: display?.subtitle ?? overrides.subtitle,

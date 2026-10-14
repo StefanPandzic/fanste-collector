@@ -4,6 +4,7 @@ import { parseCollectionChange } from './events';
 
 const itemId = '3f6c1e2a-8b4d-4c5e-9f7a-2b3c4d5e6f70';
 const tagId = '5b1f0c2e-7d3a-4e8b-9c6f-1a2b3c4d5e6f';
+const collectionId = '3c9a1e2b-7d4f-4a6b-8c1d-2e3f4a5b6c7d';
 
 describe('parseCollectionChange', () => {
   it('reads item changes, using the old row for deletes', () => {
@@ -34,6 +35,17 @@ describe('parseCollectionChange', () => {
         old_record: null,
       }),
     ).toEqual({ table: 'collection_item_tags', operation: 'INSERT', itemId });
+  });
+
+  it('reads custom collection changes with the collection id', () => {
+    expect(
+      parseCollectionChange({
+        table: 'custom_collections',
+        operation: 'UPDATE',
+        record: { id: collectionId, name: 'Funko Pops' },
+        old_record: null,
+      }),
+    ).toEqual({ table: 'custom_collections', operation: 'UPDATE', collectionId });
   });
 
   it('returns undefined for unknown payloads', () => {

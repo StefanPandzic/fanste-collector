@@ -19,8 +19,8 @@ import type {
 import type { z } from 'zod';
 
 /**
- * Categories whose provider is built. Board games come with FC-12; Funko Pops have no provider and
- * are added by hand (FC-13).
+ * Categories whose provider is built. Board games come with FC-12; custom collections have no
+ * provider and are added by hand (FC-13).
  */
 export const SEARCHABLE_CATEGORIES: readonly ItemCategory[] = [
   'movie',

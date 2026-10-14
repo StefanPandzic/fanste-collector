@@ -96,7 +96,7 @@ export function ItemActions({
       {!editing && (
         <Button type="button" variant="outline" size="sm" onClick={onEdit}>
           <Pencil aria-hidden />
-          Edit metadata
+          {itemRef ? 'Edit metadata' : 'Edit item'}
         </Button>
       )}
       {itemRef && (

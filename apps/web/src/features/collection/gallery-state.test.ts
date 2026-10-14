@@ -12,6 +12,7 @@ import {
 import type { GalleryState } from './gallery-state';
 
 const steelbookTagId = '5b1f0c2e-7d3a-4e8b-9c6f-1a2b3c4d5e6f';
+const funkoId = '3c9a1e2b-7d4f-4a6b-8c1d-2e3f4a5b6c7d';
 
 const moviesState: GalleryState = {
   filter: {
@@ -115,6 +116,18 @@ describe('galleryStateUrl', () => {
   it('is the bare collection path for the default state', () => {
     expect(galleryStateUrl(DEFAULT_GALLERY_STATE)).toBe('/collection');
   });
+
+  it('round-trips the custom collections on a custom collection page', () => {
+    const funkoState: GalleryState = {
+      filter: { category: 'custom', customCollectionIds: [funkoId] },
+      sort: 'added_desc',
+    };
+    const url = galleryStateUrl(funkoState, `/collections/${funkoId}`);
+    expect(url).toBe(`/collections/${funkoId}?category=custom&collection=${funkoId}`);
+    expect(parseGalleryState(Object.fromEntries(new URLSearchParams(url.split('?')[1])))).toEqual(
+      funkoState,
+    );
+  });
 });
 
 describe('activeFilterCount', () => {
@@ -122,6 +135,10 @@ describe('activeFilterCount', () => {
     expect(activeFilterCount(moviesState.filter)).toBe(6);
     expect(activeFilterCount({ category: 'tv', search: 'breaking' })).toBe(0);
     expect(activeFilterCount({ category: 'music', countries: ['UK'] })).toBe(1);
+  });
+
+  it('does not count the custom collections', () => {
+    expect(activeFilterCount({ category: 'custom', customCollectionIds: [funkoId] })).toBe(0);
   });
 });
 

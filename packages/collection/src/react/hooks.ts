@@ -10,11 +10,12 @@ import {
 import {
   COPY_DETAIL_STATUSES,
   copyDefaultsFrom,
+  customItemDataPatchSchema,
+  customItemToNormalized,
   detailsPatchSchemaFor,
   overridesPatchSchema,
 } from '@fanste/core';
 
-import { toCollectionError } from '../errors';
 import {
   addCopy,
   addToPage,
@@ -31,8 +32,11 @@ import {
 } from './cache-updates';
 import { useCollectionContext } from './context';
 import { useMissingMetadata, useMissingMetadataPages } from './missing-metadata';
-import { collectionKeys, collectionMutationKey, copyDefaultsKey } from './query-keys';
+import { cancelRefetches, mutationOptions } from './mutations';
+import { collectionKeys, copyDefaultsKey } from './query-keys';
 import { findCopies, refKey } from '../repository/copies';
+import { uploadCustomImage } from '../repository/custom-images';
+import { addCustomItem, updateCustomItemData } from '../repository/custom-items';
 import {
   getCopyDefaults,
   resetAllOverrides,
@@ -49,6 +53,7 @@ import {
   deleteItem,
   getItem,
   listItems,
+  moveItemsToCollection,
   restoreItem,
   updateItem,
 } from '../repository/items';
@@ -64,12 +69,16 @@ import {
 } from '../repository/tags';
 
 import type { CollectionContextValue } from './context';
+import type { Undo } from './mutations';
 import type { CopiesByRef } from '../repository/copies';
 import type { DetailsChange } from '../repository/details';
 import type { CollectionPage } from '../repository/items';
 import type {
+  AddCustomItemInput,
   AddItemInput,
   CollectionItem,
+  CustomItemData,
+  CustomItemDataPatch,
   CollectionQuery,
   ItemRef,
   NormalizedItem,
@@ -271,14 +280,6 @@ export function copyDefaultsQuery(client: CollectionContextValue['client'], user
 // (never restoring a whole-cache snapshot, which would also revert the others), and the collection
 // is refetched only when the last running mutation settles.
 
-/** Reverts one mutation's optimistic change. */
-type Undo = () => void;
-
-/** Stops in-flight refetches, so they can't overwrite the optimistic change with older data. */
-async function cancelRefetches(queryClient: QueryClient, userId: string): Promise<void> {
-  await queryClient.cancelQueries({ queryKey: collectionKeys.all(userId) });
-}
-
 function cachedLists(queryClient: QueryClient, userId: string): [QueryKey, CollectionPage][] {
   return queryClient
     .getQueriesData<CollectionPage>({ queryKey: collectionKeys.lists(userId) })
@@ -352,27 +353,6 @@ function cachedItem(
   return detail ?? listedItem(queryClient, userId, id);
 }
 
-/**
- * Options shared by every collection mutation: one mutation key, undo and report on error, and a
- * refetch once no other collection mutation is running.
- */
-function mutationOptions(queryClient: QueryClient, { userId, onError }: CollectionContextValue) {
-  const mutationKey = collectionMutationKey(userId);
-  return {
-    mutationKey,
-    onError: (error: unknown, _variables: unknown, undo: Undo | undefined) => {
-      undo?.();
-      onError?.(toCollectionError(error));
-    },
-    onSettled: () => {
-      // This mutation still counts as running here.
-      if (queryClient.isMutating({ mutationKey }) === 1) {
-        return queryClient.invalidateQueries({ queryKey: collectionKeys.all(userId) });
-      }
-    },
-  };
-}
-
 let optimisticIds = 0;
 
 // ---------------------------------------------------------------------------------------------------
@@ -408,6 +388,8 @@ export function useAddItem() {
         category: input.category,
         provider: input.provider,
         externalId: input.externalId,
+        customCollectionId: null,
+        customData: null,
         format: input.format ?? null,
         details: input.details ?? {},
         metadataOverrides: {},
@@ -899,4 +881,181 @@ export function useTagAssignment() {
 export interface BulkTagLinkVariables {
   itemIds: readonly string[];
   tagId: string;
+}
+
+// ---------------------------------------------------------------------------------------------------
+// Hand-entered items (FC-13)
+// ---------------------------------------------------------------------------------------------------
+
+/** A hand-entered item with new `customData`, its metadata normalized again. */
+function withCustomData(item: CollectionItem, customData: CustomItemData): CollectionItem {
+  return {
+    ...item,
+    customData,
+    metadata: customItemToNormalized({ id: item.id, category: item.category, customData }),
+  };
+}
+
+/**
+ * Adds a hand-entered item: an item of a custom collection, or of an integrated category its
+ * provider lacks. No gateway call. It shows up in newest-first lists at once and is removed again on
+ * failure.
+ */
+export function useAddCustomItem() {
+  const context = useCollectionContext();
+  const { client, userId } = context;
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    ...mutationOptions(queryClient, context),
+    mutationFn: (input: AddCustomItemInput) => addCustomItem(client, input),
+    onMutate: async (input): Promise<Undo> => {
+      await cancelRefetches(queryClient, userId);
+      const now = new Date().toISOString();
+      const optimistic = withCustomData(
+        {
+          id: `${OPTIMISTIC_ID_PREFIX}${++optimisticIds}`,
+          userId,
+          category: input.category,
+          provider: 'custom',
+          externalId: null,
+          customCollectionId: input.customCollectionId ?? null,
+          customData: null,
+          format: input.format ?? null,
+          details: input.details ?? {},
+          metadataOverrides: {},
+          ownership: input.ownership ?? 'owned',
+          quantity: input.quantity ?? 1,
+          acquiredAt: input.acquiredAt ?? null,
+          purchasePrice: input.purchasePrice ?? null,
+          estimatedValue: input.estimatedValue ?? null,
+          currency: input.currency ?? null,
+          notes: input.notes ?? null,
+          source: 'manual',
+          createdAt: now,
+          updatedAt: now,
+          tagIds: [],
+          metadata: null,
+        },
+        input.customData,
+      );
+
+      const changed: { key: QueryKey; written: CollectionPage }[] = [];
+      for (const [key, page] of cachedLists(queryClient, userId)) {
+        const next = addToPage(page, optimistic, queryOfKey(key));
+        if (next === page) continue;
+        changed.push({ key, written: next });
+        queryClient.setQueryData(key, next);
+      }
+      return () => {
+        for (const { key, written } of changed) {
+          queryClient.setQueryData<CollectionPage>(key, (page) => {
+            if (!page) return page;
+            if (page === written) return undoAddToPage(page, optimistic.id);
+            return removeFromPage(page, new Set([optimistic.id]));
+          });
+        }
+      };
+    },
+    onSuccess: (item, _input, undo) => {
+      // Swap the optimistic row for the stored one (other mutations may delay the refetch).
+      undo();
+      updateLists(queryClient, userId, (page, query) => addToPage(page, item, query));
+    },
+  });
+}
+
+export interface UpdateCustomItemDataVariables {
+  id: string;
+  patch: CustomItemDataPatch;
+}
+
+/** Merges changes into a hand-entered item's own data (title, number, maker, ...), optimistically. */
+export function useUpdateCustomItemData() {
+  const context = useCollectionContext();
+  const { client, userId } = context;
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    ...mutationOptions(queryClient, context),
+    mutationFn: ({ id, patch }: UpdateCustomItemDataVariables) =>
+      updateCustomItemData(client, id, patch),
+    onMutate: async ({ id, patch }): Promise<Undo> => {
+      await cancelRefetches(queryClient, userId);
+      const parsed = customItemDataPatchSchema.safeParse(patch);
+      const before = cachedItem(queryClient, userId, id)?.customData;
+      if (!parsed.success || !before) return () => undefined;
+      updateItemEverywhere(queryClient, userId, id, (item) =>
+        item.customData ? withCustomData(item, mergeRecord(item.customData, parsed.data)) : item,
+      );
+      return () => {
+        const restore = Object.fromEntries(
+          Object.keys(parsed.data).map((key) => [
+            key,
+            (before as Record<string, unknown>)[key] ?? null,
+          ]),
+        );
+        updateItemEverywhere(queryClient, userId, id, (item) =>
+          item.customData ? withCustomData(item, mergeRecord(item.customData, restore)) : item,
+        );
+      };
+    },
+  });
+}
+
+export interface MoveItemsVariables {
+  ids: readonly string[];
+  collectionId: string;
+}
+
+/**
+ * Moves custom items to another custom collection, optimistically. Resolves to the number moved;
+ * items of other categories and items still being added are skipped.
+ */
+export function useMoveItemsToCollection() {
+  const context = useCollectionContext();
+  const { client, userId } = context;
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    ...mutationOptions(queryClient, context),
+    mutationFn: ({ ids, collectionId }: MoveItemsVariables) =>
+      moveItemsToCollection(
+        client,
+        ids.filter((id) => !isOptimisticId(id)),
+        collectionId,
+      ),
+    onMutate: async ({ ids, collectionId }): Promise<Undo> => {
+      await cancelRefetches(queryClient, userId);
+      const moved = ids
+        .filter((id) => !isOptimisticId(id))
+        .map((id) => ({ id, before: cachedItem(queryClient, userId, id)?.customCollectionId }))
+        .filter((entry) => entry.before !== undefined && entry.before !== null);
+      for (const { id } of moved) {
+        updateItemEverywhere(queryClient, userId, id, (item) => ({
+          ...item,
+          customCollectionId: collectionId,
+        }));
+      }
+      return () => {
+        for (const { id, before } of moved) {
+          updateItemEverywhere(queryClient, userId, id, (item) => ({
+            ...item,
+            customCollectionId: before ?? null,
+          }));
+        }
+      };
+    },
+  });
+}
+
+/**
+ * Uploads a compressed WebP image of the user to the `custom-images` bucket and resolves to its
+ * public URL, for a hand-entered item's photo or a cover override. Errors are the caller's to show.
+ */
+export function useUploadCustomImage() {
+  const { client, userId } = useCollectionContext();
+  return useMutation({
+    mutationFn: (image: Blob) => uploadCustomImage(client, userId, image),
+  });
 }
