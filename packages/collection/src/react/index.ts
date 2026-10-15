@@ -1,5 +1,6 @@
 export * from './cache-updates';
 export * from './custom-collection-hooks';
+export * from './export-hooks';
 export { useCollectionContext } from './context';
 export type { CollectionContextValue } from './context';
 export * from './fix-match-hooks';

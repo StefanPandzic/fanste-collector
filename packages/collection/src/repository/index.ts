@@ -3,6 +3,7 @@ export * from './custom-collections';
 export * from './custom-images';
 export * from './custom-items';
 export * from './details';
+export * from './export';
 export * from './facets';
 export * from './items';
 export { ADDED_BY_MONTH_SPAN, toCollectionItem, VALUED_STATUSES } from './mappers';

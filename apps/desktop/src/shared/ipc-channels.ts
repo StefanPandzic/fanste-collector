@@ -20,4 +20,6 @@ export const IpcChannel = {
   scannerFilesFound: 'scanner:files-found',
   /** invoke(theme: DesktopTheme) → `void` */
   windowSetTheme: 'window:set-theme',
+  /** invoke(request: SaveFileRequest) → `SaveFileResult` */
+  filesSaveFile: 'files:save-file',
 } as const;

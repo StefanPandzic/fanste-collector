@@ -1,6 +1,6 @@
 'use client';
 
-import { ChevronDown, FolderInput, Tag as TagIcon, Trash2, X } from 'lucide-react';
+import { ChevronDown, FileDown, FolderInput, Tag as TagIcon, Trash2, X } from 'lucide-react';
 import { useState } from 'react';
 
 import { OWNERSHIP_STATUSES, ownershipLabel } from '@fanste/core';
@@ -40,6 +40,8 @@ interface SelectionBarProps {
   /** Custom collections the selection can move to (FC-13); hidden unless every item is custom. */
   moveTargets?: readonly CustomCollection[];
   onMove?: (collection: CustomCollection) => void;
+  /** Opens the export dialog for the selected items (FC-25). */
+  onExport: () => void;
 }
 
 function items(count: number): string {
@@ -58,6 +60,7 @@ export function SelectionBar({
   onAddTag,
   moveTargets,
   onMove,
+  onExport,
 }: SelectionBarProps) {
   const [confirming, setConfirming] = useState(false);
 
@@ -145,6 +148,11 @@ export function SelectionBar({
           </DropdownMenuContent>
         </DropdownMenu>
       )}
+
+      <Button variant="outline" size="sm" onClick={onExport}>
+        <FileDown aria-hidden />
+        Export
+      </Button>
 
       <Button variant="destructive" size="sm" onClick={() => setConfirming(true)}>
         <Trash2 aria-hidden />

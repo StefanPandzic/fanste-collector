@@ -17,6 +17,8 @@ export interface FansteDesktopBridge {
   readonly scanner: DesktopScannerApi;
   /** The native window around the web app (FC-16). */
   readonly window: DesktopWindowApi;
+  /** Saving exports through the native Save dialog (FC-25). Check it exists before calling. */
+  readonly files?: DesktopFilesApi;
 }
 
 /** Operating system the desktop app runs on. Linux is not a v1 target but works for development. */
@@ -142,4 +144,29 @@ export interface DesktopWindowApi {
    * the renderer's `prefers-color-scheme`, so `system` hands the choice back to the OS.
    */
   setTheme(theme: DesktopTheme): Promise<void>;
+}
+
+/** File types an export can be saved as (CSV and ZIP: FC-25; PDF: FC-26). */
+export type SaveFileType = 'csv' | 'zip' | 'pdf';
+
+export interface SaveFileRequest {
+  /** Suggested file name, e.g. `fanste-collection-2026-10-15.csv`. Its extension must match `type`. */
+  readonly defaultName: string;
+  readonly type: SaveFileType;
+  /** The file's content; text is written as UTF-8. At most 100 MB. */
+  readonly data: string | Uint8Array;
+}
+
+export interface SaveFileResult {
+  /** `false` when the user cancelled the dialog. */
+  readonly saved: boolean;
+}
+
+/** Saving files the web app built (FC-25). */
+export interface DesktopFilesApi {
+  /**
+   * Opens the native Save dialog and writes `data` to the picked path; only the main process sees
+   * the path. Rejects when the request is invalid or the file can't be written.
+   */
+  saveFile(request: SaveFileRequest): Promise<SaveFileResult>;
 }
