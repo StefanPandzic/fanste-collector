@@ -128,7 +128,7 @@ Status legend: `TODO` · `IN PROGRESS` · `DONE` · `BLOCKED`
 | ID | Task | Depends on | Status |
 |---|---|---|---|
 | FC-25 | [CSV export](phase-4-export-polish/25-csv-export.md) | FC-14, FC-15 | IN PROGRESS |
-| FC-26 | [PDF catalog export](phase-4-export-polish/26-pdf-export.md) | FC-14, FC-15 | TODO |
+| FC-26 | [PDF catalog export](phase-4-export-polish/26-pdf-export.md) | FC-14, FC-15 | IN PROGRESS |
 | FC-27 | [Branding & provider attribution](phase-4-export-polish/27-branding-attribution.md) | FC-16 | TODO |
 | FC-28 | [Testing & cross-platform QA](phase-4-export-polish/28-testing-qa.md) | Phase 3 | TODO |
 | FC-29 | [Production builds & release](phase-4-export-polish/29-release-builds.md) | FC-28 | TODO |

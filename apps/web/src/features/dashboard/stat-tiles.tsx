@@ -1,7 +1,8 @@
 import { Heart, Library, Wallet, type LucideIcon } from 'lucide-react';
 
+import { formatMoney } from '@fanste/core';
+
 import { Card } from '@/components/ui/card';
-import { formatMoney } from '@/features/collection/gallery-items';
 
 import type { ValueSummary } from './dashboard-view';
 import type { CollectionStats } from '@fanste/collection';

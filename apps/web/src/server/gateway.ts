@@ -11,8 +11,8 @@ import { createSupabaseMetadataCache } from './cache/metadata-cache';
 import { authenticateRequest } from './http/authenticate';
 import { createGatewayRoute } from './http/handler';
 import { createItemService } from './items';
-import { REFRESH_LIMITS, SEARCH_CACHE, USER_RATE_LIMIT } from './limits';
-import { createDiscogsAdapter } from './providers/discogs/adapter';
+import { IMAGE_PROXY, REFRESH_LIMITS, SEARCH_CACHE, USER_RATE_LIMIT } from './limits';
+import { createDiscogsAdapter, discogsUserAgent } from './providers/discogs/adapter';
 import { createIgdbAdapter } from './providers/igdb/adapter';
 import { createRegistry } from './providers/registry';
 import { createTmdbAdapter } from './providers/tmdb/adapter';
@@ -66,6 +66,15 @@ export const gatewayRoute = createGatewayRoute({
   authenticate: authenticateRequest,
   userLimiter: createUserLimiter(USER_RATE_LIMIT),
 });
+
+/** `GET /api/image` (FC-26), with its own per-user limit (`IMAGE_PROXY`) instead of the API's. */
+export const imageRoute = createGatewayRoute({
+  authenticate: authenticateRequest,
+  userLimiter: createUserLimiter(IMAGE_PROXY.perUser),
+});
+
+/** The `User-Agent` of proxied image requests; Discogs requires one. */
+export const imageProxyUserAgent = discogsUserAgent(serverEnv.DISCOGS_USER_AGENT_URL);
 
 /** The extra per-user limit of "Refresh metadata" (`REFRESH_LIMITS`). */
 export const refreshLimiter = createUserLimiter(REFRESH_LIMITS.perUser);

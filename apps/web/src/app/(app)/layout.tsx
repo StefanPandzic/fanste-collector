@@ -3,6 +3,7 @@ import { SearchShortcut } from '@/components/search-shortcut';
 import { requireUser } from '@/features/auth/session';
 import { SessionProvider } from '@/features/auth/session-provider';
 import { AppCollectionProvider } from '@/features/collection/collection-provider';
+import { ProfileNameProvider } from '@/features/profile/profile-name-provider';
 import { getProfile } from '@/features/profile/queries';
 import { ScanMatcherProvider } from '@/features/scanner/scan-matcher-provider';
 
@@ -16,17 +17,19 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
 
   return (
     <SessionProvider initialUser={user}>
-      <AppCollectionProvider>
-        <ScanMatcherProvider>
-          <AppShell
-            profileName={profile?.display_name ?? null}
-            avatarUrl={profile?.avatar_url ?? null}
-          >
-            {children}
-          </AppShell>
-          <SearchShortcut />
-        </ScanMatcherProvider>
-      </AppCollectionProvider>
+      <ProfileNameProvider profileName={profile?.display_name ?? null}>
+        <AppCollectionProvider>
+          <ScanMatcherProvider>
+            <AppShell
+              profileName={profile?.display_name ?? null}
+              avatarUrl={profile?.avatar_url ?? null}
+            >
+              {children}
+            </AppShell>
+            <SearchShortcut />
+          </ScanMatcherProvider>
+        </AppCollectionProvider>
+      </ProfileNameProvider>
     </SessionProvider>
   );
 }

@@ -14,8 +14,7 @@ import {
 } from '@fanste/collection';
 import {
   buildCollectionExport,
-  EXPORT_SORT_LABELS,
-  EXPORT_SORTS,
+  defaultPaperSize,
   exportTargets,
   targetsOfItems,
 } from '@fanste/export';
@@ -31,67 +30,85 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useDisplayName } from '@/features/profile/profile-name-provider';
 import { saveFile } from '@/lib/save-file';
 
-import { baseFilterOf, exportLoadScope, progressLabel, sourceDescription } from './export-view';
+import { CsvOptions, PdfOptions } from './export-options';
+import {
+  baseFilterOf,
+  exportLoadScope,
+  pdfSource,
+  progressLabel,
+  sourceDescription,
+} from './export-view';
 
-import type { ExportSource } from './export-view';
-import type { ExportProgress } from '@fanste/collection';
-import type { ExportGroupKey, ExportLayout, ExportSort } from '@fanste/export';
+import type { CsvSettings, PdfSettings } from './export-options';
+import type { ExportDialogProgress, ExportFormat, ExportSource } from './export-view';
+import type { ExportFile, ExportGroupKey } from '@fanste/export';
 
 interface ExportDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   source: ExportSource;
+  /** The format the dialog opens with; the user can switch. */
+  initialFormat?: ExportFormat;
 }
 
-const LAYOUT_OPTIONS: { value: ExportLayout; label: string; description: string }[] = [
-  {
-    value: 'single',
-    label: 'One CSV file',
-    description: 'Everything in one spreadsheet, with a Category column.',
-  },
-  {
-    value: 'per-group',
-    label: 'One CSV per category',
-    description: 'A ZIP with a file per category and custom collection, each with its own columns.',
-  },
-];
+const FORMAT_DESCRIPTIONS: Record<ExportFormat, string> = {
+  csv: 'The file opens in Excel, Google Sheets and Numbers.',
+  pdf: 'A print-ready catalog for sharing, insurance and archiving.',
+};
 
 /**
- * Exports part of the collection as CSV (FC-25): pick the categories and custom collections, one
- * file or one per category, and the order. The file is built in the browser; only the items are
- * loaded from the server.
+ * Exports part of the collection as CSV (FC-25) or as a PDF catalog (FC-26): pick the categories and
+ * custom collections and the format's options. The file is built in the browser; only the items
+ * (and for a PDF the covers) are loaded from the network.
  */
-export function ExportDialog({ open, onOpenChange, source }: ExportDialogProps) {
+export function ExportDialog({
+  open,
+  onOpenChange,
+  source,
+  initialFormat = 'csv',
+}: ExportDialogProps) {
   const id = useId();
-  const [layout, setLayout] = useState<ExportLayout>('single');
-  const [sort, setSort] = useState<ExportSort>('category');
-  const [includeOriginal, setIncludeOriginal] = useState(false);
+  const [format, setFormat] = useState<ExportFormat>(initialFormat);
+  const [csv, setCsv] = useState<CsvSettings>({
+    layout: 'single',
+    sort: 'category',
+    includeOriginal: false,
+  });
+  const [pdf, setPdf] = useState<PdfSettings>(() => ({
+    layout: 'grid',
+    paper: defaultPaperSize(typeof navigator === 'undefined' ? undefined : navigator.language),
+    includePrices: true,
+  }));
   // Unticked groups, so groups that appear later (counts loading) start ticked.
   const [excluded, setExcluded] = useState<ReadonlySet<ExportGroupKey>>(new Set());
-  const [progress, setProgress] = useState<ExportProgress | null>(null);
+  const [progress, setProgress] = useState<ExportDialogProgress | null>(null);
   const abort = useRef<AbortController | null>(null);
+  const userName = useDisplayName();
 
-  const base = baseFilterOf(source);
+  // The insurance list exports only the copies the user has; `null` when the filters leave none.
+  const scoped = format === 'pdf' ? pdfSource(source, pdf.layout) : source;
+  const base = scoped ? baseFilterOf(scoped) : {};
   // A selection counts its own items.
-  const facets = useCollectionFacets(base, { enabled: source.kind !== 'selection' });
+  const facets = useCollectionFacets(base, {
+    enabled: scoped?.kind === 'filter' || scoped?.kind === 'all',
+  });
+  // Switching to the insurance list changes the filter; the previous counts are kept as
+  // placeholder data until the new ones arrive, and would count wishlist and sold items.
+  const counts = facets.isPlaceholderData ? undefined : facets.data;
   const tags = useTags();
   const collections = useCustomCollections();
   const loadItems = useLoadExportItems();
 
-  const targets =
-    source.kind === 'selection'
-      ? targetsOfItems(source.items, collections.data ?? [])
-      : facets.data
-        ? exportTargets(facets.data, collections.data ?? [], base)
+  const targets = !scoped
+    ? []
+    : scoped.kind === 'selection'
+      ? targetsOfItems(scoped.items, collections.data ?? [])
+      : counts
+        ? exportTargets(counts, collections.data ?? [], base)
         : [];
   const picked = new Set(
     targets.filter((target) => !excluded.has(target.key)).map((target) => target.key),
@@ -102,6 +119,8 @@ export function ExportDialog({ open, onOpenChange, source }: ExportDialogProps) 
   const total = targets.reduce((sum, target) => sum + target.count, 0);
   const ready = tags.isSuccess && collections.isSuccess && targets.length > 0;
   const running = progress !== null;
+  const countsLoading =
+    scoped?.kind !== 'selection' && scoped !== null && counts === undefined && !facets.isError;
 
   // Closing the dialog (or leaving the page) stops a running export.
   useEffect(() => {
@@ -117,28 +136,46 @@ export function ExportDialog({ open, onOpenChange, source }: ExportDialogProps) 
   }
 
   async function runExport() {
+    if (!scoped) return;
     const controller = new AbortController();
     abort.current = controller;
     setProgress({ phase: 'items', loaded: 0, total: pickedCount });
     try {
-      const { items, missingMetadata } = await loadItems(exportLoadScope(source, targets, picked), {
+      const { items, missingMetadata } = await loadItems(exportLoadScope(scoped, targets, picked), {
         onProgress: setProgress,
         signal: controller.signal,
       });
-      const file = buildCollectionExport(items, {
-        layout,
-        sort,
-        includeOriginal,
-        tags: tags.data ?? [],
-        collections: collections.data ?? [],
-        date: new Date(),
-      });
+      let file: ExportFile;
+      let missingCovers = 0;
+      if (format === 'csv') {
+        file = buildCollectionExport(items, {
+          ...csv,
+          tags: tags.data ?? [],
+          collections: collections.data ?? [],
+          date: new Date(),
+        });
+      } else {
+        // jsPDF loads only when a PDF is made.
+        const { buildPdfExport } = await import('./pdf-export');
+        ({ file, missingCovers } = await buildPdfExport(items, {
+          ...pdf,
+          collections: collections.data ?? [],
+          userName,
+          signal: controller.signal,
+          onProgress: setProgress,
+        }));
+      }
       controller.signal.throwIfAborted();
       if (await saveFile(file)) {
         toast.success(`Exported ${items.length.toLocaleString()} items to ${file.name}`);
         if (missingMetadata > 0) {
           toast.warning(
             `${missingMetadata.toLocaleString()} items were exported without their provider details (title, year, link): the provider was busy or no longer has them.`,
+          );
+        }
+        if (missingCovers > 0) {
+          toast.warning(
+            `${missingCovers.toLocaleString()} covers couldn't be loaded and show a placeholder in the PDF.`,
           );
         }
         onOpenChange(false);
@@ -158,21 +195,32 @@ export function ExportDialog({ open, onOpenChange, source }: ExportDialogProps) 
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg">
+      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle>Export to CSV</DialogTitle>
+          <DialogTitle>Export</DialogTitle>
           <DialogDescription>
-            {sourceDescription(source, facets.data ? total : undefined)} The file opens in Excel,
-            Google Sheets and Numbers.
+            {sourceDescription(source, scoped === source && counts ? total : undefined)}{' '}
+            {FORMAT_DESCRIPTIONS[format]}
           </DialogDescription>
         </DialogHeader>
 
         <div className="flex flex-col gap-5">
+          <Tabs value={format} onValueChange={(value) => setFormat(value as ExportFormat)}>
+            <TabsList className="w-full">
+              <TabsTrigger value="csv" disabled={running}>
+                CSV spreadsheet
+              </TabsTrigger>
+              <TabsTrigger value="pdf" disabled={running}>
+                PDF catalog
+              </TabsTrigger>
+            </TabsList>
+          </Tabs>
+
           <fieldset className="flex flex-col gap-2" disabled={running}>
             <legend className="mb-2 text-sm font-medium">What to export</legend>
             {targets.length === 0 ? (
               <p className="text-sm text-muted-foreground">
-                {facets.isPending || collections.isPending ? 'Loading…' : 'Nothing to export.'}
+                {countsLoading || collections.isPending ? 'Loading…' : 'Nothing to export.'}
               </p>
             ) : (
               <ul className="flex max-h-56 flex-col gap-2 overflow-y-auto">
@@ -195,64 +243,11 @@ export function ExportDialog({ open, onOpenChange, source }: ExportDialogProps) 
             )}
           </fieldset>
 
-          <fieldset className="flex flex-col gap-2" disabled={running}>
-            <legend className="mb-2 text-sm font-medium">File</legend>
-            {LAYOUT_OPTIONS.map((option) => (
-              <label
-                key={option.value}
-                className="flex cursor-pointer items-start gap-2 rounded-lg border p-3 has-checked:border-primary has-checked:bg-accent"
-              >
-                <input
-                  type="radio"
-                  name={`${id}-layout`}
-                  value={option.value}
-                  checked={layout === option.value}
-                  onChange={() => setLayout(option.value)}
-                  className="mt-1 accent-primary"
-                />
-                <span className="flex flex-col gap-0.5">
-                  <span className="text-sm font-medium">{option.label}</span>
-                  <span className="text-sm text-muted-foreground">{option.description}</span>
-                </span>
-              </label>
-            ))}
-          </fieldset>
-
-          <div className="flex flex-col gap-2">
-            <Label htmlFor={`${id}-sort`}>Order</Label>
-            <Select
-              value={sort}
-              onValueChange={(value) => setSort(value as ExportSort)}
-              disabled={running}
-            >
-              <SelectTrigger id={`${id}-sort`} className="w-full">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {EXPORT_SORTS.map((value) => (
-                  <SelectItem key={value} value={value}>
-                    {EXPORT_SORT_LABELS[value]}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="flex items-start gap-2">
-            <Checkbox
-              id={`${id}-original`}
-              checked={includeOriginal}
-              onCheckedChange={(checked) => setIncludeOriginal(checked === true)}
-              disabled={running}
-              className="mt-0.5"
-            />
-            <Label htmlFor={`${id}-original`} className="flex flex-col items-start gap-0.5">
-              <span>Include original values</span>
-              <span className="font-normal text-muted-foreground">
-                Adds the provider&apos;s title, subtitle and year next to the ones you edited.
-              </span>
-            </Label>
-          </div>
+          {format === 'csv' ? (
+            <CsvOptions settings={csv} onChange={setCsv} disabled={running} />
+          ) : (
+            <PdfOptions settings={pdf} onChange={setPdf} disabled={running} />
+          )}
         </div>
 
         <DialogFooter className="items-center">

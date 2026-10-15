@@ -6,7 +6,7 @@ export * from './details';
 export * from './export';
 export * from './facets';
 export * from './items';
-export { ADDED_BY_MONTH_SPAN, toCollectionItem, VALUED_STATUSES } from './mappers';
+export { ADDED_BY_MONTH_SPAN, toCollectionItem } from './mappers';
 export type { CollectionStats, ItemCounts, MonthCount, StatsClock, ValueTotal } from './mappers';
 export * from './scan-matching';
 // `SCANNED_FILE_SELECT` stays inside the package (`scan-matching.ts` reads the same columns).
