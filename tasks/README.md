@@ -127,7 +127,7 @@ Status legend: `TODO` · `IN PROGRESS` · `DONE` · `BLOCKED`
 ### Phase 4 — Export Tools & Polish (Week 4)
 | ID | Task | Depends on | Status |
 |---|---|---|---|
-| FC-25 | [CSV export](phase-4-export-polish/25-csv-export.md) | FC-14, FC-15 | TODO |
+| FC-25 | [CSV export](phase-4-export-polish/25-csv-export.md) | FC-14, FC-15 | IN PROGRESS |
 | FC-26 | [PDF catalog export](phase-4-export-polish/26-pdf-export.md) | FC-14, FC-15 | TODO |
 | FC-27 | [Branding & provider attribution](phase-4-export-polish/27-branding-attribution.md) | FC-16 | TODO |
 | FC-28 | [Testing & cross-platform QA](phase-4-export-polish/28-testing-qa.md) | Phase 3 | TODO |

@@ -82,7 +82,7 @@ the web app and adds local-only features through the `window.fanste` preload bri
 - Desktop bundles it (it goes in `devDependencies`, as `apps/desktop/CLAUDE.md` explains).
 
 Keep packages free of Next.js/Electron imports so a future mobile app can reuse them, and use relative imports
-inside packages (the `@/*` alias is for apps only). `export` is still an empty stub.
+inside packages (the `@/*` alias is for apps only).
 `core` holds constants, the bridge types, the auth/profile zod schemas, the normalized item model (with the
 category/ownership display metadata, `CATEGORY_META`, and provider names, `providerLabel`), the copy details (typed for movies, TV, music and video games; `prefill.ts` suggests them from TMDB, the
 Discogs release (FC-10), the IGDB game's platforms (FC-11) and the scanner) and metadata overrides (`copy-details.ts`, `metadata-overrides.ts`), the gallery badges
@@ -98,6 +98,11 @@ the filename parser `parseMediaFilename`, and `media-info.ts`: the shape of `sca
 `collection_items.file_details`) and compares them (`fileDetailOrigin`), `settings.ts` holds the
 scanner settings, and FC-24's `fix-match.ts` picks the files a Fix Match choice covers).
 `api-client` is the typed client for the gateway.
+`export` builds the export files on the client (FC-25): `buildCollectionExport` gives one CSV
+(PapaParse, UTF-8 BOM, CRLF, formula cells escaped) or a ZIP (fflate) with one CSV per category and
+custom collection. `columns.ts` lists the columns; each copy-detail column names the categories that
+have it, so a per-category file gets only its own. `groups.ts` holds the groups the user can pick
+(`exportTargets`, `targetFilters`).
 `config` holds the tsconfig, ESLint and Tailwind presets (the design tokens).
 
 **`@fanste/supabase`** holds the generated `Database` types (`database.types.ts`, written by `pnpm db:types`;
@@ -152,6 +157,11 @@ TanStack Query (peer dependencies), so a future mobile app can reuse it:
 - `react/`: `CollectionProvider` and the hooks (`useCollection`, `useAddItem`, …). Mutations update the cache
   optimistically and roll back on error. Realtime events invalidate queries, debounced. Metadata that isn't
   cached yet is fetched through `/api/items/batch`; `not_found` refs are never requested again.
+- `repository/export.ts`: `loadExportItems` loads every item of an export (by filters, a page of
+  `MAX_COLLECTION_PAGE_SIZE` at a time, or by IDs) and fills uncached metadata through
+  `/api/items/batch`, one request at a time, asking again for `retry_later` refs and waiting out
+  a 429; it counts the items left without metadata (`missingMetadata`). `useLoadExportItems` wraps
+  it (FC-25).
 - Integration tests (`*.integration.test.ts`) run with `pnpm test:rls`, not `pnpm test`.
 
 **Env vars live only in the repo-root `.env*` files.** Both apps load them from there. A new variable goes in

@@ -1,7 +1,16 @@
 'use client';
 
 import { cn } from 'cn';
-import { LayoutGrid, List, PackageOpen, Search, SearchX, SlidersHorizontal } from 'lucide-react';
+import {
+  FileDown,
+  LayoutGrid,
+  List,
+  PackageOpen,
+  Search,
+  SearchX,
+  SlidersHorizontal,
+} from 'lucide-react';
+import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
@@ -56,6 +65,7 @@ import {
 } from '@/components/ui/sheet';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useUser } from '@/features/auth/session-provider';
+import type { ExportSource } from '@/features/export/export-view';
 import { useDebouncedValue } from '@/lib/use-debounced-value';
 
 import { FilterPanel } from './filter-panel';
@@ -77,6 +87,12 @@ import type {
 } from '@fanste/core';
 import type { Route } from 'next';
 import type { ReactNode } from 'react';
+
+// Loaded on first use, so the CSV builder (PapaParse, fflate) stays out of the gallery's bundle.
+const ExportDialog = dynamic(
+  () => import('@/features/export/export-dialog').then((module) => module.ExportDialog),
+  { ssr: false },
+);
 
 /** Quiet time after typing before the search runs. */
 const SEARCH_DEBOUNCE_MS = 300;
@@ -131,6 +147,8 @@ export function CollectionPageClient({ initialState, scope }: CollectionPageClie
   const [searchInput, setSearchInput] = useState(initialState.filter.search ?? '');
   const [search] = useDebouncedValue(searchInput.trim(), SEARCH_DEBOUNCE_MS);
   const [filtersOpen, setFiltersOpen] = useState(false);
+  // Set while the export dialog is open (FC-25): the filters or the selection at the time.
+  const [exportSource, setExportSource] = useState<ExportSource | null>(null);
 
   const userFilter: CollectionFilter = { ...filter, search: search || undefined };
   if (!search) delete userFilter.search;
@@ -341,6 +359,18 @@ export function CollectionPageClient({ initialState, scope }: CollectionPageClie
             Clear filters
           </Button>
         )}
+        <Button
+          variant="outline"
+          disabled={pages.total === 0}
+          onClick={() =>
+            setExportSource(
+              anyFilter || scope ? { kind: 'filter', filter: activeFilter } : { kind: 'all' },
+            )
+          }
+        >
+          <FileDown aria-hidden />
+          Export
+        </Button>
       </div>
 
       <div className="grid items-start gap-8 lg:grid-cols-[14rem_minmax(0,1fr)]">
@@ -375,10 +405,21 @@ export function CollectionPageClient({ initialState, scope }: CollectionPageClie
               onAddTag={addTag}
               moveTargets={moveTargets}
               onMove={moveTo}
+              onExport={() => setExportSource({ kind: 'selection', items: selectedItems })}
             />
           )}
         </section>
       </div>
+
+      {exportSource && (
+        <ExportDialog
+          open
+          onOpenChange={(open) => {
+            if (!open) setExportSource(null);
+          }}
+          source={exportSource}
+        />
+      )}
 
       <Sheet open={filtersOpen} onOpenChange={setFiltersOpen}>
         <SheetContent className="gap-0">

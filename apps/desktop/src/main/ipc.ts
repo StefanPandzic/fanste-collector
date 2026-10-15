@@ -1,5 +1,6 @@
 import { ipcMain, nativeTheme } from 'electron';
 
+import { saveFile } from './files/save-file';
 import { parseDesktopTheme } from './title-bar';
 import { isAppUrl } from './url-policy';
 import { IpcChannel } from '../shared/ipc-channels';
@@ -37,4 +38,7 @@ export function registerIpcHandlers(appOrigin: string, scanner: ScannerService):
   handle(IpcChannel.windowSetTheme, (_event, theme) => {
     nativeTheme.themeSource = parseDesktopTheme(theme);
   });
+
+  // `saveFile` validates the request; the renderer never picks the path.
+  handle(IpcChannel.filesSaveFile, (event, request) => saveFile(event.sender, request));
 }

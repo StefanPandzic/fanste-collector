@@ -1,15 +1,11 @@
-import { PagePlaceholder } from '@/components/page-placeholder';
+import { requireUser } from '@/features/auth/session';
+import { ExportPageClient } from '@/features/export/export-page-client';
 
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = { title: 'Export' };
 
-export default function ExportPage() {
-  return (
-    <PagePlaceholder
-      title="Export"
-      description="Download your collection as CSV or a PDF catalog."
-      task="FC-25 and FC-26"
-    />
-  );
+export default async function ExportPage() {
+  await requireUser();
+  return <ExportPageClient />;
 }

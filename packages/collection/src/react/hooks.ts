@@ -228,11 +228,12 @@ export function useCollectionPages(query: CollectionQuery, pageCount: number): C
  * Items per value of each gallery filter for `query` ("Blu-ray (12)"). The previous counts stay
  * visible while the filters change.
  */
-export function useCollectionFacets(query: CollectionQuery = {}) {
+export function useCollectionFacets(query: CollectionQuery = {}, { enabled = true } = {}) {
   const { client, userId } = useCollectionContext();
   return useQuery({
     queryKey: collectionKeys.facets(userId, query),
     queryFn: () => getFacets(client, query),
+    enabled,
     placeholderData: keepPreviousData,
     ...LIVE_QUERY,
   });

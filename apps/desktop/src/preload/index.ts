@@ -12,6 +12,7 @@ import type {
   FansteDesktopBridge,
   LibraryFolder,
   MediaProbeResult,
+  SaveFileResult,
   ScanFileBatch,
   ScanProgress,
   ScanResult,
@@ -51,6 +52,10 @@ const bridge: FansteDesktopBridge = {
   },
   window: {
     setTheme: (theme) => ipcRenderer.invoke(IpcChannel.windowSetTheme, theme) as Promise<void>,
+  },
+  files: {
+    saveFile: (request) =>
+      ipcRenderer.invoke(IpcChannel.filesSaveFile, request) as Promise<SaveFileResult>,
   },
 };
 

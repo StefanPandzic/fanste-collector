@@ -82,6 +82,14 @@ Change all four places:
   `electron.vite.config.ts` aliases it to the Node build. The `.wasm` file is imported with
   `?asset&asarUnpack`, and `electron-builder.yml` unpacks `out/main/chunks/*.wasm` from the asar.
 
+## Saving files (FC-25)
+
+`window.fanste.files.saveFile` saves a file the web app built (an export). `main/files/save-file.ts`
+shows the native Save dialog (in Downloads) and writes the data; the renderer never sees or picks the
+path. The pure `save-file-request.ts` checks the request: the type (`csv`, `zip`, `pdf`), the content
+(text or bytes, at most `MAX_SAVE_FILE_BYTES`) and the suggested name (made a plain file name with
+the type's extension).
+
 ## Security model
 
 The renderer is treated as a remote web page: `contextIsolation`, `sandbox`, `nodeIntegration: false`,
@@ -111,7 +119,7 @@ The renderer is treated as a remote web page: `contextIsolation`, `sandbox`, `no
 ## Testing
 
 Importing `electron` outside Electron fails, so Vitest covers only Electron-free modules: `url-policy`, `web-url`,
-`deep-link`, `window-state`, `title-bar`, `shared/platform` and the scanner modules except `scanner-service`,
+`deep-link`, `window-state`, `title-bar`, `shared/platform`, `files/save-file-request` and the scanner modules except `scanner-service`,
 `media-prober` and the two workers.
 When adding logic, put the decisions in a pure module with a co-located `*.test.ts`, and keep the Electron wiring thin.
 

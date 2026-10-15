@@ -275,6 +275,20 @@ reads the user's default currency and renders `DashboardPageClient`.
   (`useScannerReviewCount`) for the Scanner nav badge (`reviewBadge` in `nav-items.ts`). The item
   page's `LinkedFilesSection` opens the same dialog.
 
+## Export (FC-25)
+
+`/export` is `features/export/`. The CSV export is one `ExportDialog`, opened from the export page
+(the whole collection), the gallery toolbar (its filters) and the selection bar (the selected items);
+the `ExportSource` says which.
+
+- The dialog lists the categories and custom collections in scope with their counts (the gallery
+  facets, or the selected items) and offers one CSV or a ZIP with one CSV per group, the order and the
+  provider's original values. The pure `export-view.ts` turns the choice into what to load.
+- `useLoadExportItems` reads the items fresh from the database; `@fanste/export` builds the file in
+  the browser. No route generates it.
+- `lib/save-file.ts` saves it: `window.fanste.files.saveFile` (native Save dialog) in the desktop app,
+  a Blob download otherwise. Desktop builds without `files` get the download too.
+
 ## Design system
 
 Tokens are in `packages/config/tailwind/theme.css`. On top of shadcn's colors it has status colors
