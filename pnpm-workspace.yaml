@@ -11,3 +11,5 @@ allowBuilds:
   electron: true
   # Only used by electron-builder's Squirrel.Windows target; we build NSIS installers.
   electron-winstaller: false
+  # jsPDF's optional polyfills (FC-26); its postinstall only prints a funding message.
+  core-js: false

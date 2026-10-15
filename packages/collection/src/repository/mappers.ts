@@ -1,5 +1,4 @@
 import {
-  COPY_DETAIL_STATUSES,
   customItemToNormalized,
   fromMetadataCacheRow,
   ITEM_CATEGORIES,
@@ -7,6 +6,7 @@ import {
   parseCollectionIcon,
   parseCustomItemData,
   parseOverrides,
+  VALUED_STATUSES,
 } from '@fanste/core';
 
 import type {
@@ -214,12 +214,6 @@ export interface ValueTotal {
   currency: string | null;
   total: number;
 }
-
-/**
- * Statuses whose items count towards the collection's value: the copies the user has (or has paid
- * for), the same statuses that carry copy details. Wishlist and sold items are left out.
- */
-export const VALUED_STATUSES: readonly OwnershipStatus[] = COPY_DETAIL_STATUSES;
 
 /** Copies added in one calendar month. */
 export interface MonthCount {

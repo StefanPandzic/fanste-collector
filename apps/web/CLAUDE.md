@@ -121,6 +121,7 @@ the error shape are in `@fanste/core` (`gateway/`), and clients call the gateway
 | `POST /api/items/batch`                                                     | Many items: one cache read, only misses go to providers. Refs it can't load come back in `missing` with a reason: `not_found` or `retry_later`                                                                     |
 | `POST /api/match/tmdb`                                                      | Scanner matching (FC-23): scored TMDB candidates per title (`server/match.ts`); a title whose search failed comes back `failed`                                                                                    |
 | `GET /api/platforms/igdb`                                                   | Every IGDB platform for a game copy's platform field (FC-11); cached per instance for a day                                                                                                                        |
+| `GET /api/image?url=`                                                       | A Discogs / BGG cover for the PDF export (FC-26): `IMAGE_PROXY_HOSTS` only (redirects too), image types only, `IMAGE_PROXY.maxBytes`; its own per-user limit (`imageRoute`)                                        |
 
 - Every route is wrapped in `gatewayRoute()` (`server/gateway.ts`). It authenticates (session cookies, or
   `Authorization: Bearer <jwt>` for a future mobile app; an invalid bearer is a 401), applies the per-user limit,
@@ -275,11 +276,12 @@ reads the user's default currency and renders `DashboardPageClient`.
   (`useScannerReviewCount`) for the Scanner nav badge (`reviewBadge` in `nav-items.ts`). The item
   page's `LinkedFilesSection` opens the same dialog.
 
-## Export (FC-25)
+## Export (FC-25, FC-26)
 
-`/export` is `features/export/`. The CSV export is one `ExportDialog`, opened from the export page
-(the whole collection), the gallery toolbar (its filters) and the selection bar (the selected items);
-the `ExportSource` says which.
+`/export` is `features/export/`. CSV and PDF share one `ExportDialog` (a format tab, then
+`CsvOptions` / `PdfOptions` from `export-options.tsx`), opened from the export page (the whole
+collection), the gallery toolbar (its filters) and the selection bar (the selected items); the
+`ExportSource` says which.
 
 - The dialog lists the categories and custom collections in scope with their counts (the gallery
   facets, or the selected items) and offers one CSV or a ZIP with one CSV per group, the order and the
@@ -288,6 +290,15 @@ the `ExportSource` says which.
   the browser. No route generates it.
 - `lib/save-file.ts` saves it: `window.fanste.files.saveFile` (native Save dialog) in the desktop app,
   a Blob download otherwise. Desktop builds without `files` get the download too.
+- **PDF (FC-26):** a catalog (cover grid) or an insurance list, A4 or Letter (`defaultPaperSize` from
+  the locale). The insurance list loads only the copies the user has (`pdfSource` adds the status
+  filter). `pdf-export.ts` is imported only when a PDF is made (jsPDF stays out of the page bundle):
+  it builds the model, loads the fonts and covers at the same time (`pdf-assets.ts`), then draws.
+  Covers go through a canvas to small JPEGs; hosts without CORS headers (`IMAGE_PROXY_HOSTS`) load
+  through `/api/image`, and a cover that fails becomes a placeholder. The fonts are in
+  `public/fonts` (OFL); the CJK ones (6–10 MB) load only when the text needs them. The cover page
+  prints the display name from `useDisplayName()` (`features/profile/profile-name-provider.tsx`,
+  provided by the `(app)` layout).
 
 ## Design system
 

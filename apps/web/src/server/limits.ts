@@ -108,6 +108,16 @@ export const REFRESH_LIMITS = {
   cooldownMs: 5 * 60_000,
 };
 
+/**
+ * The image proxy (FC-26): a PDF export loads one cover per Discogs / BGG item, so it has its own
+ * per-user limit instead of `USER_RATE_LIMIT`. `maxBytes` and `timeoutMs` bound each image.
+ */
+export const IMAGE_PROXY = {
+  perUser: { limit: 600, windowMs: 60_000 },
+  maxBytes: 5 * 1024 * 1024,
+  timeoutMs: 10_000,
+};
+
 /** Per-instance search result cache. */
 export const SEARCH_CACHE = { maxEntries: 500, ttlMs: 10 * 60_000 };
 
@@ -117,5 +127,7 @@ export const CACHE_CONTROL = {
   item: 'private, max-age=3600',
   /** The IGDB platform list (FC-11) changes a few times a year. */
   platforms: 'private, max-age=86400',
+  /** Proxied covers (FC-26) don't change. */
+  image: 'private, max-age=86400',
   noStore: 'no-store',
 };

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { exportLoadScope, progressLabel, sourceDescription } from './export-view';
+import { exportLoadScope, pdfSource, progressLabel, sourceDescription } from './export-view';
 
 import type { CollectionItem } from '@fanste/core';
 import type { ExportGroupKey, ExportTarget } from '@fanste/export';
@@ -94,5 +94,45 @@ describe('progressLabel', () => {
     expect(progressLabel({ phase: 'metadata', loaded: 20, total: 80 })).toBe(
       'Loading details of 20 of 80 items…',
     );
+  });
+
+  it('shows the phases of a PDF', () => {
+    expect(progressLabel({ phase: 'fonts', loaded: 0, total: 3 })).toBe('Loading fonts…');
+    expect(progressLabel({ phase: 'covers', loaded: 120, total: 500 })).toBe(
+      'Loading covers: 120 of 500…',
+    );
+    expect(progressLabel({ phase: 'pdf', loaded: 300, total: 500 })).toBe(
+      'Building the PDF: 300 of 500 items…',
+    );
+  });
+});
+
+describe('pdfSource', () => {
+  it('keeps the source of a grid catalog', () => {
+    expect(pdfSource(filterSource, 'grid')).toBe(filterSource);
+  });
+
+  it('keeps only the copies the user has in the insurance list', () => {
+    const wishlist = { ...abbeyRoad, ownership: 'wishlist' as const };
+    expect(pdfSource({ kind: 'selection', items: [inception, wishlist] }, 'insurance')).toEqual({
+      kind: 'selection',
+      items: [inception],
+    });
+    expect(pdfSource({ kind: 'all' }, 'insurance')).toEqual({
+      kind: 'filter',
+      filter: { ownership: ['owned', 'loaned_out', 'preordered'] },
+    });
+    expect(
+      pdfSource(
+        { kind: 'filter', filter: { search: 'star', ownership: ['owned', 'sold'] } },
+        'insurance',
+      ),
+    ).toEqual({ kind: 'filter', filter: { search: 'star', ownership: ['owned'] } });
+  });
+
+  it('returns null when the status filter leaves no copies the user has', () => {
+    expect(
+      pdfSource({ kind: 'filter', filter: { ownership: ['wishlist', 'sold'] } }, 'insurance'),
+    ).toBeNull();
   });
 });

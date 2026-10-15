@@ -41,6 +41,13 @@ export const COPY_DETAIL_STATUSES: readonly OwnershipStatus[] = [
   'preordered',
 ];
 
+/**
+ * Statuses whose items count towards the collection's value: the copies the user has (or has paid
+ * for), the same statuses that carry copy details. Wishlist and sold items are left out. The
+ * dashboard (FC-20) and the PDF insurance list (FC-26) both count these, so their totals match.
+ */
+export const VALUED_STATUSES: readonly OwnershipStatus[] = COPY_DETAIL_STATUSES;
+
 const optionText = z.string().trim().min(1).max(MAX_OPTION_LENGTH);
 
 /** ISO 639 language code, e.g. `en` or `sr` (see `LANGUAGE_CODES`). */

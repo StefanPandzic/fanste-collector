@@ -102,7 +102,13 @@ scanner settings, and FC-24's `fix-match.ts` picks the files a Fix Match choice 
 (PapaParse, UTF-8 BOM, CRLF, formula cells escaped) or a ZIP (fflate) with one CSV per category and
 custom collection. `columns.ts` lists the columns; each copy-detail column names the categories that
 have it, so a per-category file gets only its own. `groups.ts` holds the groups the user can pick
-(`exportTargets`, `targetFilters`).
+(`exportTargets`, `targetFilters`). The PDF catalog (FC-26, jsPDF + jspdf-autotable) is two steps:
+`buildPdfModel` (`pdf-model.ts`, pure: sections, entries, `valueTotals` in whole cents with the
+dashboard's statuses, so the insurance totals match it) and `buildCollectionPdf` (`pdf.ts`, draws a
+grid of covers or the insurance table). The app passes the covers (already downscaled) and the
+fonts in, so the package loads nothing itself; `pdf-fonts.ts` picks Noto Sans, Noto Sans SC or
+Noto Sans KR per text run (`fontNeeds` says which CJK fonts a model needs), and `pdf-layout.ts`
+holds the A4 / Letter geometry. `formatMoney` / `formatDate` live in `core` (`display-format.ts`).
 `config` holds the tsconfig, ESLint and Tailwind presets (the design tokens).
 
 **`@fanste/supabase`** holds the generated `Database` types (`database.types.ts`, written by `pnpm db:types`;

@@ -8,13 +8,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 
 import { ExportDialog } from './export-dialog';
 
-import type { ExportSource } from './export-view';
+import type { ExportFormat, ExportSource } from './export-view';
 
 const WHOLE_COLLECTION: ExportSource = { kind: 'all' };
 
-/** The export page (FC-25): CSV now, the PDF catalog in FC-26. */
+/** The export page: the whole collection as CSV (FC-25) or as a PDF catalog (FC-26). */
 export function ExportPageClient() {
-  const [csvOpen, setCsvOpen] = useState(false);
+  const [openFormat, setOpenFormat] = useState<ExportFormat | null>(null);
 
   return (
     <div className="mx-auto flex max-w-3xl flex-col gap-6">
@@ -38,7 +38,7 @@ export function ExportPageClient() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <Button onClick={() => setCsvOpen(true)}>Export to CSV…</Button>
+          <Button onClick={() => setOpenFormat('csv')}>Export to CSV…</Button>
         </CardContent>
       </Card>
 
@@ -48,12 +48,27 @@ export function ExportPageClient() {
             <FileText aria-hidden className="size-5" />
             PDF catalog
           </CardTitle>
-          <CardDescription>Coming soon (FC-26).</CardDescription>
+          <CardDescription>
+            A print-ready catalog of cover art with titles and copy details, or an insurance list
+            with purchase prices, estimated values and totals per category. On A4 or US Letter.
+          </CardDescription>
         </CardHeader>
+        <CardContent>
+          <Button onClick={() => setOpenFormat('pdf')}>Export to PDF…</Button>
+        </CardContent>
       </Card>
 
       {/* Mounted only while open, so its queries don't run on page load. */}
-      {csvOpen && <ExportDialog open onOpenChange={setCsvOpen} source={WHOLE_COLLECTION} />}
+      {openFormat && (
+        <ExportDialog
+          open
+          onOpenChange={(open) => {
+            if (!open) setOpenFormat(null);
+          }}
+          source={WHOLE_COLLECTION}
+          initialFormat={openFormat}
+        />
+      )}
     </div>
   );
 }

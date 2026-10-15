@@ -4,6 +4,7 @@
   "private": true,
   "description": "CSV and PDF export builders.",
   "type": "module",
+  "sideEffects": false,
   "exports": {
     ".": "./src/index.ts"
   },
@@ -22,6 +23,8 @@
   "dependencies": {
     "@fanste/core": "workspace:*",
     "fflate": "^0.8.3",
+    "jspdf": "4.2.1",
+    "jspdf-autotable": "5.0.8",
     "papaparse": "^5.7.0"
   }
 }

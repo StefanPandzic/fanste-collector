@@ -1,8 +1,9 @@
 import { cn } from 'cn';
 
+import { formatMoney } from '@fanste/core';
+
 import { categoryClasses } from '@/components/items/category-style';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { formatMoney } from '@/features/collection/gallery-items';
 
 import type { BarView, CategoryValueView } from './dashboard-view';
 

@@ -25,8 +25,8 @@ export interface CollectionExportOptions extends CollectionCsvOptions {
 export interface ExportFile {
   name: string;
   /** The file name extension. */
-  type: 'csv' | 'zip';
-  mimeType: 'text/csv' | 'application/zip';
+  type: 'csv' | 'zip' | 'pdf';
+  mimeType: 'text/csv' | 'application/zip' | 'application/pdf';
   data: string | Uint8Array;
 }
 
